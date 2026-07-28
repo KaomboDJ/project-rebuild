@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Rebuild Assistant"
+  short_description: "Personal decision coach for rebuilding athletic identity"
+  default_prompt: "Use $project-rebuild-assistant to help me choose and complete the next best decision today."
