@@ -1,28 +1,28 @@
 # Project Rebuild
 
-Decision Operating System — first end-to-end vertical slice. See `FOUNDER_CONTEXT.md` and `PROJECT_REBUILD_STATE.md` for product context.
+An AI-powered Decision Operating System. See `FOUNDER_CONTEXT.md`, `PROJECT_REBUILD_STATE.md`, and `REBUILD_MASTER_HANDOFF.md` for product context, and `docs/` for the current MVP's detailed spec — read `docs/IMPLEMENTATION_STATUS.md` first to see what's actually built versus planned.
 
-## Scope of this slice
+## Current state (Milestone 1 — Foundation)
 
-- One-time onboarding (identity, constraints, coaching tone).
-- Daily check-in (sleep, energy, stress, recovery flag) → derives an operating state.
-- Three prioritized decisions per day, seeded from the founder's real decision moments.
-- Complete/skip with a reason.
-- A simple Decision Score.
-- One in-app reminder (lunchtime training).
-- A Decision Coach backed by the Anthropic API behind a provider adapter (`lib/ai/provider.ts`), with a mock fallback when `ANTHROPIC_API_KEY` isn't set.
-
-No login/database yet — state lives in the browser's `localStorage`. Supabase is deferred until multi-device or server persistence is actually needed.
+- Supabase Auth (email magic link), route protection via middleware, an authenticated app shell (`/today`, `/history`, `/settings`).
+- A database migration with full Row Level Security (`profiles`, `calendar_connections`, `daily_check_ins`, `decision_runs`, `decisions`, `decision_feedback`).
+- The original local-only vertical slice (onboarding, check-in, day-type-aware decisions, Decision Score, in-app reminder, mock-capable Decision Coach) still runs inside the new authenticated shell as a bridge — profile/check-in/decision data isn't Supabase-persisted yet (Milestones 2/4+).
+- Google Calendar integration is not yet implemented (Milestone 3).
 
 ## Setup
 
 ```
 npm install
-cp .env.example .env.local   # add ANTHROPIC_API_KEY
+cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000 — first load redirects to `/onboarding`.
+Without any Supabase environment variables set, `/` shows a "foundation ready to connect" message instead of the sign-in form, and `/today`/`/history`/`/settings` are inaccessible (middleware has nothing to authenticate against). To exercise auth locally, create a Supabase project and set:
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- Apply `supabase/migrations/202607290001_foundation.sql` (Supabase CLI `db push`, or paste into the SQL editor)
+
+The Decision Coach (`/api/coach`) works independently of Supabase — set `ANTHROPIC_API_KEY` to get live responses; without it, it falls back to a mock response.
 
 ## Tests
 
@@ -30,8 +30,14 @@ Open http://localhost:3000 — first load redirects to `/onboarding`.
 npm test
 ```
 
-Covers operating-state derivation, decision prioritization, and the Decision Score.
+## Lint, format, type-check
+
+```
+npm run lint
+npm run typecheck
+npm run format:check   # or `npm run format` to fix
+```
 
 ## Deploying
 
-Push to a Git repo connected to Vercel, or run `vercel`. Set `ANTHROPIC_API_KEY` (and optionally `ANTHROPIC_MODEL`, default `claude-sonnet-5`) as a Vercel environment variable — without it, the coach falls back to a mock response so the rest of the app still works.
+GitHub: `KaomboDJ/project-rebuild`, branch `main`. Vercel auto-deploys pushes to `main` — production is live at `https://project-rebuild-chi.vercel.app`. Set the same environment variables listed above (plus Google OAuth vars once Milestone 3 lands) in the Vercel project settings.

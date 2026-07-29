@@ -12,8 +12,10 @@ Before proposing or implementing product work, read:
 4. `skills/project-rebuild-assistant/references/user-profile.md` — first-user context.
 5. `skills/project-rebuild-assistant/references/decision-protocols.md` — initial decision logic and safety constraints.
 6. `PRODUCT_BACKLOG.md` — agreed future modules; context only unless the user explicitly promotes an item into the active scope.
+7. `docs/01_FOUNDER_CONTEXT.md` through `docs/12_ROADMAP.md` — the current MVP iteration's detailed spec (calendar-aware decision engine, Supabase, Google Calendar OAuth). Read in numeric order.
+8. `docs/IMPLEMENTATION_STATUS.md` — live status of the current build; check this before assuming what already exists.
 
-If documents conflict, `FOUNDER_CONTEXT.md` controls product vision, while `PROJECT_REBUILD_STATE.md` controls the current experiment.
+If documents conflict: `FOUNDER_CONTEXT.md` controls product vision; `PROJECT_REBUILD_STATE.md` controls the founder's current day-to-day experiment; `docs/05_MVP_SPEC.md` controls the scope of the current engineering iteration.
 
 ## Product rule
 
@@ -27,7 +29,9 @@ If the answer is unclear, stop and flag the conflict instead of building the fea
 
 Validate whether timely, context-aware interventions improve real-world decisions for the founder.
 
-The first vertical slice should support:
+The current iteration (`docs/05_MVP_SPEC.md`) extends the first vertical slice with calendar context: authentication, Google Calendar read, free-window detection, exactly three calendar-aware decisions a day, accept/complete/skip/edit, optional calendar intervention events, decision history, and a Decision Score. See `docs/06_DECISION_ENGINE.md` through `docs/08_AI_ARCHITECTURE.md` for the engine design and `docs/IMPLEMENTATION_STATUS.md` for what's actually built versus blocked on external credentials.
+
+The original first vertical slice (still a valid reference for reused concepts, superseded as the active target):
 
 1. A short onboarding capturing identity, constraints, risks, and preferred coaching tone.
 2. A daily state check-in for sleep, energy, and stress.
@@ -43,10 +47,11 @@ The first vertical slice should support:
 - TypeScript.
 - Tailwind CSS.
 - Vercel deployment.
-- Supabase for authentication and persistence when server persistence is introduced.
-- Anthropic Claude API as the initial AI provider.
+- Supabase for authentication and persistence (now active — see `docs/09_TECHNICAL_ARCHITECTURE.md`, `docs/10_DATABASE.md`).
+- Google Calendar API + OAuth 2.0, server-side only (see `docs/05_MVP_SPEC.md`).
+- Anthropic Claude API as the initial AI provider, used only to rank/personalize/rewrite — never to select decisions (see `docs/08_AI_ARCHITECTURE.md`).
 - Keep the AI provider behind a small adapter so it can be replaced later.
-- Prefer a mobile-first Progressive Web App before native mobile development.
+- Mobile-first Progressive Web App.
 
 Do not introduce a complex architecture before the first end-to-end decision loop works.
 
