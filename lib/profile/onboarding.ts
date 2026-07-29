@@ -1,0 +1,98 @@
+// Pure helpers for the real (Supabase-backed) onboarding form — Milestone 2.
+// Field set and required-ness mirror docs/05_MVP_SPEC.md's `/onboarding`
+// route description and the `profiles` table constraints in
+// supabase/migrations/202607290001_foundation.sql (time format regex,
+// primary_objective check). Kept separate from lib/decision-engine/types.ts
+// so this stays importable from client components (no "server-only").
+
+export const PRIMARY_OBJECTIVES = [
+  { value: "rebuild-fitness", label: "Reconstruir a forma física" },
+  { value: "lose-weight", label: "Perder peso" },
+  { value: "train-consistently", label: "Treinar com consistência" },
+  { value: "improve-nutrition", label: "Melhorar a nutrição" },
+  { value: "improve-sleep", label: "Melhorar o sono" },
+] as const;
+
+export type PrimaryObjective = (typeof PRIMARY_OBJECTIVES)[number]["value"];
+
+export const WEEKDAYS = [
+  { value: "monday", label: "Segunda" },
+  { value: "tuesday", label: "Terça" },
+  { value: "wednesday", label: "Quarta" },
+  { value: "thursday", label: "Quinta" },
+  { value: "friday", label: "Sexta" },
+  { value: "saturday", label: "Sábado" },
+  { value: "sunday", label: "Domingo" },
+] as const;
+
+// Mirrors lib/decision-engine/context-builder.ts's DEFAULT_PROFILE (kept as
+// plain literals here, not imported, since that module is server-only).
+export const ONBOARDING_DEFAULTS: OnboardingDraft = {
+  preferredName: "",
+  timezone: "Europe/Lisbon",
+  currentIdentity: "",
+  desiredIdentity: "",
+  primaryObjective: "rebuild-fitness",
+  preferredTrainingDays: ["monday", "wednesday", "friday"],
+  preferredTrainingTime: "12:00",
+  typicalDinnerTime: "20:00",
+  targetSleepTime: "23:00",
+  currentConstraints: "",
+  interventionTone: "",
+};
+
+export interface OnboardingDraft {
+  preferredName: string;
+  timezone: string;
+  currentIdentity: string;
+  desiredIdentity: string;
+  primaryObjective: string;
+  preferredTrainingDays: string[];
+  preferredTrainingTime: string;
+  typicalDinnerTime: string;
+  targetSleepTime: string;
+  currentConstraints: string;
+  interventionTone: string;
+}
+
+export interface OnboardingErrors {
+  preferredName?: string;
+  currentIdentity?: string;
+  desiredIdentity?: string;
+  primaryObjective?: string;
+  preferredTrainingDays?: string;
+  preferredTrainingTime?: string;
+  typicalDinnerTime?: string;
+  targetSleepTime?: string;
+  currentConstraints?: string;
+  interventionTone?: string;
+}
+
+const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+
+/** Same shape of checks as the DB constraints, run client-side first so a
+ * bad submission never round-trips to Supabase only to be rejected there. */
+export function validateOnboardingDraft(draft: OnboardingDraft): OnboardingErrors {
+  const errors: OnboardingErrors = {};
+
+  if (!draft.preferredName.trim()) errors.preferredName = "Obrigatório.";
+  if (!draft.currentIdentity.trim()) errors.currentIdentity = "Obrigatório.";
+  if (!draft.desiredIdentity.trim()) errors.desiredIdentity = "Obrigatório.";
+  if (!PRIMARY_OBJECTIVES.some((objective) => objective.value === draft.primaryObjective)) {
+    errors.primaryObjective = "Escolhe um objetivo.";
+  }
+  if (draft.preferredTrainingDays.length === 0) {
+    errors.preferredTrainingDays = "Escolhe pelo menos um dia.";
+  }
+  if (!TIME_RE.test(draft.preferredTrainingTime)) errors.preferredTrainingTime = "Hora inválida (HH:MM).";
+  if (!TIME_RE.test(draft.typicalDinnerTime)) errors.typicalDinnerTime = "Hora inválida (HH:MM).";
+  if (!TIME_RE.test(draft.targetSleepTime)) errors.targetSleepTime = "Hora inválida (HH:MM).";
+  if (!draft.currentConstraints.trim()) errors.currentConstraints = "Obrigatório.";
+  if (!draft.interventionTone.trim()) errors.interventionTone = "Obrigatório.";
+
+  return errors;
+}
+
+export function isOnboardingValid(draft: OnboardingDraft): boolean {
+  return Object.keys(validateOnboardingDraft(draft)).length === 0;
+}

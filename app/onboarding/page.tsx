@@ -1,22 +1,37 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { OnboardingForm } from "@/components/OnboardingForm";
 
-import { useRouter } from "next/navigation";
-import { OnboardingForm, type OnboardingDraft } from "@/components/OnboardingForm";
-import { saveProfile } from "@/lib/storage/local";
+export default async function OnboardingPage() {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    redirect("/?setup=required");
+  }
 
-export default function OnboardingPage() {
-  const router = useRouter();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/");
+  }
 
-  function handleSubmit(draft: OnboardingDraft) {
-    saveProfile({ ...draft, completedAt: new Date().toISOString() });
-    router.replace("/");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // Already onboarded — don't show the form again if the user navigates
+  // here directly; send them to the app.
+  if (profile?.onboarding_completed) {
+    redirect("/today");
   }
 
   return (
     <main className="mx-auto max-w-xl px-4 py-8">
       <p className="text-sm uppercase tracking-wide text-neutral-400">Project Rebuild</p>
       <h1 className="mb-6 text-2xl font-semibold">Vamos começar</h1>
-      <OnboardingForm onSubmit={handleSubmit} />
+      <OnboardingForm initialProfile={profile ?? null} />
     </main>
   );
 }
