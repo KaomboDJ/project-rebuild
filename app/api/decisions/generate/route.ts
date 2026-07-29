@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { buildDailyContext } from "@/lib/decision-engine/context-builder";
+import { buildDailyContext, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { generateDecisions } from "@/lib/decision-engine/generator";
 import { localDateKey, localTimeHHMM } from "@/lib/date/local";
+import { getCalendarEventsForDate } from "@/lib/google/calendar";
 
 /**
  * Generates (or regenerates) today's exactly-three decisions for the
@@ -27,7 +28,23 @@ export async function POST() {
   const date = localDateKey();
   const now = `${date}T${localTimeHHMM()}:00`;
 
-  const context = await buildDailyContext({ supabase, userId: user.id, date, now });
+  // Timezone is needed up front to query Google Calendar's [timeMin, timeMax)
+  // correctly (see lib/date/timezone.ts) - buildDailyContext fetches the
+  // full profile itself, so this is a small, deliberate duplicate read
+  // rather than restructuring context-builder.ts for Milestone 3.
+  const { data: timezoneRow } = await supabase
+    .from("profiles")
+    .select("timezone")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const timezone = timezoneRow?.timezone || DEFAULT_PROFILE.timezone;
+
+  // Empty array (not an error) if the user hasn't connected Google Calendar,
+  // or if the read fails - the decision engine must still work without it
+  // (docs/06_DECISION_ENGINE.md).
+  const calendarEvents = await getCalendarEventsForDate(user.id, date, timezone);
+
+  const context = await buildDailyContext({ supabase, userId: user.id, date, now, calendarEvents });
   const { decisions, engineVersion } = await generateDecisions(context);
 
   const { data: run, error: runError } = await supabase

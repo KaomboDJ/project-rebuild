@@ -2,20 +2,19 @@
 
 Living status tracker. Check this before assuming what already exists — `docs/` design files describe target architecture, not necessarily what's built yet. Update this file as milestones progress.
 
-Last updated: 2026-07-29.
+Last updated: 2026-07-30.
 
 ## Deployment
 
-- **GitHub**: `https://github.com/KaomboDJ/project-rebuild.git`, branch `main`, latest published commit `7648e4e` ("Add Milestone 4: deterministic decision engine + AI refinement"). Milestone 2 work (onboarding → Supabase, below) is a fresh working-tree change on top of this, **not yet committed**.
-- **Vercel**: production is live at `https://project-rebuild-chi.vercel.app`, auto-deploying pushes to `main`. Confirmed serving commit `7648e4e` live — `/today` renders the real Decision Engine check-in form for the founder's own session.
+- **GitHub**: `https://github.com/KaomboDJ/project-rebuild.git`, branch `main`, latest published commit `4f1db56` ("Add Milestone 2: onboarding to Supabase persistence"). Milestone 3 work (Google Calendar, below) is a fresh working-tree change on top of this, **not yet committed**.
+- **Vercel**: production is live at `https://project-rebuild-chi.vercel.app`, auto-deploying pushes to `main`. Confirmed serving commit `4f1db56` live.
 - **Supabase**: project `project-rebuild` (ref `ghogleattdmdragyrwof`, region Europe) is live. The full migration (`supabase/migrations/202607290001_foundation.sql`) has been applied and verified in the Table Editor — all 6 tables exist with RLS, and `calendar_connections` correctly has no public API exposure. Auth redirect URLs configured for both `localhost:3000` and the production domain.
+- **Google Cloud**: project `project-rebuild` (ID `project-rebuild-503922`), OAuth consent screen (External, Testing, scope `calendar.events`, test user is the founder's own account) and a Web OAuth client both exist. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI` are set locally and in Vercel (Production + Preview, with the correct redirect URI per environment).
 - **Anthropic**: credentials exist locally (`.env.local`) and in Vercel. Never printed, committed, or logged.
 
-## No remaining external-credential gaps for Milestones 1, 2, or 4
+## No remaining external-credential gaps
 
-Supabase is live; `TOKEN_ENCRYPTION_KEY` is generated and set (local + Vercel). The only remaining gap is:
-
-- **Google Cloud OAuth client** — not yet created. Blocks Milestone 3 (Google Calendar) entirely (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI`).
+Supabase, Google Cloud OAuth, and `TOKEN_ENCRYPTION_KEY` are all live (local + Vercel). Nothing currently blocks Milestones 1–4 on external setup.
 
 ## Milestone 1 — Foundation: Done, committed, pushed, deployed
 
@@ -41,7 +40,7 @@ Built ahead of Milestones 2 (onboarding→Supabase) and 3 (Google Calendar) per 
 
 Validated via lint, typecheck, 102/102 tests, and a production build in an isolated sandbox copy of `node_modules` (see commit `7648e4e`). Two real bugs surfaced and were fixed during that pass: two `tsc` errors from untyped Supabase update/`Json` payloads, and a missing `server-only` dependency (added, plus a Vitest alias so tests don't hit its throwing branch — see `test/server-only-stub.ts`).
 
-## Milestone 2 — Onboarding → Supabase persistence: Built, not yet committed
+## Milestone 2 — Onboarding → Supabase persistence: Done, committed, pushed, deployed
 
 Replaces the old localStorage-only onboarding with a real `profiles` row, closing the gap noted above (the engine no longer needs to fall back to `DEFAULT_PROFILE` once a founder completes this form). The `profiles` table, RLS policies, and grants already existed from Milestone 1's migration — this is purely an application-layer change, no new migration required.
 
@@ -55,8 +54,33 @@ Replaces the old localStorage-only onboarding with a real `profiles` row, closin
 
 `working_hours` is intentionally left at its DB default (`09:00`–`18:00`) — not part of the onboarding spec; would belong on `/settings` if it needs to become user-editable later.
 
-Validated the same way as Milestone 4 (isolated sandbox copy, fresh `node_modules`): lint clean, typecheck clean, 114/114 tests (12 new), build succeeds. `/onboarding` and `/today` are both server-rendered on demand (`ƒ`), as expected given the auth + profile checks on every request.
+Validated the same way as Milestone 4 (isolated sandbox copy, fresh `node_modules`): lint clean, typecheck clean, 114/114 tests (12 new), build succeeds. `/onboarding` and `/today` are both server-rendered on demand (`ƒ`), as expected given the auth + profile checks on every request. Committed as `4f1db56`, pushed, and confirmed live on Vercel.
 
-## Milestones 3, 5–8
+## Milestone 3 — Google Calendar integration: Built, not yet validated/committed
 
-Not started. Milestone 3 (Google Calendar) unlocks the 5 dormant calendar-dependent rules already written and tested, and is blocked on a Google Cloud OAuth client (see the external-credential gap above). See `12_ROADMAP.md` for full ordering.
+Google Cloud project, OAuth consent screen, and OAuth client were set up directly in Google Cloud Console (with the founder's explicit go-ahead at each step — new project, ToS acceptance). Application code wires the OAuth connect/callback/disconnect flow, encrypted token storage, calendar reads, and optional intervention-event creation into the existing Decision Engine and `/settings`.
+
+| Item | Status | Notes |
+|---|---|---|
+| `lib/crypto/tokens.ts` | Done | AES-256-GCM encrypt/decrypt for `calendar_connections` tokens at rest, using Node's built-in `crypto` (no external dependency). Packed format is versioned (`v1:iv:authTag:ciphertext`) so the scheme can evolve later. |
+| `lib/date/timezone.ts` | Done, tested | Converts a wall-clock local time to a UTC instant and computes a full local-day `[timeMin, timeMax)` range for Google's `events.list`. Deliberately separate from `lib/date/local.ts` (server-local time only) — this one is timezone-aware. 4 tests (Lisbon DST, UTC, America/New_York, full-day range). |
+| `lib/google/oauth.ts` | Done | Dependency-free OAuth 2.0 client (`fetch` against Google's REST endpoints, not the `googleapis` SDK): `buildGoogleAuthUrl`, `exchangeCodeForTokens`, `refreshAccessToken`, `revokeGoogleToken`, `isGoogleCalendarConfigured`. Requests `access_type=offline` + `prompt=consent` so a refresh token is always issued. Scope is the minimum needed: `calendar.events`. |
+| `lib/google/calendar.ts` | Done | `getValidAccessToken` (reads the encrypted connection, refreshes and persists a new access token if expired, returns `null` if never connected), `getCalendarEventsForDate` (queries Google, maps to the engine's `CalendarEvent` shape, fails safe to `[]`), `createInterventionEvent` (creates a calendar event for an accepted decision, tagged `extendedProperties.private.createdBy`), `saveCalendarConnection` / `disconnectCalendar` / `isCalendarConnected`. All admin-client-only, matching `calendar_connections`' service-role-only RLS. |
+| `app/api/google/connect/route.ts` | Done | Authenticated GET: sets a short-lived CSRF state cookie, redirects to Google's consent screen. |
+| `app/api/google/callback/route.ts` | Done | Authenticated GET: verifies the state cookie, exchanges the code, persists the encrypted connection, redirects to `/settings` with a status query param. |
+| `app/(app)/settings/actions.ts` | Done | Server action `disconnectGoogleCalendar` — revokes with Google (best-effort) and deletes the local row regardless. |
+| `app/(app)/settings/page.tsx` | Updated | Real Google Calendar section: connect link, connected/disconnected/denied/error/not-configured status messages, disconnect button. Replaces the old "will be wired up later" placeholder. |
+| `app/api/calendar/create-intervention/route.ts` | Done | Authenticated POST: creates a calendar event for a specific accepted/edited decision that has a recommended time window, stores the returned Google event id on the `decisions` row. Returns `409` (not an error state in the UI) if the user hasn't connected a calendar — the decision loop never depends on this. |
+| `components/DecisionEngineCard.tsx` | Updated | "Adicionar ao calendário" button appears once a decision is accepted/edited and has a time window; shows a quiet note once the event exists, and a specific message if the user isn't connected yet. |
+| `app/api/decisions/generate/route.ts` | Updated | Now reads the profile's timezone, fetches today's calendar events via `getCalendarEventsForDate`, and passes them into `buildDailyContext` — the 5 dormant calendar-dependent rules from Milestone 4 become live for any user who has connected Google Calendar. Still generates decisions correctly with `calendarEvents: []` if not connected. |
+| `.env.example` | Already covered | `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI`/`TOKEN_ENCRYPTION_KEY` were already documented from Milestone 3 prep — no change needed. |
+
+Not yet done: `app/api/google/disconnect/route.ts` was planned but superseded by the `app/(app)/settings/actions.ts` server action instead (same effect, no extra client-side fetch/round-trip, consistent with the existing `signOut` pattern). A standalone `app/api/calendar/today/route.ts` was planned but skipped — nothing in the app currently needs calendar data outside the decision-generation flow, and an unused route is dead code.
+
+**Known limitation carried over from Milestone 4, not introduced here**: `context-builder.ts`'s day-boundary math (`${date}T00:00:00` / `${date}T23:59:59`) is parsed as the server process's local time, not the founder's actual timezone — a pre-existing simplification. `getCalendarEventsForDate` itself queries Google with the *correct* timezone-aware range (`lib/date/timezone.ts`), so the calendar events returned are correct; the free-window math that consumes them inherits the existing ~offset-sized imprecision near midnight. Worth fixing if it causes a visible issue, not blocking for this milestone.
+
+Not yet validated: lint/typecheck/tests/build have not been run in the isolated sandbox for this change, and it has not been committed, pushed, or deployed. The end-to-end OAuth consent flow (actually visiting `/api/google/connect` and granting access as the test user) also hasn't been exercised live — that's a "grant OAuth/SSO permissions" action, so it should happen with the founder present rather than via unattended browser automation.
+
+## Milestones 5–8
+
+Not started. See `12_ROADMAP.md` for full ordering.

@@ -32,6 +32,7 @@ export function DecisionEngineCard({
   const [skipReason, setSkipReason] = useState("");
   const [editedAction, setEditedAction] = useState(decision.recommended_action);
   const [busy, setBusy] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
 
   async function patch(body: Record<string, unknown>) {
     setBusy(true);
@@ -44,6 +45,28 @@ export function DecisionEngineCard({
       if (response.ok) {
         const { decision: updated } = await response.json();
         onUpdate(decision.id, updated);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addToCalendar() {
+    setBusy(true);
+    setCalendarError(null);
+    try {
+      const response = await fetch("/api/calendar/create-intervention", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decisionId: decision.id }),
+      });
+      if (response.ok) {
+        const { calendarEventId } = await response.json();
+        onUpdate(decision.id, { ...decision, calendar_event_id: calendarEventId });
+      } else if (response.status === 409) {
+        setCalendarError("Liga o Google Calendar em Definições primeiro.");
+      } else {
+        setCalendarError("Não foi possível adicionar ao calendário.");
       }
     } finally {
       setBusy(false);
@@ -101,8 +124,23 @@ export function DecisionEngineCard({
           >
             Não deu
           </button>
+          {start &&
+            (decision.status === "accepted" || decision.status === "edited") &&
+            !decision.calendar_event_id && (
+              <button
+                disabled={busy}
+                className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
+                onClick={addToCalendar}
+              >
+                Adicionar ao calendário
+              </button>
+            )}
         </div>
       )}
+      {decision.calendar_event_id && (
+        <p className="mt-2 text-xs text-neutral-500">No teu Google Calendar.</p>
+      )}
+      {calendarError && <p className="mt-2 text-xs text-red-400">{calendarError}</p>}
 
       {!isPending && (
         <p className="mt-3 text-sm text-neutral-400">
