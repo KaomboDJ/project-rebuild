@@ -11,6 +11,17 @@ describe("generateRuleDecisions", () => {
     );
     expect(decisions.every((d) => d.source === "rule")).toBe(true);
   });
+
+  it("carries relatedPantryItem through to the generated nutrition decision (Milestone 11D)", () => {
+    const decisions = generateRuleDecisions(
+      baseContext({
+        now: "2026-07-29T17:30:00",
+        pantryItems: [{ name: "Frango", quantity: 2, unit: "un", portable: true, expiresOn: "2026-07-30" }],
+      })
+    );
+    const nutrition = decisions.find((d) => d.domain === "nutrition");
+    expect(nutrition?.relatedPantryItem).toBe("Frango");
+  });
 });
 
 describe("generateDecisions", () => {

@@ -106,6 +106,7 @@ export async function POST() {
         confidence: decision.confidence,
         source: decision.source,
         status: "proposed" as const,
+        related_pantry_item: decision.relatedPantryItem ?? null,
       }))
     )
     .select("*");

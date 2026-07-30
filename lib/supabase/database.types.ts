@@ -180,6 +180,7 @@ export interface Database {
           calendar_event_id: string | null;
           completed_at: string | null;
           skipped_reason: string | null;
+          related_pantry_item: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -201,6 +202,7 @@ export interface Database {
           calendar_event_id?: string | null;
           completed_at?: string | null;
           skipped_reason?: string | null;
+          related_pantry_item?: string | null;
           created_at?: string;
           updated_at?: string;
         };

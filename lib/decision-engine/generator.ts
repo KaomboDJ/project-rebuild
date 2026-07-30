@@ -31,6 +31,7 @@ function toGeneratedDecision(candidate: ScoredCandidate): GeneratedDecision {
     impact: candidate.baseImpact,
     confidence: candidate.confidence,
     source: "rule",
+    relatedPantryItem: candidate.relatedPantryItem,
   };
 }
 

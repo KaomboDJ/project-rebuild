@@ -109,6 +109,14 @@ export interface DecisionCandidate {
   requiresFreeWindow: boolean;
   minWindowMinutes?: number;
   baseImpact: DecisionImpact;
+  /**
+   * Milestone 11D: the exact `pantry_items.name` this decision names (set by
+   * decideDinnerEarly / avoidTakeawayCommitment via pickDinnerSuggestion,
+   * Milestone 11C), carried through scoring/selection/persistence so that
+   * completing the decision can auto-consume that pantry item without the
+   * founder re-entering it manually. Undefined when no pantry item was named.
+   */
+  relatedPantryItem?: string;
 }
 
 export interface ScoredCandidate extends DecisionCandidate {
@@ -126,4 +134,6 @@ export interface GeneratedDecision {
   impact: DecisionImpact;
   confidence: number;
   source: DecisionSource;
+  /** Milestone 11D — see DecisionCandidate.relatedPantryItem. */
+  relatedPantryItem?: string;
 }

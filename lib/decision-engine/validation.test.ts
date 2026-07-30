@@ -65,6 +65,25 @@ describe("validateGeneratedDecisions", () => {
     expect(validateGeneratedDecisions(changed, ORIGINAL)).toBeNull();
   });
 
+  it("re-attaches relatedPantryItem from the original rather than trusting the AI payload (Milestone 11D)", () => {
+    const withPantryItem: GeneratedDecision[] = [
+      ORIGINAL[0],
+      { ...ORIGINAL[1], relatedPantryItem: "Frango" },
+      ORIGINAL[2],
+    ];
+    const reworded = withPantryItem.map((d) => ({ ...d, title: `${d.title}!`, source: "ai" as const }));
+    const result = validateGeneratedDecisions(reworded, withPantryItem);
+    expect(result).not.toBeNull();
+    const nutrition = result?.find((d) => d.domain === "nutrition");
+    expect(nutrition?.relatedPantryItem).toBe("Frango");
+  });
+
+  it("leaves relatedPantryItem undefined when the original didn't set one", () => {
+    const reworded = ORIGINAL.map((d) => ({ ...d, title: `${d.title}!`, source: "ai" as const }));
+    const result = validateGeneratedDecisions(reworded, ORIGINAL);
+    expect(result?.every((d) => d.relatedPantryItem === undefined)).toBe(true);
+  });
+
   it("rejects malformed JSON shapes gracefully (no throw)", () => {
     expect(() => validateGeneratedDecisions({ not: "an array" }, ORIGINAL)).not.toThrow();
     expect(validateGeneratedDecisions({ not: "an array" }, ORIGINAL)).toBeNull();

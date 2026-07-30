@@ -52,5 +52,12 @@ export function validateGeneratedDecisions(
     if ((decision.recommendedEnd ?? null) !== (source.recommendedEnd ?? null)) return null;
   }
 
-  return parsed.data.map((d) => ({ ...d, source: "ai" as const }));
+  // relatedPantryItem (Milestone 11D) isn't part of what the AI is asked to
+  // return — it's re-attached here from the deterministic original rather
+  // than trusted from the AI payload, same treatment as impact/timing above.
+  return parsed.data.map((d) => ({
+    ...d,
+    source: "ai" as const,
+    relatedPantryItem: byDomain.get(d.domain)?.relatedPantryItem,
+  }));
 }

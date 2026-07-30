@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { consumeRelatedPantryItem } from "@/lib/coach/pantry-context";
 
 type DecisionUpdate = Database["public"]["Tables"]["decisions"]["Update"];
 
@@ -54,5 +55,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "update-failed" }, { status: 404 });
   }
 
-  return NextResponse.json({ decision: data });
+  // Milestone 11D: completing a decision that named a specific pantry item
+  // (Milestone 11C) auto-consumes that item so the pantry stays accurate
+  // without a separate manual step. Best-effort and never blocks the
+  // response — a missing/renamed item just means nothing to consume.
+  let pantryConsumed: string | null = null;
+  if (status === "completed" && data.related_pantry_item) {
+    try {
+      const result = await consumeRelatedPantryItem(supabase, user.id, data.related_pantry_item);
+      if (result.consumed) pantryConsumed = result.itemName ?? data.related_pantry_item;
+    } catch {
+      // Non-blocking by design — see consumeRelatedPantryItem's doc comment.
+    }
+  }
+
+  return NextResponse.json({ decision: data, pantryConsumed });
 }

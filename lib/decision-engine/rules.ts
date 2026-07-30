@@ -202,6 +202,7 @@ export function decideDinnerEarly(context: DailyContext): DecisionCandidate[] {
       baseReason: "Decidir agora evita a decisão por cansaço mais tarde — janta comida que já existe em casa.",
       requiresFreeWindow: false,
       baseImpact: "high",
+      relatedPantryItem: suggestion?.name,
     },
   ];
 }
@@ -271,6 +272,7 @@ export function avoidTakeawayCommitment(context: DailyContext): DecisionCandidat
       baseReason: "Nos últimos dias houve um padrão de saltar a decisão do jantar — vamos travar isso agora.",
       requiresFreeWindow: false,
       baseImpact: "high",
+      relatedPantryItem: suggestion?.name,
     },
   ];
 }

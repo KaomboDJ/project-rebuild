@@ -25,6 +25,7 @@ function decision(overrides: Partial<DecisionRow> = {}): DecisionRow {
     calendar_event_id: null,
     completed_at: null,
     skipped_reason: null,
+    related_pantry_item: null,
     created_at: "2026-07-30T06:00:00Z",
     updated_at: "2026-07-30T06:00:00Z",
     ...overrides,
