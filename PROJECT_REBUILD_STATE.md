@@ -38,6 +38,14 @@ The Founder Pilot (14 days, see `docs/12_ROADMAP.md`) is explicitly a usage-and-
 
 This is recorded here, rather than silently building the feature or silently refusing it, so the pilot's "no new modules" rule stays meaningful for anything proposed after this: it is still the default, this was a deliberate, informed, founder-approved exception for this specific milestone, not a precedent that the rule no longer applies. See `docs/12_ROADMAP.md`'s "Founder Pilot" section for what shipped under this exception.
 
+## Governance note — 2026-07-30 (full roadmap authorization)
+
+Later the same day, the founder went further than the single Coach/Pantry exception above: he explicitly authorized the full remaining roadmap — Milestones 10 through 14 (release Coach UX + Pantry Intelligence; a Daily Planning Engine with multi-Google-account calendar support; the complete seven-day Nutrition Toolkit; continuous calendar sync and proactive interventions; and a privacy-conscious learning/personalization layer) — superseding the Founder Pilot's "no new modules" restriction for these specifically.
+
+Before starting on this authorization, the founder was shown that the request was an order-of-magnitude larger scope than anything approved so far, delivered in a very different style from the rest of the conversation, and asked directly to confirm identity and preferred execution mode. He confirmed it was him and chose to proceed **milestone by milestone, with a check-in after each one** — not as one uninterrupted autonomous run through production merges and deploys. That means: each milestone (10, 11, 12, 13, 14) is built, validated, documented, and committed on its own; production migrations, branch merges, and Vercel production deploys each require a fresh explicit go-ahead, the same pattern already used for the Coach/Pantry milestone rather than a standing blanket authorization to merge/deploy unattended.
+
+See `docs/12_ROADMAP.md`'s "Full roadmap authorization" section for the milestone list and current status, and `docs/IMPLEMENTATION_STATUS.md` for the live per-milestone tracker.
+
 ## Update rule
 
 Update this file only when the baseline, current experiment, non-negotiable, or operating plan materially changes.

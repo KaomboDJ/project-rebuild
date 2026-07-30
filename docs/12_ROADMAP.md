@@ -27,12 +27,26 @@ Advancement criterion after the 14 days: if the loop demonstrates value, move to
 
 ## After the pilot validates
 
-Not started until the calendar-aware decision loop is proven for the founder:
+Not started until the calendar-aware decision loop is proven for the founder — **superseded for Milestones 11-14 by the full roadmap authorization below**, which explicitly moves these items from "after the pilot validates" to "authorized now, sequenced with check-ins":
 
 - `PRODUCT_BACKLOG.md` (repo root) / `REBUILD_MASTER_HANDOFF.md` §10 — Nutrition Toolkit module, explicitly deferred.
-- Identity progression levels (Restart → Momentum → Competitor → Athlete → Mentor).
-- Learned/adaptive prediction, once there is enough logged decision-outcome data to evaluate it against the deterministic rules baseline.
+- Identity progression levels (Restart → Momentum → Competitor → Athlete → Mentor) — still not authorized; not part of Milestones 10-14.
+- Learned/adaptive prediction — authorized as Milestone 14, still bound by its own acceptance criteria (deterministic cold start, minimum evidence thresholds, no opaque scoring) rather than started ahead of real data existing.
+
+## Full roadmap authorization — 2026-07-30
+
+The founder explicitly authorized Milestones 10-14 below, overriding the Founder Pilot's "no new modules" rule for these specifically (see `PROJECT_REBUILD_STATE.md`'s matching governance note for the confirmation exchange). Execution mode: **milestone by milestone, with a check-in after each** — not one unattended run through production. Each milestone gets its own validation pass, its own commit(s), and its own explicit go-ahead before any production migration, branch merge, or Vercel production deploy.
+
+| # | Milestone | Status |
+|---|---|---|
+| 10 | Review and release Coach UX + Pantry Intelligence | Build, validation, and live smoke test complete (see `docs/IMPLEMENTATION_STATUS.md`); production migrations applied; two bugs found in smoke test (chat truncation, empty message bubble) fixed and re-verified on Preview. Merge to `main`/production deploy withheld pending founder go-ahead. |
+| 11 | Daily Planning Engine ("Programar o meu dia") — multi-account Google Calendar (11A), planning workflow (11B), calendar-aware meal recommendation (11C), pantry/consumption/shopping integration (11D) | Not started |
+| 12 | Complete Nutrition Toolkit (profile, recipe/food library, 7-day planner, shopping list, meal execution, Coach integration) | Not started |
+| 13 | Automation and continuous synchronization (incremental Calendar sync, proactive interventions, replanning, daily briefings) | Not started |
+| 14 | Learning and personalization (outcome logging, interpretable pattern engine, personalized intervention selection, user-visible/editable memory) | Not started |
+
+This table is the live tracker referenced above; update it as each milestone starts/finishes rather than duplicating status prose in multiple places.
 
 ## Explicitly not on any near-term roadmap
 
-Calorie/macro tracking, food databases, recipe generation, food photo recognition, barcode scanning, wearable integrations (Apple Health, Garmin, Xiaomi, Fitbit), location tracking, social/community features, large achievement systems, a full calendar replacement, native mobile apps, advanced predictive ML.
+Food photo recognition, barcode scanning, wearable integrations (Apple Health, Garmin, Xiaomi, Fitbit), location tracking, social/community features, large achievement systems, a full calendar replacement, native mobile apps, identity progression levels. (Calorie/macro tracking, food databases/recipes, and advanced predictive ML were on this list before the 2026-07-30 full roadmap authorization above moved them into Milestones 12 and 14 specifically — they are authorized only in the scoped form described there, not as a general invitation to build adjacent features.)
