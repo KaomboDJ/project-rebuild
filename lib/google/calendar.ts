@@ -4,13 +4,31 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { decryptToken, encryptToken } from "@/lib/crypto/tokens";
 import { localRangeUtc } from "@/lib/date/timezone";
 import type { CalendarEvent } from "@/lib/decision-engine/types";
-import { type GoogleTokenResponse, refreshAccessToken } from "./oauth";
+import { fetchGoogleAccountEmail, type GoogleTokenResponse, refreshAccessToken } from "./oauth";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
 // Refresh proactively if the access token expires within this many seconds,
 // so a request never races an expiry mid-flight.
 const EXPIRY_SAFETY_MARGIN_SECONDS = 120;
+
+interface ConnectionRow {
+  id: string;
+  encrypted_access_token: string;
+  encrypted_refresh_token: string | null;
+  expires_at: string | null;
+  calendar_id: string;
+}
+
+const CONNECTION_ROW_SELECT =
+  "id, encrypted_access_token, encrypted_refresh_token, expires_at, calendar_id";
+
+export interface ConnectionSummary {
+  id: string;
+  googleAccountEmail: string | null;
+  label: string | null;
+  isPrimary: boolean;
+}
 
 export async function isCalendarConnected(userId: string): Promise<boolean> {
   const admin = createSupabaseAdminClient();
@@ -19,16 +37,56 @@ export async function isCalendarConnected(userId: string): Promise<boolean> {
     .select("user_id")
     .eq("user_id", userId)
     .eq("provider", "google")
+    .limit(1)
     .maybeSingle();
   return Boolean(data);
 }
 
+/** All of a user's connected Google accounts (Milestone 11A) - used by
+ * Settings to list/manage them and by the "Adicionar ao calendário" account
+ * picker. Never includes tokens - callers that need to act on a specific
+ * connection go through getValidAccessToken/createInterventionEvent below. */
+export async function listConnections(userId: string): Promise<ConnectionSummary[]> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from("calendar_connections")
+    .select("id, google_account_email, label, is_primary")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .order("is_primary", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    googleAccountEmail: row.google_account_email,
+    label: row.label,
+    isPrimary: row.is_primary,
+  }));
+}
+
+/**
+ * Saves a newly-authorized Google connection. If the founder already has a
+ * connection for this exact Google account (matched by email), this updates
+ * that row in place instead of creating a duplicate (Milestone 11A: the
+ * account picker in OAuth's consent screen means re-connecting is a normal
+ * way to refresh a connection, not just the very first connect). The very
+ * first connection for a user is automatically marked primary; later ones
+ * are not, so adding a second/third account never silently changes which
+ * one existing writes/reads default to.
+ */
 export async function saveCalendarConnection(
   userId: string,
   tokens: GoogleTokenResponse
 ): Promise<void> {
   const admin = createSupabaseAdminClient();
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+  const googleAccountEmail = await fetchGoogleAccountEmail(tokens.access_token);
+
+  const { count: existingCount } = await admin
+    .from("calendar_connections")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("provider", "google");
 
   const update: {
     user_id: string;
@@ -36,13 +94,16 @@ export async function saveCalendarConnection(
     encrypted_access_token: string;
     expires_at: string;
     scopes: string[];
+    google_account_email: string | null;
     encrypted_refresh_token?: string;
+    is_primary?: boolean;
   } = {
     user_id: userId,
     provider: "google",
     encrypted_access_token: encryptToken(tokens.access_token),
     expires_at: expiresAt,
     scopes: tokens.scope.split(" ").filter(Boolean),
+    google_account_email: googleAccountEmail,
   };
 
   // Google only returns a refresh_token on first consent (or when
@@ -53,55 +114,156 @@ export async function saveCalendarConnection(
     update.encrypted_refresh_token = encryptToken(tokens.refresh_token);
   }
 
+  if (!existingCount) {
+    update.is_primary = true;
+  }
+
   const { error } = await admin
     .from("calendar_connections")
-    .upsert(update, { onConflict: "user_id,provider" });
+    .upsert(update, { onConflict: "user_id,provider,google_account_email" });
 
   if (error) {
     throw new Error(`Failed to save calendar connection: ${error.message}`);
   }
 }
 
-export async function disconnectCalendar(userId: string): Promise<void> {
+/** Marks one connection as primary and every other of the user's
+ * connections as not-primary. Not wrapped in a database transaction (the
+ * admin client here is request-scoped, not transactional) - acceptable for
+ * a single-writer, single-founder app; a brief window with zero or two
+ * primaries under concurrent writes isn't a realistic risk here. */
+export async function setPrimaryConnection(userId: string, connectionId: string): Promise<void> {
   const admin = createSupabaseAdminClient();
-  const { data: row } = await admin
+
+  const { data: target } = await admin
     .from("calendar_connections")
-    .select("encrypted_access_token, encrypted_refresh_token")
+    .select("id")
+    .eq("id", connectionId)
     .eq("user_id", userId)
     .eq("provider", "google")
     .maybeSingle();
-
-  if (row) {
-    const { revokeGoogleToken } = await import("./oauth");
-    // Best-effort: revoke whichever token we have, but always delete the
-    // local row regardless of whether Google's revoke call succeeds.
-    const tokenToRevoke = row.encrypted_refresh_token ?? row.encrypted_access_token;
-    try {
-      await revokeGoogleToken(decryptToken(tokenToRevoke));
-    } catch {
-      // Ignore - the important part (removing our own stored credential) still happens below.
-    }
+  if (!target) {
+    throw new Error("Connection not found for this user.");
   }
 
-  await admin.from("calendar_connections").delete().eq("user_id", userId).eq("provider", "google");
+  await admin
+    .from("calendar_connections")
+    .update({ is_primary: false })
+    .eq("user_id", userId)
+    .eq("provider", "google");
+
+  await admin.from("calendar_connections").update({ is_primary: true }).eq("id", connectionId);
 }
 
-/**
- * Returns a valid (non-expired) access token for the user's connected
- * Google Calendar, refreshing and persisting a new one if needed. Returns
- * null if the user has no connection.
- */
-export async function getValidAccessToken(userId: string): Promise<string | null> {
+/** Disconnects one specific Google account connection (Milestone 11A -
+ * replaces the old single-account disconnectCalendar). If the disconnected
+ * connection was primary and other connections remain, promotes the
+ * oldest remaining one to primary so the user always has a default when
+ * they have at least one connection left. */
+export async function disconnectCalendarConnection(
+  userId: string,
+  connectionId: string
+): Promise<void> {
   const admin = createSupabaseAdminClient();
   const { data: row } = await admin
     .from("calendar_connections")
-    .select("encrypted_access_token, encrypted_refresh_token, expires_at")
+    .select("encrypted_access_token, encrypted_refresh_token, is_primary")
+    .eq("id", connectionId)
     .eq("user_id", userId)
     .eq("provider", "google")
     .maybeSingle();
 
-  if (!row) return null;
+  if (!row) return;
 
+  const { revokeGoogleToken } = await import("./oauth");
+  // Best-effort: revoke whichever token we have, but always delete the
+  // local row regardless of whether Google's revoke call succeeds.
+  const tokenToRevoke = row.encrypted_refresh_token ?? row.encrypted_access_token;
+  try {
+    await revokeGoogleToken(decryptToken(tokenToRevoke));
+  } catch {
+    // Ignore - the important part (removing our own stored credential) still happens below.
+  }
+
+  await admin.from("calendar_connections").delete().eq("id", connectionId);
+
+  if (row.is_primary) {
+    const { data: remaining } = await admin
+      .from("calendar_connections")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("provider", "google")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (remaining) {
+      await admin.from("calendar_connections").update({ is_primary: true }).eq("id", remaining.id);
+    }
+  }
+}
+
+async function getConnectionRow(
+  userId: string,
+  connectionId?: string
+): Promise<ConnectionRow | null> {
+  const admin = createSupabaseAdminClient();
+  let query = admin
+    .from("calendar_connections")
+    .select(CONNECTION_ROW_SELECT)
+    .eq("user_id", userId)
+    .eq("provider", "google");
+
+  query = connectionId ? query.eq("id", connectionId) : query.eq("is_primary", true);
+
+  const { data } = await query.maybeSingle();
+  if (data) return data;
+
+  // Defensive fallback: if no row is marked primary (shouldn't happen once
+  // saveCalendarConnection has run, but guards against any pre-migration
+  // edge case) fall back to whichever connection is oldest, so the app
+  // degrades to "acts like single-account" rather than losing calendar
+  // access entirely.
+  if (!connectionId) {
+    const { data: fallback } = await admin
+      .from("calendar_connections")
+      .select(CONNECTION_ROW_SELECT)
+      .eq("user_id", userId)
+      .eq("provider", "google")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return fallback ?? null;
+  }
+
+  return null;
+}
+
+async function getAllConnectionRows(userId: string): Promise<ConnectionRow[]> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from("calendar_connections")
+    .select(CONNECTION_ROW_SELECT)
+    .eq("user_id", userId)
+    .eq("provider", "google");
+  return data ?? [];
+}
+
+/** Returns a valid (non-expired) access token for one connection,
+ * refreshing and persisting a new one if needed. `connectionId` selects
+ * which of the user's connected accounts; omit it for the primary
+ * connection (single-account behavior, unchanged for existing callers).
+ * Returns null if the user has no matching connection. */
+export async function getValidAccessToken(
+  userId: string,
+  connectionId?: string
+): Promise<string | null> {
+  const row = await getConnectionRow(userId, connectionId);
+  if (!row) return null;
+  return getValidAccessTokenForRow(row);
+}
+
+async function getValidAccessTokenForRow(row: ConnectionRow): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
   const expiresAt = row.expires_at ? new Date(row.expires_at).getTime() : 0;
   const stillValid = expiresAt - Date.now() > EXPIRY_SAFETY_MARGIN_SECONDS * 1000;
 
@@ -124,8 +286,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
       encrypted_access_token: encryptToken(refreshed.access_token),
       expires_at: newExpiresAt,
     })
-    .eq("user_id", userId)
-    .eq("provider", "google");
+    .eq("id", row.id);
 
   return refreshed.access_token;
 }
@@ -152,41 +313,16 @@ function mapGoogleEvent(event: GoogleCalendarEventResource): CalendarEvent | nul
   };
 }
 
-/** Empty array if not connected or the calendar read fails - the decision
- * engine must still work without calendar data (docs/06_DECISION_ENGINE.md). */
-export async function getCalendarEventsForDate(
-  userId: string,
-  dateKey: string,
-  timezone: string
-): Promise<CalendarEvent[]> {
-  return getCalendarEventsForRange(userId, dateKey, dateKey, timezone);
-}
-
-/**
- * Same as getCalendarEventsForDate but for an arbitrary inclusive date
- * range - backs the /calendar day/week/month views (see lib/date/ranges.ts
- * for computing week/month start/end date keys). Single-page fetch (no
- * pagination) with a higher maxResults for the wider ranges; fine for a
- * "simple list" MVP view, not meant to scale to thousands of events.
- */
-export async function getCalendarEventsForRange(
-  userId: string,
+async function getEventsForConnection(
+  row: ConnectionRow,
   startDateKey: string,
   endDateKey: string,
   timezone: string
 ): Promise<CalendarEvent[]> {
-  const accessToken = await getValidAccessToken(userId);
+  const accessToken = await getValidAccessTokenForRow(row);
   if (!accessToken) return [];
 
-  const admin = createSupabaseAdminClient();
-  const { data: row } = await admin
-    .from("calendar_connections")
-    .select("calendar_id")
-    .eq("user_id", userId)
-    .eq("provider", "google")
-    .maybeSingle();
-  const calendarId = row?.calendar_id || "primary";
-
+  const calendarId = row.calendar_id || "primary";
   const { timeMin, timeMax } = localRangeUtc(startDateKey, endDateKey, timezone);
   const params = new URLSearchParams({
     timeMin,
@@ -213,6 +349,57 @@ export async function getCalendarEventsForRange(
   }
 }
 
+/** Empty array if not connected or every read fails - the decision engine
+ * must still work without calendar data (docs/06_DECISION_ENGINE.md). */
+export async function getCalendarEventsForDate(
+  userId: string,
+  dateKey: string,
+  timezone: string
+): Promise<CalendarEvent[]> {
+  return getCalendarEventsForRange(userId, dateKey, dateKey, timezone);
+}
+
+/**
+ * Same as getCalendarEventsForDate but for an arbitrary inclusive date
+ * range - backs the /calendar day/week/month views (see lib/date/ranges.ts
+ * for computing week/month start/end date keys) and the decision engine's
+ * free/busy computation. Since Milestone 11A this merges events from every
+ * connected Google account for the user (the founder chose "merge all
+ * connected accounts" over "one active account at a time" for planning
+ * accuracy - PROJECT_REBUILD_STATE.md governance note, 2026-07-30): a
+ * meeting on a work account blocks a workout suggestion exactly like a
+ * personal-account event would. Single-page fetch per connection (no
+ * pagination), fine for a "simple list" MVP view, not meant to scale to
+ * thousands of events.
+ */
+export async function getCalendarEventsForRange(
+  userId: string,
+  startDateKey: string,
+  endDateKey: string,
+  timezone: string
+): Promise<CalendarEvent[]> {
+  const rows = await getAllConnectionRows(userId);
+  if (rows.length === 0) return [];
+
+  const perConnection = await Promise.all(
+    rows.map((row) => getEventsForConnection(row, startDateKey, endDateKey, timezone))
+  );
+
+  return mergeConnectionEvents(perConnection);
+}
+
+/**
+ * Combines each connection's own event list into one chronologically
+ * sorted list. Pure and exported separately from getCalendarEventsForRange
+ * so the merge/sort behavior is directly unit-testable without mocking
+ * Supabase or the Google Calendar API (mirrors how computeFreeWindows in
+ * lib/decision-engine/context-builder.ts is kept pure and separately
+ * tested from buildDailyContext's I/O).
+ */
+export function mergeConnectionEvents(perConnection: CalendarEvent[][]): CalendarEvent[] {
+  return perConnection.flat().sort((a, b) => a.start.localeCompare(b.start));
+}
+
 export interface CreateInterventionInput {
   title: string;
   description: string;
@@ -227,23 +414,22 @@ export interface CreateInterventionInput {
 }
 
 /** Creates a calendar event for an accepted decision, marked as app-created
- * per docs/05_MVP_SPEC.md. Returns the created event's id, or null if the
- * user isn't connected. */
+ * per docs/05_MVP_SPEC.md. `connectionId` selects which connected Google
+ * account to write to; omit it to use the primary connection (unchanged
+ * single-account behavior). Returns the created event's id, or null if the
+ * user isn't connected (or the given connectionId doesn't exist for them). */
 export async function createInterventionEvent(
   userId: string,
-  input: CreateInterventionInput
+  input: CreateInterventionInput,
+  connectionId?: string
 ): Promise<string | null> {
-  const accessToken = await getValidAccessToken(userId);
+  const row = await getConnectionRow(userId, connectionId);
+  if (!row) return null;
+
+  const accessToken = await getValidAccessTokenForRow(row);
   if (!accessToken) return null;
 
-  const admin = createSupabaseAdminClient();
-  const { data: row } = await admin
-    .from("calendar_connections")
-    .select("calendar_id")
-    .eq("user_id", userId)
-    .eq("provider", "google")
-    .maybeSingle();
-  const calendarId = row?.calendar_id || "primary";
+  const calendarId = row.calendar_id || "primary";
 
   const response = await fetch(
     `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,

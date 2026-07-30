@@ -11,9 +11,15 @@ import { getServerEnvironment } from "@/lib/env/server";
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
+const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 
-// docs/05_MVP_SPEC.md: "Request minimum calendar permissions."
-export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// docs/05_MVP_SPEC.md: "Request minimum calendar permissions." `email` is
+// added on top of the original calendar-only scope for Milestone 11A
+// (multi-account support) - saveCalendarConnection() needs to know *which*
+// Google account a token belongs to, to tell two connections apart and to
+// display them in Settings. Connections made before this milestone won't
+// have it until reconnected (docs/10_DATABASE.md).
+export const CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events";
 
 // Short-lived CSRF cookie shared between app/api/google/connect and
 // app/api/google/callback. Defined here (not in a route.ts) because Next.js
@@ -49,9 +55,14 @@ export function buildGoogleAuthUrl(state: string): string {
     response_type: "code",
     scope: CALENDAR_SCOPE,
     access_type: "offline",
-    // Forces Google to return a refresh_token even on re-authorization,
-    // which matters for a single test user reconnecting during development.
-    prompt: "consent",
+    // "consent" forces Google to return a refresh_token even on
+    // re-authorization (matters for a single test user reconnecting during
+    // development). "select_account" (added for Milestone 11A) forces
+    // Google's account chooser to show even when the browser is already
+    // signed into exactly one Google account - without it, "Ligar outra
+    // conta" would silently reconnect the same account instead of letting
+    // the founder pick a different one.
+    prompt: "select_account consent",
     state,
   });
 
@@ -115,4 +126,26 @@ export async function refreshAccessToken(
  * should always succeed locally even if Google's revoke endpoint is down). */
 export async function revokeGoogleToken(token: string): Promise<void> {
   await fetch(`${REVOKE_ENDPOINT}?token=${encodeURIComponent(token)}`, { method: "POST" });
+}
+
+/**
+ * Identifies which Google account a freshly-exchanged access token belongs
+ * to (Milestone 11A) - saveCalendarConnection() uses this to tell two
+ * connections apart and to upsert onto the same row when the founder
+ * re-authorizes an account already connected, instead of creating a
+ * duplicate. Best-effort: returns null on any failure (missing `email`
+ * scope grant, network error) rather than throwing, since not knowing the
+ * email must never block completing the OAuth flow itself.
+ */
+export async function fetchGoogleAccountEmail(accessToken: string): Promise<string | null> {
+  try {
+    const response = await fetch(USERINFO_ENDPOINT, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return null;
+    const body: { email?: string } = await response.json();
+    return body.email ?? null;
+  } catch {
+    return null;
+  }
 }

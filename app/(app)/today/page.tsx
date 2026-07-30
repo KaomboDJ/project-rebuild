@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { CalendarWorkspace } from "@/components/CalendarWorkspace";
-import { getCalendarEventsForDate } from "@/lib/google/calendar";
+import { getCalendarEventsForDate, listConnections } from "@/lib/google/calendar";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -80,6 +80,11 @@ export default async function TodayPage({
   const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
   const todaysCalendarEvents = await getCalendarEventsForDate(user.id, date, timezone);
   const freeWindows = computeFreeWindows(todaysCalendarEvents, date, timezone, 15);
+  // Milestone 11A: the account picker on "Adicionar ao calendário" only
+  // needs to appear once the founder has more than one connected account -
+  // fetched once here and handed down rather than each DecisionEngineCard
+  // fetching its own copy.
+  const connections = await listConnections(user.id);
 
   return (
     <CalendarWorkspace
@@ -90,6 +95,7 @@ export default async function TodayPage({
       initialFeedback={feedbackByDecisionId}
       freeWindowsDate={date}
       freeWindows={freeWindows}
+      connections={connections}
     />
   );
 }

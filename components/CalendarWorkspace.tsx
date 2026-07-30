@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { CalendarDays, Loader2, ListChecks } from "lucide-react";
 import { DailyCheckInForm } from "@/components/DailyCheckInForm";
 import { DecisionEngineCard, type DecisionRow } from "@/components/DecisionEngineCard";
+import type { ConnectionSummary } from "@/lib/google/calendar";
 import { DecisionEngineScoreView } from "@/components/DecisionEngineScore";
 import { CalendarPanel, type CalendarClickPayload } from "@/components/CalendarPanel";
 import { EventDetailDrawer } from "@/components/EventDetailDrawer";
@@ -33,6 +34,7 @@ export function CalendarWorkspace({
   initialFeedback = {},
   freeWindowsDate,
   freeWindows,
+  connections,
 }: {
   /** Founder's real local "today" - decisions are always for this date. */
   date: string;
@@ -43,6 +45,10 @@ export function CalendarWorkspace({
   initialFeedback?: Record<string, boolean>;
   freeWindowsDate: string;
   freeWindows: { start: string; end: string; durationMinutes: number }[];
+  /** The founder's connected Google accounts (Milestone 11A) - passed down
+   * to DecisionEngineCard so "Adicionar ao calendário" can ask which
+   * account to write to when there's more than one. */
+  connections: ConnectionSummary[];
 }) {
   const [checkInDone, setCheckInDone] = useState(hasCheckIn);
   const [decisions, setDecisions] = useState<DecisionRow[]>(initialDecisions);
@@ -166,6 +172,7 @@ export function CalendarWorkspace({
                         decision={dominant}
                         onUpdate={handleUpdate}
                         initialFeedback={feedbackMap[dominant.id] ?? null}
+                        connections={connections}
                       />
                     </div>
                   </section>
@@ -183,6 +190,7 @@ export function CalendarWorkspace({
                         decision={decision}
                         onUpdate={handleUpdate}
                         initialFeedback={feedbackMap[decision.id] ?? null}
+                        connections={connections}
                       />
                     ))}
                   </section>

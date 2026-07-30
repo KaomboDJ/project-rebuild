@@ -10,7 +10,9 @@ One row per user (`user_id` unique, FK → `auth.users.id`; `id` is its own prim
 
 ## `calendar_connections`
 
-`user_id` (FK, unique per `(user_id, provider)`), `provider` (currently only `'google'`), `encrypted_access_token`, `encrypted_refresh_token`, `expires_at`, `scopes` (`text[]`), `calendar_id` (default `primary`). **No grants to `anon`/`authenticated`** — this table is only ever touched via the service-role client (`lib/supabase/admin.ts`) inside Route Handlers, never from a Server/Client Component's user-scoped client.
+`user_id` (FK), `provider` (currently only `'google'`), `encrypted_access_token`, `encrypted_refresh_token`, `expires_at`, `scopes` (`text[]`), `calendar_id` (default `primary`). **No grants to `anon`/`authenticated`** — this table is only ever touched via the service-role client (`lib/supabase/admin.ts`) inside Route Handlers, never from a Server/Client Component's user-scoped client.
+
+Since Milestone 11A (`supabase/migrations/202607300005_multi_account_calendar.sql`) a user can have more than one connected Google account: the original `unique(user_id, provider)` was dropped in favor of `unique(user_id, provider, google_account_email)` (prevents reconnecting the same account twice) plus a partial unique index enforcing exactly one `is_primary = true` row per `(user_id, provider)`. New columns: `google_account_email` (fetched from Google's userinfo endpoint at connect time; null for pre-migration rows until reconnected), `label` (optional founder-chosen display name), `is_primary` (the default account for anything that doesn't ask explicitly, e.g. the Coach's day-type heuristic). Free/busy time for the decision engine and the `/calendar` view is merged across every connected account; "Adicionar ao calendário" asks which connected account to write the new event to whenever more than one is connected, defaulting to the primary when only one exists.
 
 ## `daily_check_ins`
 

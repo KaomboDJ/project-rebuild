@@ -4,7 +4,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createInterventionEvent } from "@/lib/google/calendar";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 
-const bodySchema = z.object({ decisionId: z.string().uuid() });
+const bodySchema = z.object({
+  decisionId: z.string().uuid(),
+  // Milestone 11A: which connected Google account to write the event to,
+  // when the founder has more than one connected. Optional - omitted (or a
+  // single-account founder) falls back to the primary connection, matching
+  // the pre-multi-account behavior exactly.
+  connectionId: z.string().uuid().optional(),
+});
 
 // Minutes before the event to remind the user - fixed for the MVP rather
 // than user-configurable (docs/05_MVP_SPEC.md keeps this slice small).
@@ -55,14 +62,18 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
 
-  const eventId = await createInterventionEvent(user.id, {
-    title: decision.title,
-    description: decision.recommended_action || decision.reason,
-    start: decision.recommended_start,
-    end: decision.recommended_end,
-    timeZone: timezone,
-    reminderMinutes: REMINDER_MINUTES,
-  });
+  const eventId = await createInterventionEvent(
+    user.id,
+    {
+      title: decision.title,
+      description: decision.recommended_action || decision.reason,
+      start: decision.recommended_start,
+      end: decision.recommended_end,
+      timeZone: timezone,
+      reminderMinutes: REMINDER_MINUTES,
+    },
+    parsed.data.connectionId
+  );
 
   if (!eventId) {
     return NextResponse.json({ error: "calendar-not-connected" }, { status: 409 });

@@ -85,6 +85,9 @@ export interface Database {
           expires_at: string | null;
           scopes: string[];
           calendar_id: string;
+          google_account_email: string | null;
+          label: string | null;
+          is_primary: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -97,6 +100,9 @@ export interface Database {
           expires_at?: string | null;
           scopes?: string[];
           calendar_id?: string;
+          google_account_email?: string | null;
+          label?: string | null;
+          is_primary?: boolean;
           created_at?: string;
           updated_at?: string;
         };

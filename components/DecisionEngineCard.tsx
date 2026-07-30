@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CalendarPlus, Check, CheckCircle2, Pencil, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
+import type { ConnectionSummary } from "@/lib/google/calendar";
 import { DOMAIN_LABEL } from "@/lib/decision-engine/labels";
 import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
 
@@ -19,13 +20,22 @@ export function DecisionEngineCard({
   decision,
   onUpdate,
   initialFeedback = null,
+  connections = [],
 }: {
   decision: DecisionRow;
   onUpdate: (id: string, updated: DecisionRow) => void;
   initialFeedback?: boolean | null;
+  /** The founder's connected Google accounts (Milestone 11A). With zero or
+   * one, "Adicionar ao calendário" behaves exactly as before (single
+   * click, no picker). With two or more, clicking it opens a small picker
+   * instead of writing straight to the primary account, since the founder
+   * asked to choose per event which connected account gets the new
+   * calendar entry. */
+  connections?: ConnectionSummary[];
 }) {
   const [showSkip, setShowSkip] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [skipReason, setSkipReason] = useState("");
   const [editedAction, setEditedAction] = useState(decision.recommended_action);
   const [busy, setBusy] = useState(false);
@@ -64,18 +74,19 @@ export function DecisionEngineCard({
     }
   }
 
-  async function addToCalendar() {
+  async function addToCalendar(connectionId?: string) {
     setBusy(true);
     setCalendarError(null);
     try {
       const response = await fetch("/api/calendar/create-intervention", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decisionId: decision.id }),
+        body: JSON.stringify({ decisionId: decision.id, connectionId }),
       });
       if (response.ok) {
         const { calendarEventId } = await response.json();
         onUpdate(decision.id, { ...decision, calendar_event_id: calendarEventId });
+        setShowAccountPicker(false);
       } else if (response.status === 409) {
         setCalendarError("Liga o Google Calendar em Definições primeiro.");
       } else {
@@ -84,6 +95,14 @@ export function DecisionEngineCard({
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleAddToCalendarClick() {
+    if (connections.length > 1) {
+      setShowAccountPicker(true);
+      return;
+    }
+    addToCalendar();
   }
 
   const start = formatTime(decision.recommended_start);
@@ -111,7 +130,7 @@ export function DecisionEngineCard({
         </div>
       </div>
 
-      {isPending && !showSkip && !showEdit && (
+      {isPending && !showSkip && !showEdit && !showAccountPicker && (
         <div className="mt-4 flex flex-wrap gap-2 pl-12">
           {decision.status === "proposed" && (
             <button disabled={busy} className="btn-secondary" onClick={() => patch({ status: "accepted" })}>
@@ -132,13 +151,36 @@ export function DecisionEngineCard({
           {start &&
             (decision.status === "accepted" || decision.status === "edited") &&
             !decision.calendar_event_id && (
-              <button disabled={busy} className="btn-ghost" onClick={addToCalendar}>
+              <button disabled={busy} className="btn-ghost" onClick={handleAddToCalendarClick}>
                 <CalendarPlus size={14} />
                 Adicionar ao calendário
               </button>
             )}
         </div>
       )}
+
+      {showAccountPicker && (
+        <div className="mt-4 space-y-2 pl-12">
+          <p className="text-sm text-neutral-400">A que conta adicionar este evento?</p>
+          <div className="flex flex-wrap gap-2">
+            {connections.map((connection) => (
+              <button
+                key={connection.id}
+                disabled={busy}
+                className="btn-secondary"
+                onClick={() => addToCalendar(connection.id)}
+              >
+                {connection.label || connection.googleAccountEmail || "Conta Google"}
+                {connection.isPrimary && " (principal)"}
+              </button>
+            ))}
+          </div>
+          <button className="btn-ghost" onClick={() => setShowAccountPicker(false)}>
+            Cancelar
+          </button>
+        </div>
+      )}
+
       {decision.calendar_event_id && (
         <p className="mt-2 pl-12 text-xs text-neutral-500">No teu Google Calendar.</p>
       )}
