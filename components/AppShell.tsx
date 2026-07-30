@@ -5,13 +5,15 @@ import { AppNav } from "@/components/AppNav";
 export function AppShell({
   children,
   email,
+  calendarConnected = false,
 }: {
   children: ReactNode;
   email?: string | null;
+  calendarConnected?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-app text-neutral-100">
-      <AppNav />
+      <AppNav calendarConnected={calendarConnected} />
 
       {/* Slim top bar, mobile only - the sidebar already carries the brand
           on desktop. Bottom padding on <main> reserves space for the fixed

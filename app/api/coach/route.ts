@@ -7,12 +7,10 @@ function isValidContext(context: unknown): context is CoachContext {
   if (!context || typeof context !== "object") return false;
   const candidate = context as Partial<CoachContext>;
   return (
-    !!candidate.profile &&
-    typeof candidate.profile === "object" &&
-    !!candidate.checkIn &&
-    typeof candidate.checkIn === "object" &&
-    typeof candidate.state === "string" &&
-    Array.isArray(candidate.instances)
+    typeof candidate.identity === "string" &&
+    typeof candidate.constraints === "string" &&
+    (candidate.checkIn === null || typeof candidate.checkIn === "object") &&
+    Array.isArray(candidate.decisions)
   );
 }
 

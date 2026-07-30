@@ -87,3 +87,81 @@
     @apply border-white/10 bg-white/[0.02] text-neutral-400 hover:border-white/20 hover:text-neutral-200;
   }
 }
+
+/* FullCalendar dark-theme overrides (Calendar Workspace) - FullCalendar v6
+   ships a light theme by default and reads colors from these CSS custom
+   properties on `.fc`, so we retint them to match the app's near-black
+   layered-surface palette instead of overriding every internal class.
+   Our own toolbar (CalendarPanel.tsx) replaces the built-in one, so
+   `.fc-toolbar` stays hidden. */
+.fc {
+  --fc-border-color: rgb(255 255 255 / 0.06);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgb(255 255 255 / 0.03);
+  --fc-neutral-text-color: rgb(163 163 163);
+  --fc-list-event-hover-bg-color: rgb(255 255 255 / 0.04);
+  --fc-today-bg-color: rgb(16 185 129 / 0.05);
+  --fc-now-indicator-color: rgb(244 63 94);
+  --fc-event-border-color: transparent;
+  font-family: inherit;
+}
+.fc .fc-toolbar {
+  display: none;
+}
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: var(--fc-border-color);
+}
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number {
+  color: rgb(163 163 163);
+  font-size: 0.75rem;
+  padding: 6px;
+}
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: rgb(52 211 153);
+  font-weight: 600;
+}
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion {
+  color: rgb(115 115 115);
+  font-size: 0.6875rem;
+}
+.fc .fc-event {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 0.6875rem;
+  padding: 1px 4px;
+}
+.fc-daygrid-event {
+  padding: 1px 4px;
+}
+.fc .fc-event.fc-google-event {
+  background-color: rgb(16 185 129 / 0.18);
+  border-color: rgb(16 185 129 / 0.3);
+  color: rgb(167 243 208);
+}
+.fc .fc-event.fc-decision-proposed {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.fc .fc-event.fc-decision-completed {
+  box-shadow: inset 0 0 0 1px rgb(16 185 129 / 0.7);
+}
+.fc .fc-timegrid-now-indicator-line {
+  border-color: var(--fc-now-indicator-color);
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: var(--fc-now-indicator-color);
+  color: var(--fc-now-indicator-color);
+}
+.fc .fc-list-day-cushion {
+  background: rgb(255 255 255 / 0.03);
+}
+.fc .fc-list-event:hover td {
+  background-color: var(--fc-list-event-hover-bg-color);
+}
+.fc-direction-ltr .fc-daygrid-event.fc-event-end,
+.fc-direction-ltr .fc-daygrid-event.fc-event-start {
+  margin-left: 2px;
+}

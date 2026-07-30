@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, History, ListChecks, Settings } from "lucide-react";
+import { Circle, History, ListChecks, Settings } from "lucide-react";
 import type { ComponentType } from "react";
+import { MiniCalendar } from "@/components/MiniCalendar";
 
+// "Calendário" was dropped as a separate nav item once /calendar started
+// redirecting into the merged Calendar Workspace at /today (see
+// app/(app)/calendar/page.tsx) - two nav entries pointing at the same page
+// would be confusing. "Hoje" now covers both the day's decisions and the
+// full calendar canvas.
 const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }[] = [
   { href: "/today", label: "Hoje", icon: ListChecks },
-  { href: "/calendar", label: "Calendário", icon: CalendarDays },
   { href: "/history", label: "Histórico", icon: History },
   { href: "/settings", label: "Definições", icon: Settings },
 ];
@@ -23,7 +28,7 @@ function isActive(pathname: string, href: string) {
  * into its own client component because active-route highlighting needs
  * usePathname(), while AppShell itself stays a server component.
  */
-export function AppNav() {
+export function AppNav({ calendarConnected = false }: { calendarConnected?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -57,6 +62,22 @@ export function AppNav() {
               </Link>
             );
           })}
+        </div>
+
+        <div className="my-4 border-t border-white/[0.06]" />
+        <MiniCalendar />
+
+        <div className="mt-auto pt-4">
+          <Link
+            href="/settings"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-500 transition hover:bg-white/[0.05] hover:text-neutral-300"
+          >
+            <Circle
+              size={8}
+              className={calendarConnected ? "fill-emerald-500 text-emerald-500" : "fill-neutral-600 text-neutral-600"}
+            />
+            {calendarConnected ? "Google Calendar ligado" : "Google Calendar por ligar"}
+          </Link>
         </div>
       </nav>
 

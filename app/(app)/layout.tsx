@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isCalendarConnected } from "@/lib/google/calendar";
 
 export default async function AuthenticatedLayout({ children }: { children: ReactNode }) {
   const supabase = await createSupabaseServerClient();
@@ -30,5 +31,14 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
     redirect("/onboarding");
   }
 
-  return <AppShell email={user.email}>{children}</AppShell>;
+  // Feeds the sidebar's connected-calendar indicator (Calendar Workspace
+  // spec) - cheap admin-table lookup, fine to run on every authenticated
+  // page alongside the profile check above.
+  const calendarConnected = await isCalendarConnected(user.id);
+
+  return (
+    <AppShell email={user.email} calendarConnected={calendarConnected}>
+      {children}
+    </AppShell>
+  );
 }

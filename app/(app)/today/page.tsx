@@ -1,8 +1,16 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
-import { DecisionDay } from "@/components/DecisionDay";
+import { CalendarWorkspace } from "@/components/CalendarWorkspace";
+import { getCalendarEventsForDate } from "@/lib/google/calendar";
+import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 
-export default async function TodayPage() {
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   const supabase = await createSupabaseServerClient();
 
   // The (app) layout already redirects unauthenticated users away, so a
@@ -24,7 +32,14 @@ export default async function TodayPage() {
   // near midnight (see lib/date/founder-now.ts).
   const { date } = await getFounderNow(supabase, user.id);
 
-  const [{ data: checkIn }, { data: decisions }] = await Promise.all([
+  // The calendar canvas may be navigated to a different date via the
+  // sidebar's mini-calendar (?date=YYYY-MM-DD) - decisions themselves stay
+  // pinned to the founder's real "today" above, only CalendarPanel's
+  // initial view moves.
+  const dateParam = (await searchParams).date;
+  const initialCalendarDate = dateParam && DATE_KEY_PATTERN.test(dateParam) ? dateParam : date;
+
+  const [{ data: checkIn }, { data: decisions }, { data: profileRow }] = await Promise.all([
     supabase
       .from("daily_check_ins")
       .select("id")
@@ -37,6 +52,7 @@ export default async function TodayPage() {
       .eq("user_id", user.id)
       .eq("date", date)
       .order("domain", { ascending: true }),
+    supabase.from("profiles").select("timezone").eq("user_id", user.id).maybeSingle(),
   ]);
 
   // Pre-existing "Útil / Não útil" feedback, if the founder already gave it
@@ -56,20 +72,24 @@ export default async function TodayPage() {
       .map((row) => [row.decision_id, row.useful as boolean])
   );
 
+  // Free windows can only be computed server-side (computeFreeWindows is
+  // marked server-only), so this runs once here for the founder's real
+  // "today" and is handed to the client as plain data - see
+  // CalendarPanel.tsx's `freeWindowsDate` prop for how it's only overlaid
+  // when that exact day is on screen.
+  const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
+  const todaysCalendarEvents = await getCalendarEventsForDate(user.id, date, timezone);
+  const freeWindows = computeFreeWindows(todaysCalendarEvents, date, timezone, 15);
+
   return (
-    <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
-      <header>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">
-          Sou um atleta em reconstrução.
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Hoje</h1>
-      </header>
-      <DecisionDay
-        date={date}
-        hasCheckIn={Boolean(checkIn)}
-        initialDecisions={decisions ?? []}
-        initialFeedback={feedbackByDecisionId}
-      />
-    </main>
+    <CalendarWorkspace
+      date={date}
+      initialCalendarDate={initialCalendarDate}
+      hasCheckIn={Boolean(checkIn)}
+      initialDecisions={decisions ?? []}
+      initialFeedback={feedbackByDecisionId}
+      freeWindowsDate={date}
+      freeWindows={freeWindows}
+    />
   );
 }
