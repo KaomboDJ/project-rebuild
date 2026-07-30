@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { instantToLocalWallClockIso, zonedWallTimeToUtc } from "@/lib/date/timezone";
 import type {
   CalendarEvent,
   DailyCheckIn,
@@ -36,22 +37,35 @@ export const DEFAULT_PROFILE: Omit<UserProfile, "userId"> = {
 
 /**
  * Merges overlapping/adjacent busy intervals from `events` and returns the
- * gaps within [dayStart, dayEnd] that are at least `minGapMinutes` long.
- * Pure and synchronous — the one piece of calendar math that must be
- * unit-tested directly with synthetic events, no Google API required.
+ * gaps within the local calendar day `date` (in `timeZone`) that are at
+ * least `minGapMinutes` long. Pure and synchronous — the one piece of
+ * calendar math that must be unit-tested directly with synthetic events, no
+ * Google API required.
  *
- * `dayStart`/`dayEnd` are treated as plain local wall-clock ISO strings
- * (same convention as `DailyContext.now` — see types.ts); no timezone
- * conversion happens here.
+ * `events` carry real, offset-aware instants (as returned by Google's API);
+ * day boundaries are computed via lib/date/timezone.ts's
+ * zonedWallTimeToUtc so busy/free math happens in real UTC milliseconds
+ * regardless of timezone or DST. The returned FreeWindow.start/end are
+ * converted back to the app's "naive local wall-clock" convention (same as
+ * `DailyContext.now` — see types.ts) via instantToLocalWallClockIso, so
+ * every other consumer (rules.ts's findWindowOverlapping, DecisionEngineCard,
+ * etc.) can keep slicing "HH:MM" out of them and get the founder's actual
+ * local time, not a server-local or UTC value dressed up as local.
+ *
+ * Previously this took pre-formatted `dayStart`/`dayEnd` naive strings and
+ * parsed them with `new Date(...)`, which Node interprets as the *process's*
+ * local time (UTC on Vercel) — silently wrong for any founder not in UTC.
+ * That was the source of the "horários/fusos" imprecision reported after
+ * the calendar view shipped.
  */
 export function computeFreeWindows(
   events: CalendarEvent[],
-  dayStart: string,
-  dayEnd: string,
+  date: string,
+  timeZone: string,
   minGapMinutes: number
 ): FreeWindow[] {
-  const dayStartMs = new Date(dayStart).getTime();
-  const dayEndMs = new Date(dayEnd).getTime();
+  const dayStartMs = zonedWallTimeToUtc(date, "00:00:00", timeZone).getTime();
+  const dayEndMs = zonedWallTimeToUtc(date, "23:59:59", timeZone).getTime();
 
   const busy = events
     .filter((event) => !event.isAllDay)
@@ -72,6 +86,8 @@ export function computeFreeWindows(
     }
   }
 
+  const toLocalWallClock = (ms: number) => instantToLocalWallClockIso(new Date(ms), timeZone);
+
   const windows: FreeWindow[] = [];
   let cursor = dayStartMs;
   const minGapMs = minGapMinutes * 60_000;
@@ -79,8 +95,8 @@ export function computeFreeWindows(
   for (const interval of merged) {
     if (interval.start - cursor >= minGapMs) {
       windows.push({
-        start: new Date(cursor).toISOString(),
-        end: new Date(interval.start).toISOString(),
+        start: toLocalWallClock(cursor),
+        end: toLocalWallClock(interval.start),
         durationMinutes: Math.floor((interval.start - cursor) / 60_000),
       });
     }
@@ -89,8 +105,8 @@ export function computeFreeWindows(
 
   if (dayEndMs - cursor >= minGapMs) {
     windows.push({
-      start: new Date(cursor).toISOString(),
-      end: new Date(dayEndMs).toISOString(),
+      start: toLocalWallClock(cursor),
+      end: toLocalWallClock(dayEndMs),
       durationMinutes: Math.floor((dayEndMs - cursor) / 60_000),
     });
   }
@@ -183,9 +199,7 @@ export async function buildDailyContext({
     status: row.status,
   }));
 
-  const dayStart = `${date}T00:00:00`;
-  const dayEnd = `${date}T23:59:59`;
-  const freeWindows = computeFreeWindows(calendarEvents, dayStart, dayEnd, 15);
+  const freeWindows = computeFreeWindows(calendarEvents, date, profile.timezone, 15);
 
   return {
     date,

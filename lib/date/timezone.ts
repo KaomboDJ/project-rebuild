@@ -44,3 +44,62 @@ export function localRangeUtc(
   const end = zonedWallTimeToUtc(endDateKey, "23:59:59", timeZone);
   return { timeMin: start.toISOString(), timeMax: end.toISOString() };
 }
+
+const WALL_CLOCK_FORMATTER_CACHE = new Map<string, Intl.DateTimeFormat>();
+
+function wallClockFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = WALL_CLOCK_FORMATTER_CACHE.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    WALL_CLOCK_FORMATTER_CACHE.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+/**
+ * The inverse of zonedWallTimeToUtc: given a real instant, returns the
+ * wall-clock date/time an observer in `timeZone` would see, as separate
+ * "YYYY-MM-DD" / "HH:MM:SS" parts. Uses Intl.DateTimeFormat.formatToParts
+ * directly (no offset-diffing) since we're reading the calendar/clock, not
+ * solving for an offset.
+ */
+export function instantToLocalParts(instant: Date, timeZone: string): { dateKey: string; time: string } {
+  const parts = wallClockFormatter(timeZone).formatToParts(instant);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  // hour12: false formats midnight as "24" per the Intl spec - normalize to "00".
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  return {
+    dateKey: `${get("year")}-${get("month")}-${get("day")}`,
+    time: `${hour}:${get("minute")}:${get("second")}`,
+  };
+}
+
+/**
+ * Same as instantToLocalParts but combined into the app's "naive local
+ * wall-clock" convention (see lib/decision-engine/types.ts) - a plain
+ * "YYYY-MM-DDTHH:MM:SS" string with no UTC offset, because every consumer
+ * (rules.ts, DecisionEngineCard, etc.) treats the whole app as running in
+ * a single implicit timezone: the founder's.
+ */
+export function instantToLocalWallClockIso(instant: Date, timeZone: string): string {
+  const { dateKey, time } = instantToLocalParts(instant, timeZone);
+  return `${dateKey}T${time}`;
+}
+
+/** "Right now", as the founder's timezone would show it - the timezone-aware
+ * replacement for `new Date()` + lib/date/local.ts (server-local, wrong). */
+export function nowInTimeZone(
+  timeZone: string,
+  referenceInstant: Date = new Date()
+): { dateKey: string; time: string } {
+  return instantToLocalParts(referenceInstant, timeZone);
+}

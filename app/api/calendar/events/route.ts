@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCalendarEventsForRange, isCalendarConnected } from "@/lib/google/calendar";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { getMonthRange, getWeekRange } from "@/lib/date/ranges";
-import { localDateKey } from "@/lib/date/local";
+import { nowInTimeZone } from "@/lib/date/timezone";
 
 const VALID_VIEWS = new Set(["day", "week", "month"]);
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,9 +33,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "invalid-view" }, { status: 400 });
   }
 
-  const dateParam = request.nextUrl.searchParams.get("date");
-  const dateKey = dateParam && DATE_KEY_PATTERN.test(dateParam) ? dateParam : localDateKey();
-
   const connected = await isCalendarConnected(user.id);
   if (!connected) {
     return NextResponse.json({ error: "calendar-not-connected" }, { status: 409 });
@@ -47,6 +44,14 @@ export async function GET(request: NextRequest) {
     .eq("user_id", user.id)
     .maybeSingle();
   const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
+
+  // Default to the founder's local "today" (not the server's UTC today) when
+  // the client omits `date` - CalendarView.tsx always sends its own
+  // browser-local date explicitly, so this fallback mainly matters for
+  // direct API callers (docs/12_ROADMAP.md defensive-default convention).
+  const dateParam = request.nextUrl.searchParams.get("date");
+  const dateKey =
+    dateParam && DATE_KEY_PATTERN.test(dateParam) ? dateParam : nowInTimeZone(timezone).dateKey;
 
   let start = dateKey;
   let end = dateKey;

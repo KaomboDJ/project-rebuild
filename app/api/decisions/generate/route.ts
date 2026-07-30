@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { buildDailyContext, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
+import { buildDailyContext } from "@/lib/decision-engine/context-builder";
 import { generateDecisions } from "@/lib/decision-engine/generator";
-import { localDateKey, localTimeHHMM } from "@/lib/date/local";
+import { getFounderNow } from "@/lib/date/founder-now";
 import { getCalendarEventsForDate } from "@/lib/google/calendar";
 
 /**
@@ -25,19 +25,11 @@ export async function POST() {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  const date = localDateKey();
-  const now = `${date}T${localTimeHHMM()}:00`;
-
-  // Timezone is needed up front to query Google Calendar's [timeMin, timeMax)
-  // correctly (see lib/date/timezone.ts) - buildDailyContext fetches the
-  // full profile itself, so this is a small, deliberate duplicate read
-  // rather than restructuring context-builder.ts for Milestone 3.
-  const { data: timezoneRow } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const timezone = timezoneRow?.timezone || DEFAULT_PROFILE.timezone;
+  // "Today" and "now" must be the founder's actual local date/time, not the
+  // server's (UTC on Vercel) - see lib/date/founder-now.ts. This also
+  // resolves the timezone needed to query Google Calendar's [timeMin,
+  // timeMax) correctly (lib/date/timezone.ts).
+  const { date, now, timezone } = await getFounderNow(supabase, user.id);
 
   // Empty array (not an error) if the user hasn't connected Google Calendar,
   // or if the read fails - the decision engine must still work without it

@@ -1,13 +1,18 @@
 # Project Rebuild
 
-An AI-powered Decision Operating System. See `FOUNDER_CONTEXT.md`, `PROJECT_REBUILD_STATE.md`, and `REBUILD_MASTER_HANDOFF.md` for product context, and `docs/` for the current MVP's detailed spec — read `docs/IMPLEMENTATION_STATUS.md` first to see what's actually built versus planned.
+An AI-powered Decision Operating System. See `FOUNDER_CONTEXT.md`, `PROJECT_REBUILD_STATE.md`, and `REBUILD_MASTER_HANDOFF.md` for product context, and `docs/` for the MVP's detailed spec — read `docs/IMPLEMENTATION_STATUS.md` first to see exactly what's built.
 
-## Current state (Milestone 1 — Foundation)
+## Current state — MVP complete, in Founder Pilot
 
-- Supabase Auth (email magic link), route protection via middleware, an authenticated app shell (`/today`, `/history`, `/settings`).
-- A database migration with full Row Level Security (`profiles`, `calendar_connections`, `daily_check_ins`, `decision_runs`, `decisions`, `decision_feedback`).
-- The original local-only vertical slice (onboarding, check-in, day-type-aware decisions, Decision Score, in-app reminder, mock-capable Decision Coach) still runs inside the new authenticated shell as a bridge — profile/check-in/decision data isn't Supabase-persisted yet (Milestones 2/4+).
-- Google Calendar integration is not yet implemented (Milestone 3).
+All eight MVP milestones (`docs/12_ROADMAP.md`) are built, validated, and deployed:
+
+- Supabase Auth (email magic link), route protection, onboarding that persists to `profiles`.
+- Google Calendar OAuth connect/disconnect, encrypted token storage, timezone-aware event reads.
+- A deterministic decision engine (14-rule catalog + AI refinement) that generates exactly three calendar-aware decisions a day, with accept/edit/complete/skip and explicit "Útil / Não útil" feedback.
+- "Adicionar ao calendário" for accepted decisions, a day/week/month `/calendar` view, and a real `/history` page.
+- Installable as a PWA (manifest, icons, service worker).
+
+The app is now in a 14-day Founder Pilot: real daily usage by the founder to validate whether it measurably improves decisions, before any new module is built. See `PROJECT_REBUILD_STATE.md` for the pilot protocol and `docs/IMPLEMENTATION_STATUS.md` for full build/validation history.
 
 ## Setup
 
@@ -17,12 +22,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Without any Supabase environment variables set, `/` shows a "foundation ready to connect" message instead of the sign-in form, and `/today`/`/history`/`/settings` are inaccessible (middleware has nothing to authenticate against). To exercise auth locally, create a Supabase project and set:
+Without any Supabase environment variables set, `/` shows a "foundation ready to connect" message instead of the sign-in form, and `/today`/`/history`/`/settings`/`/calendar` are inaccessible (middleware has nothing to authenticate against). To run the full app locally:
 
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- Apply `supabase/migrations/202607290001_foundation.sql` (Supabase CLI `db push`, or paste into the SQL editor)
-
-The Decision Coach (`/api/coach`) works independently of Supabase — set `ANTHROPIC_API_KEY` to get live responses; without it, it falls back to a mock response.
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — create a Supabase project and apply `supabase/migrations/*.sql` in order (Supabase CLI `db push`, or paste each into the SQL editor).
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` — a Google Cloud OAuth client with the `calendar.events` scope, for Google Calendar integration.
+- `TOKEN_ENCRYPTION_KEY` — a base64 string decoding to exactly 32 bytes (`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`), used to encrypt calendar tokens at rest.
+- `ANTHROPIC_API_KEY` — powers both the Decision Coach (`/api/coach`) and the decision engine's AI refinement step. Without it, the Coach falls back to a mock response and the engine falls back to its deterministic rule output — the app still works fully either way.
 
 ## Tests
 
@@ -40,4 +45,4 @@ npm run format:check   # or `npm run format` to fix
 
 ## Deploying
 
-GitHub: `KaomboDJ/project-rebuild`, branch `main`. Vercel auto-deploys pushes to `main` — production is live at `https://project-rebuild-chi.vercel.app`. Set the same environment variables listed above (plus Google OAuth vars once Milestone 3 lands) in the Vercel project settings.
+GitHub: `KaomboDJ/project-rebuild`, branch `main`. Vercel auto-deploys pushes to `main` — production is live at `https://project-rebuild-chi.vercel.app`. Set the same environment variables listed above in the Vercel project settings (Production + Preview).

@@ -9,10 +9,12 @@ export function DecisionDay({
   date,
   hasCheckIn,
   initialDecisions,
+  initialFeedback = {},
 }: {
   date: string;
   hasCheckIn: boolean;
   initialDecisions: DecisionRow[];
+  initialFeedback?: Record<string, boolean>;
 }) {
   const [checkInDone, setCheckInDone] = useState(hasCheckIn);
   const [decisions, setDecisions] = useState<DecisionRow[]>(initialDecisions);
@@ -74,7 +76,12 @@ export function DecisionDay({
       <DecisionEngineScoreView decisions={decisions} />
       <section className="space-y-3">
         {decisions.map((decision) => (
-          <DecisionEngineCard key={decision.id} decision={decision} onUpdate={handleUpdate} />
+          <DecisionEngineCard
+            key={decision.id}
+            decision={decision}
+            onUpdate={handleUpdate}
+            initialFeedback={initialFeedback[decision.id] ?? null}
+          />
         ))}
       </section>
       <button

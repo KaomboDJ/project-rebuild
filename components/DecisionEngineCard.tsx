@@ -16,9 +16,11 @@ function formatTime(iso: string | null): string | null {
 export function DecisionEngineCard({
   decision,
   onUpdate,
+  initialFeedback = null,
 }: {
   decision: DecisionRow;
   onUpdate: (id: string, updated: DecisionRow) => void;
+  initialFeedback?: boolean | null;
 }) {
   const [showSkip, setShowSkip] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -26,6 +28,22 @@ export function DecisionEngineCard({
   const [editedAction, setEditedAction] = useState(decision.recommended_action);
   const [busy, setBusy] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<boolean | null>(initialFeedback);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+
+  async function sendFeedback(useful: boolean) {
+    setFeedbackBusy(true);
+    try {
+      const response = await fetch(`/api/decisions/${decision.id}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useful }),
+      });
+      if (response.ok) setFeedback(useful);
+    } finally {
+      setFeedbackBusy(false);
+    }
+  }
 
   async function patch(body: Record<string, unknown>) {
     setBusy(true);
@@ -136,11 +154,40 @@ export function DecisionEngineCard({
       {calendarError && <p className="mt-2 text-xs text-red-400">{calendarError}</p>}
 
       {!isPending && (
-        <p className="mt-3 text-sm text-neutral-400">
-          {decision.status === "completed"
-            ? "Concluído"
-            : `Não feito${decision.skipped_reason ? `: ${decision.skipped_reason}` : ""}`}
-        </p>
+        <>
+          <p className="mt-3 text-sm text-neutral-400">
+            {decision.status === "completed"
+              ? "Concluído"
+              : `Não feito${decision.skipped_reason ? `: ${decision.skipped_reason}` : ""}`}
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-neutral-500">Esta decisão foi útil?</span>
+            <button
+              disabled={feedbackBusy}
+              aria-pressed={feedback === true}
+              className={`rounded-md border px-2.5 py-1 text-xs disabled:opacity-50 ${
+                feedback === true
+                  ? "border-emerald-600 bg-emerald-600/20 text-emerald-400"
+                  : "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+              }`}
+              onClick={() => sendFeedback(true)}
+            >
+              Útil
+            </button>
+            <button
+              disabled={feedbackBusy}
+              aria-pressed={feedback === false}
+              className={`rounded-md border px-2.5 py-1 text-xs disabled:opacity-50 ${
+                feedback === false
+                  ? "border-red-600 bg-red-600/20 text-red-400"
+                  : "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+              }`}
+              onClick={() => sendFeedback(false)}
+            >
+              Não útil
+            </button>
+          </div>
+        </>
       )}
 
       {showEdit && (

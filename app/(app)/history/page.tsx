@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { localDateKey } from "@/lib/date/local";
+import { getFounderNow } from "@/lib/date/founder-now";
 import { DOMAIN_LABEL, STATUS_LABEL } from "@/lib/decision-engine/labels";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -68,7 +68,7 @@ export default async function HistoryPage() {
     );
   }
 
-  const today = localDateKey();
+  const { date: today } = await getFounderNow(supabase, user.id);
 
   const { data: decisions } = await supabase
     .from("decisions")
@@ -83,7 +83,7 @@ export default async function HistoryPage() {
   const { data: feedbackRows } = decisionIds.length
     ? await supabase
         .from("decision_feedback")
-        .select("decision_id, feedback")
+        .select("decision_id, feedback, useful")
         .eq("user_id", user.id)
         .in("decision_id", decisionIds)
     : { data: [] };
@@ -92,6 +92,11 @@ export default async function HistoryPage() {
     (feedbackRows ?? [])
       .filter((row) => row.feedback)
       .map((row) => [row.decision_id, row.feedback as string])
+  );
+  const usefulByDecisionId = new Map(
+    (feedbackRows ?? [])
+      .filter((row) => row.useful !== null)
+      .map((row) => [row.decision_id, row.useful as boolean])
   );
 
   const groups = groupByDate(decisions ?? []);
@@ -120,6 +125,7 @@ export default async function HistoryPage() {
                   const start = formatTime(decision.recommended_start);
                   const end = formatTime(decision.recommended_end);
                   const feedback = feedbackByDecisionId.get(decision.id);
+                  const useful = usefulByDecisionId.get(decision.id);
                   return (
                     <div
                       key={decision.id}
@@ -141,6 +147,13 @@ export default async function HistoryPage() {
                       {decision.status === "skipped" && decision.skipped_reason && (
                         <p className="mt-2 text-sm text-neutral-400">
                           Motivo: {decision.skipped_reason}
+                        </p>
+                      )}
+                      {useful !== undefined && (
+                        <p
+                          className={`mt-2 text-xs ${useful ? "text-emerald-400" : "text-red-400"}`}
+                        >
+                          {useful ? "Marcado como útil" : "Marcado como não útil"}
                         </p>
                       )}
                       {feedback && (

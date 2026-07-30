@@ -6,7 +6,7 @@ Last updated: 2026-07-30.
 
 ## Deployment
 
-- **GitHub**: `https://github.com/KaomboDJ/project-rebuild.git`, branch `main`, latest published commit `9ef7c20` ("Add Milestone 3: Google Calendar integration").
+- **GitHub**: `https://github.com/KaomboDJ/project-rebuild.git`, branch `main`, latest published commit `547543f` ("/calendar view + real /history page") as of the start of the stabilization sprint below — see that section for what's pushed since.
 - **Vercel**: production is live at `https://project-rebuild-chi.vercel.app`, auto-deploying pushes to `main`. Confirmed deployment of commit `9ef7c20` reached "Ready" in the Vercel dashboard (~50s build).
 - **Supabase**: project `project-rebuild` (ref `ghogleattdmdragyrwof`, region Europe) is live. The full migration (`supabase/migrations/202607290001_foundation.sql`) has been applied and verified in the Table Editor — all 6 tables exist with RLS, and `calendar_connections` correctly has no public API exposure. Auth redirect URLs configured for both `localhost:3000` and the production domain.
 - **Google Cloud**: project `project-rebuild` (ID `project-rebuild-503922`), OAuth consent screen (External, Testing, scope `calendar.events`, test user is the founder's own account) and a Web OAuth client both exist. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI` are set locally and in Vercel (Production + Preview, with the correct redirect URI per environment).
@@ -108,8 +108,32 @@ Once connected, the founder asked for visible proof the integration actually wor
 | `lib/decision-engine/labels.ts` | Done | Extracted `DOMAIN_LABEL`/`STATUS_LABEL` (previously inline in `DecisionEngineCard.tsx`) so `/history` can reuse the same Portuguese labels. |
 | `app/(app)/history/page.tsx` | Rewritten | Real Server Component: past decisions (`date < today`) grouped by day, with domain/time/status/skip-reason/feedback, capped at 90 rows. Replaces the stale placeholder. |
 
-Validation and deploy for this batch not yet run — see the task list for the next step.
+Validated in an isolated sandbox copy: lint clean, typecheck clean, 118/118 tests, production build succeeds (including the new `/calendar` route and `/api/calendar/events`). Committed as `547543f`, pushed, confirmed "Ready" on Vercel.
+
+## Pre-pilot stabilization sprint
+
+Per the founder's "Founder Pilot" directive (`PROJECT_REBUILD_STATE.md`): the technical loop was complete, so this sprint closed the remaining known gaps before starting 14 days of real daily usage, rather than adding new modules.
+
+### Git sync check
+
+Investigated the founder's local "4 commits ahead of origin/main" observation. GitHub's `main` (verified via the commits UI) is at `547543f`, matching everything pushed this session — there is no actual divergence. The founder's local remote-tracking ref (`origin/main`) is simply stale from before this session's pushes; a plain `git fetch` (or `git pull` if also checked out locally) resolves it. No repository-side fix was needed.
+
+### Timezone / free-window fix
+
+The known limitation flagged at the end of Milestone 3 (day-boundary math using the server's local time — UTC on Vercel — instead of the founder's) is fixed. Added real instant↔local-wall-clock conversion to `lib/date/timezone.ts` (`instantToLocalParts`, `instantToLocalWallClockIso`, `nowInTimeZone`, via `Intl.DateTimeFormat.formatToParts`, cached per timezone). Added `lib/date/founder-now.ts` (`getFounderNow`) as the single entry point for "what day/time is it for the founder right now," replacing `lib/date/local.ts`'s server-local functions in `app/api/decisions/generate/route.ts`, `app/(app)/today/page.tsx`, and `app/(app)/history/page.tsx`. `computeFreeWindows()` in `context-builder.ts` now does real UTC-ms math for day boundaries instead of parsing naive strings in the process's own timezone. `app/api/calendar/events/route.ts`'s missing-`date` fallback now also resolves the founder's timezone rather than defaulting to server-local. `components/CalendarView.tsx`'s client-side default was left as `localDateKey()` — it runs in the founder's own browser, so browser-local time is already correct there, unlike server-local time. Also fixed a Vitest config gap surfaced by this work: `vitest.config.ts` had no alias for the `@/*` path (tsconfig has one, Vite/Vitest doesn't inherit it automatically) — added, since `context-builder.ts` now has a real (not type-only) `@/lib/date/timezone` import that needs runtime resolution under tests.
+
+Tests rewritten with realistic Google-style offset-bearing fixtures (`+01:00`) instead of the previous naive-string assumption, plus a regression test pinning the original bug. 129/129 tests pass, typecheck clean, production build succeeds.
+
+### PWA installability
+
+`app/manifest.ts` (Next's native manifest route, served at `/manifest.webmanifest`), four generated icons in `public/` (192, 512, 512 maskable, apple-touch-icon), a minimal `public/sw.js` (install/activate/pass-through fetch only — deliberately no offline caching strategy, since every page needs live Supabase/calendar data and stale cached decisions would be worse than no offline support), registered client-side via `components/ServiceWorkerRegistration.tsx`. `app/layout.tsx` now sets `manifest`, `appleWebApp`, icon links, and `themeColor`.
+
+### Explicit "Útil / Não útil" feedback
+
+New `app/api/decisions/[id]/feedback/route.ts` (authenticated POST, upserts into the already-existing `decision_feedback` table on `(user_id, decision_id)`). `components/DecisionEngineCard.tsx` shows the two buttons once a decision is completed or skipped, with saved state restored on reload (`/today` and `/history` both now query `decision_feedback` and pass it through). `/history` also renders a "Marcado como útil / não útil" line per decision. Free-text `feedback` remains in the schema but isn't collected by this UI — the boolean signal is what the pilot's metrics call for.
+
+Validated in an isolated sandbox copy: lint clean (one pre-existing, unrelated `next-env.d.ts` triple-slash warning), typecheck clean, 129/129 tests, production build succeeds with the new `/api/decisions/[id]/feedback` and `/manifest.webmanifest` routes present.
 
 ## Milestones 5–8
 
-Not started. See `12_ROADMAP.md` for full ordering.
+Done — see the "Milestones (all done)" section of `12_ROADMAP.md` and the sprint notes above for what shipped in each.

@@ -9,6 +9,11 @@ export default defineConfig({
     alias: {
       // See test/server-only-stub.ts for why this is needed under Vitest.
       "server-only": path.resolve(__dirname, "test/server-only-stub.ts"),
+      // Mirrors tsconfig.json's "@/*" path alias, which Next.js resolves
+      // natively but Vitest/Vite does not pick up automatically. Needed as
+      // soon as any tested module has a real (non type-only) "@/..." import
+      // - context-builder.ts's import of lib/date/timezone.ts is the first.
+      "@": path.resolve(__dirname, "."),
     },
   },
 });
