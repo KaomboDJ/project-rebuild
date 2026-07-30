@@ -30,6 +30,12 @@ export interface CoachContext {
   /** Home/office inference for today (Part 4) - null value means "ask the
    * founder directly", not "assume home". */
   dayType?: DayTypeInference;
+  /** Milestone 14 — general founder_notes (rule_id null), most recent
+   * first, capped at 10 by lib/decision-engine/queries.ts's
+   * listGeneralFounderNotes. Free text the founder wrote themselves at
+   * /settings/memory; the Coach should treat it as a standing preference,
+   * not as new information to react to or comment on unprompted. */
+  founderNotes?: string[];
 }
 
 export interface ChatTurn {
@@ -74,7 +80,7 @@ Mutating tools (consume_item, adjust_inventory, add_to_shopping_list, mark_item_
 `.trim();
 
 function buildSystemPrompt(context: CoachContext): string {
-  const { identity, constraints, checkIn, decisions, pantry, dayType } = context;
+  const { identity, constraints, checkIn, decisions, pantry, dayType, founderNotes } = context;
   const lines = [
     SAFETY_RULES,
     `Identidade que o utilizador está a reconstruir: ${identity || "não definida"}.`,
@@ -109,6 +115,10 @@ function buildSystemPrompt(context: CoachContext): string {
     lines.push(`Despensa atual: ${summary}.`);
   } else if (pantry) {
     lines.push("Despensa vazia ou ainda não configurada.");
+  }
+
+  if (founderNotes && founderNotes.length > 0) {
+    lines.push(`Notas que o próprio utilizador guardou sobre preferências (respeita-as sempre): ${founderNotes.join(" | ")}.`);
   }
 
   return lines.join("\n");

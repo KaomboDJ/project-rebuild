@@ -224,3 +224,27 @@ Per the founder's standing full-roadmap authorization. Full design rationale and
 Explicitly simplified (all documented in `docs/14_AUTOMATION.md`, not silently dropped): "incremental sync" is a scheduled full poll rather than Google's `syncToken` protocol (judged too risky to implement unverified against a live API in this environment); cron runs once daily rather than continuously (Vercel Hobby plan limit); drift detection is aggregate (free-window shape), not a per-decision recheck; no push/email notifications exist, so "proactive" means "ready and flagged next time the app is opened."
 
 Tests added: `lib/decision-engine/drift.test.ts` (9) — bringing the suite from 247 to 256, all passing. Validated in an isolated sandbox copy: typecheck clean, lint clean, full suite 256/256 passing. Production build hits the same pre-existing sandbox-network-only Google Fonts restriction, not caused by this milestone's code.
+
+## Milestone 14 — Learning and personalization
+
+Per the founder's standing full-roadmap authorization. Full design rationale: `docs/15_LEARNING_PERSONALIZATION.md`.
+
+| Item | Status | Notes |
+|---|---|---|
+| `supabase/migrations/202607300009_learning_personalization.sql` | Done | `decisions.rule_id` (nullable, additive), new `muted_rules` and `founder_notes` tables, RLS, grants. No destructive change to any existing table. |
+| `lib/supabase/database.types.ts` | Updated | `rule_id` on `decisions` Row/Insert; `muted_rules`/`founder_notes` table blocks. |
+| `lib/decision-engine/patterns.ts` (+ `patterns.test.ts`, 14 cases) | Done (new) | Pure pattern engine: `summarizeRulePatterns`, `computeRuleInsight`/`computeRuleInsights`, `buildRuleAdjustments`, `describeRuleInsight`. `MIN_EVIDENCE_COUNT = 5`, `MAX_PERSONALIZATION_ADJUSTMENT = 2`. |
+| `lib/decision-engine/rule-catalog.ts` | Done (new) | Portuguese labels per `ruleId` for the settings UI/API only. |
+| `lib/decision-engine/queries.ts` | Done (new) | Server-only: rule insights/adjustments, muted-rule CRUD, founder-note CRUD, `listGeneralFounderNotes` for the Coach prompt. |
+| `lib/decision-engine/types.ts`, `context-builder.ts`, `rules.ts`, `scorer.ts`, `generator.ts`, `validation.ts` | Updated | `ruleId` threaded end-to-end (candidate → scored → generated → persisted, re-attached from the deterministic candidate after AI refinement, never trusted from the AI); `mutedRuleIds` filters candidates before scoring (`rules.ts`); `ruleAdjustments` adds a bounded term in `scorer.ts`. |
+| `lib/decision-engine/run.ts` | Updated | Fetches `listMutedRuleIds`/`getRuleAdjustments` before `buildDailyContext` (both default to `[]`/`{}` on failure — a personalization error can never block the core loop); persists `rule_id` on every inserted decision. |
+| `app/api/personalization/insights/route.ts` | Done (new) | GET — every known rule's live-computed insight, muted state, and plain-language description. |
+| `app/api/personalization/mute/route.ts` | Done (new) | POST/DELETE — mute/unmute a rule by id. |
+| `app/api/personalization/notes/route.ts`, `.../notes/[id]/route.ts` | Done (new) | GET/POST list+create; PATCH/DELETE update+remove a single note. |
+| `components/settings/MemoryManager.tsx`, `app/(app)/settings/memory/page.tsx` | Done (new) | General-notes editor, per-rule insight/mute list. Linked from `app/(app)/settings/page.tsx`. |
+| `lib/ai/provider.ts`, `app/api/coach/route.ts` | Updated | `CoachContext.founderNotes` (general notes only, capped at 10) folded into the Coach system prompt as a standing preference. |
+| `lib/decision-engine/scorer.test.ts`, `rules.test.ts` | Updated | 3 new personalization-adjustment cases; 2 new mute-filtering cases (including the deterministic-cold-start check that an absent/empty `mutedRuleIds` produces identical output to before). |
+
+Explicitly not built (see `docs/15_LEARNING_PERSONALIZATION.md`'s closing section): any trained/learned model, persisted insight cache, cross-founder learning, or automatic muting — every adjustment is a plain capped formula over the founder's own rows, and muting is always an explicit founder action.
+
+Validated in an isolated sandbox copy: typecheck clean, lint clean, full suite passing (256 + 14 new `patterns.test.ts` + 5 new scorer/rules cases = 275). Production build hits the same pre-existing sandbox-network-only Google Fonts restriction, not caused by this milestone's code. Migration applied to production Supabase; committed on `milestone-14-learning-personalization`; push to `main` pending the same GitHub 2FA blocker as Milestones 12/13 (see the open item below).

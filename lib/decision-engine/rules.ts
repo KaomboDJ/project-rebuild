@@ -449,7 +449,15 @@ const ALL_RULES: ((context: DailyContext) => DecisionCandidate[])[] = [
   moveLowPriorityWork,
 ];
 
-/** Assembles the full candidate pool by running every rule against the context. */
+/**
+ * Assembles the full candidate pool by running every rule against the
+ * context, then drops any candidate whose ruleId the founder has explicitly
+ * muted (Milestone 14, /settings/memory) — muting is absolute and applied
+ * before scoring even runs, not a soft down-weight like
+ * scorer.ts's personalization adjustment. The founder's own editable memory
+ * always wins.
+ */
 export function generateCandidates(context: DailyContext): DecisionCandidate[] {
-  return ALL_RULES.flatMap((rule) => rule(context));
+  const muted = new Set(context.mutedRuleIds ?? []);
+  return ALL_RULES.flatMap((rule) => rule(context)).filter((candidate) => !muted.has(candidate.ruleId));
 }

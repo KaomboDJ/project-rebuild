@@ -8,6 +8,7 @@ import { getFounderNow } from "@/lib/date/founder-now";
 import { getCalendarEventsForDate } from "@/lib/google/calendar";
 import { buildPantrySummary } from "@/lib/coach/pantry-context";
 import { getTodaysDinnerPlanName } from "@/lib/nutrition/queries";
+import { getRuleAdjustments, listMutedRuleIds } from "./queries";
 import type { GeneratedDecision } from "./types";
 
 type Supabase = SupabaseClient<Database>;
@@ -48,6 +49,17 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
 
   const todaysDinnerPlanName = await getTodaysDinnerPlanName(supabase, userId, date).catch(() => null);
 
+  // Milestone 14 — learned, bounded scoring nudges (queries.ts's
+  // getRuleAdjustments, backed by patterns.ts) and the founder's own
+  // absolute mutes. Both default to "no effect" (empty map/array) on any
+  // failure, so a personalization-layer error can never block the core
+  // three-decisions-a-day loop — see context-builder.ts's defaults, which
+  // this mirrors.
+  const [mutedRuleIds, ruleAdjustments] = await Promise.all([
+    listMutedRuleIds(supabase, userId).catch(() => []),
+    getRuleAdjustments(supabase, userId).catch(() => ({})),
+  ]);
+
   const context = await buildDailyContext({
     supabase,
     userId,
@@ -56,6 +68,8 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
     calendarEvents,
     pantryItems,
     todaysDinnerPlanName,
+    mutedRuleIds,
+    ruleAdjustments,
   });
   const { decisions, engineVersion } = await generateDecisions(context);
 
@@ -99,6 +113,7 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
     source: decision.source,
     status: "proposed" as const,
     related_pantry_item: decision.relatedPantryItem ?? null,
+    rule_id: decision.ruleId ?? null,
   });
 
   const { data: inserted, error: insertError } = await supabase

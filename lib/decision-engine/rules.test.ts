@@ -353,4 +353,20 @@ describe("generateCandidates", () => {
     const domains = new Set(generateCandidates(context).map((c) => c.domain));
     expect(domains.size).toBeGreaterThanOrEqual(2);
   });
+
+  it("Milestone 14 — filters out a muted ruleId entirely, before scoring", () => {
+    const withoutMute = generateCandidates(baseContext());
+    expect(withoutMute.some((c) => c.ruleId === "lunch-training")).toBe(true);
+
+    const withMute = generateCandidates(baseContext({ mutedRuleIds: ["lunch-training"] }));
+    expect(withMute.some((c) => c.ruleId === "lunch-training")).toBe(false);
+    // Every other candidate that would have fired is unaffected.
+    expect(withMute.length).toBe(withoutMute.length - 1);
+  });
+
+  it("Milestone 14 — an empty/absent mutedRuleIds behaves exactly like pre-Milestone-14 (deterministic cold start)", () => {
+    const withoutField = generateCandidates(baseContext());
+    const withEmptyArray = generateCandidates(baseContext({ mutedRuleIds: [] }));
+    expect(withEmptyArray.map((c) => c.ruleId)).toEqual(withoutField.map((c) => c.ruleId));
+  });
 });

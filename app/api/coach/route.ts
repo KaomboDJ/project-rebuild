@@ -7,6 +7,7 @@ import { buildPantrySummary } from "@/lib/coach/pantry-context";
 import { inferDayType } from "@/lib/coach/day-type";
 import { appendMessage, createConversation, getConversationMessages } from "@/lib/coach/conversations";
 import { getFounderNow } from "@/lib/date/founder-now";
+import { listGeneralFounderNotes } from "@/lib/decision-engine/queries";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const HISTORY_TURNS = 16;
@@ -50,11 +51,12 @@ export async function POST(request: NextRequest) {
     getFounderNow(supabase, user.id),
   ]);
 
-  const [{ data: checkIn }, { data: decisions }, pantry, dayType] = await Promise.all([
+  const [{ data: checkIn }, { data: decisions }, pantry, dayType, founderNotes] = await Promise.all([
     supabase.from("daily_check_ins").select("sleep_quality, energy_level, stress_level").eq("user_id", user.id).eq("date", date).maybeSingle(),
     supabase.from("decisions").select("title, status").eq("user_id", user.id).eq("date", date),
     buildPantrySummary(supabase, user.id),
     inferDayType(supabase, user.id, date),
+    listGeneralFounderNotes(supabase, user.id).catch(() => []),
   ]);
 
   const context: CoachContext = {
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
     decisions: (decisions ?? []).map((d) => ({ title: d.title, status: d.status })),
     pantry,
     dayType,
+    founderNotes,
   };
 
   let conversationId = requestedConversationId;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck2, LogOut, Mail, Star } from "lucide-react";
+import { Brain, CalendarCheck2, LogOut, Mail, Star } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { disconnectGoogleCalendar, setPrimaryGoogleAccount } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -128,6 +128,21 @@ export default async function SettingsPage({
             </a>
           </div>
         )}
+      </section>
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
+            <Brain size={16} />
+          </span>
+          <h2 className="font-medium">Memória e personalização</h2>
+        </div>
+        <p className="mt-2 text-sm text-neutral-400">
+          Vê o que o motor de decisões aprendeu contigo, silencia regras ou adiciona notas.
+        </p>
+        <Link href="/settings/memory" className="btn-secondary mt-3 inline-flex">
+          Abrir memória
+        </Link>
       </section>
     </main>
   );

@@ -56,6 +56,28 @@ describe("scoreCandidate", () => {
   });
 });
 
+describe("scoreCandidate — Milestone 14 personalization", () => {
+  it("adds no adjustment when ruleAdjustments is absent (deterministic cold start)", () => {
+    const withoutMap = scoreCandidate(CANDIDATE, baseContext());
+    const withEmptyMap = scoreCandidate(CANDIDATE, baseContext({ ruleAdjustments: {} }));
+    expect(withoutMap.score).toBe(withEmptyMap.score);
+  });
+
+  it("adds no adjustment when the map has no entry for this candidate's ruleId", () => {
+    const withEntryForOtherRule = scoreCandidate(CANDIDATE, baseContext({ ruleAdjustments: { "some-other-rule": 2 } }));
+    const withoutMap = scoreCandidate(CANDIDATE, baseContext());
+    expect(withEntryForOtherRule.score).toBe(withoutMap.score);
+  });
+
+  it("adds exactly the configured adjustment, positive or negative, when present", () => {
+    const boosted = scoreCandidate(CANDIDATE, baseContext({ ruleAdjustments: { "test-rule": 2 } }));
+    const baseline = scoreCandidate(CANDIDATE, baseContext());
+    const penalized = scoreCandidate(CANDIDATE, baseContext({ ruleAdjustments: { "test-rule": -2 } }));
+    expect(boosted.score).toBeCloseTo(baseline.score + 2, 5);
+    expect(penalized.score).toBeCloseTo(baseline.score - 2, 5);
+  });
+});
+
 describe("computeDecisionScore", () => {
   it("awards 15/10/5 XP for completed high/medium/low impact decisions", () => {
     expect(computeDecisionScore([{ status: "completed", impact: "high" }])).toBe(15);

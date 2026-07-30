@@ -192,6 +192,7 @@ export interface Database {
           completed_at: string | null;
           skipped_reason: string | null;
           related_pantry_item: string | null;
+          rule_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -210,6 +211,7 @@ export interface Database {
           confidence?: number;
           source?: DecisionSource;
           status?: DecisionStatus;
+          rule_id?: string | null;
           calendar_event_id?: string | null;
           completed_at?: string | null;
           skipped_reason?: string | null;
@@ -524,6 +526,42 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      muted_rules: {
+        Row: {
+          id: string;
+          user_id: string;
+          rule_id: string;
+          muted_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          rule_id: string;
+          muted_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["muted_rules"]["Insert"]>;
+        Relationships: [];
+      };
+      founder_notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          rule_id: string | null;
+          content: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          rule_id?: string | null;
+          content: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["founder_notes"]["Insert"]>;
         Relationships: [];
       };
       daily_briefings: {

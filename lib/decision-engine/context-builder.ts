@@ -165,6 +165,10 @@ export interface BuildDailyContextParams {
   pantryItems?: PantryItemSummary[];
   /** Milestone 12 — see DailyContext.todaysDinnerPlanName's doc comment. */
   todaysDinnerPlanName?: string | null;
+  /** Milestone 14 — see DailyContext.mutedRuleIds's doc comment. */
+  mutedRuleIds?: string[];
+  /** Milestone 14 — see DailyContext.ruleAdjustments's doc comment. */
+  ruleAdjustments?: Record<string, number>;
 }
 
 export async function buildDailyContext({
@@ -175,6 +179,8 @@ export async function buildDailyContext({
   calendarEvents = [],
   pantryItems = [],
   todaysDinnerPlanName = null,
+  mutedRuleIds = [],
+  ruleAdjustments = {},
 }: BuildDailyContextParams): Promise<DailyContext> {
   const [{ data: profileRow }, { data: checkInRow }, { data: recentRows }] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -224,5 +230,7 @@ export async function buildDailyContext({
     userCheckIn,
     pantryItems,
     todaysDinnerPlanName,
+    mutedRuleIds,
+    ruleAdjustments,
   };
 }

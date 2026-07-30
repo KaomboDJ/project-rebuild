@@ -97,6 +97,23 @@ export interface DailyContext {
   /** Empty until Milestone 11C — degrades gracefully to the pre-11C generic dinner rules. */
   pantryItems: PantryItemSummary[];
   /**
+   * Milestone 14: rule ids the founder has explicitly muted
+   * (lib/decision-engine/queries.ts's listMutedRuleIds, /settings/memory) —
+   * generateCandidates (rules.ts) filters these out before scoring even
+   * runs. The founder's own editable memory always wins over any learned
+   * pattern; muting is absolute, not a soft down-weight.
+   */
+  mutedRuleIds?: string[];
+  /**
+   * Milestone 14: a bounded, per-rule score adjustment derived from
+   * historical outcomes (lib/decision-engine/patterns.ts), only populated
+   * for rules that have crossed MIN_EVIDENCE_COUNT occurrences — see that
+   * module's header for the "deterministic cold start, no opaque scoring"
+   * acceptance criteria (docs/12_ROADMAP.md). Absent/empty means "behave
+   * exactly like the pre-Milestone-14 engine".
+   */
+  ruleAdjustments?: Record<string, number>;
+  /**
    * Milestone 12: the recipe name of today's planned dinner
    * (meal_plan_items, status 'planned'), when the Nutrition Toolkit's
    * weekly plan covers it. Undefined/null when no plan exists for today —
@@ -147,4 +164,8 @@ export interface GeneratedDecision {
   source: DecisionSource;
   /** Milestone 11D — see DecisionCandidate.relatedPantryItem. */
   relatedPantryItem?: string;
+  /** Milestone 14: carried through to decisions.rule_id so outcomes
+   * (status/feedback) can be attributed back to the rule that produced
+   * them — see lib/decision-engine/patterns.ts. */
+  ruleId?: string;
 }

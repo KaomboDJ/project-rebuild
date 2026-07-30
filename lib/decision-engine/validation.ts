@@ -52,12 +52,17 @@ export function validateGeneratedDecisions(
     if ((decision.recommendedEnd ?? null) !== (source.recommendedEnd ?? null)) return null;
   }
 
-  // relatedPantryItem (Milestone 11D) isn't part of what the AI is asked to
-  // return — it's re-attached here from the deterministic original rather
-  // than trusted from the AI payload, same treatment as impact/timing above.
+  // relatedPantryItem (Milestone 11D) and ruleId (Milestone 14) aren't part
+  // of what the AI is asked to return — both are re-attached here from the
+  // deterministic original rather than trusted from the AI payload, same
+  // treatment as impact/timing above. ruleId in particular must never come
+  // from the AI: it's the join key outcome-logging uses to attribute
+  // acceptance/feedback back to a specific rule (lib/decision-engine/patterns.ts) -
+  // an AI-invented value here would silently corrupt that history.
   return parsed.data.map((d) => ({
     ...d,
     source: "ai" as const,
     relatedPantryItem: byDomain.get(d.domain)?.relatedPantryItem,
+    ruleId: byDomain.get(d.domain)?.ruleId,
   }));
 }

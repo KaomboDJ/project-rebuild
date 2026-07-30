@@ -26,6 +26,7 @@ function decision(overrides: Partial<DecisionRow> = {}): DecisionRow {
     completed_at: null,
     skipped_reason: null,
     related_pantry_item: null,
+    rule_id: null,
     created_at: "2026-07-30T06:00:00Z",
     updated_at: "2026-07-30T06:00:00Z",
     ...overrides,

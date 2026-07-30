@@ -63,14 +63,30 @@ function confidenceOf(context: DailyContext): number {
   return Math.min(1, confidence);
 }
 
+/**
+ * Milestone 14 — personalized intervention selection. A small, bounded,
+ * fully transparent adjustment: `context.ruleAdjustments` is precomputed by
+ * lib/decision-engine/patterns.ts from this founder's own outcome history
+ * (acceptance/completion/feedback), gated on a minimum-evidence threshold,
+ * and capped to MAX_PERSONALIZATION_ADJUSTMENT there — this function does
+ * nothing but look the value up, so there is no opaque scoring introduced
+ * here. Returns 0 (no-op) whenever the map is absent or has no entry for
+ * this rule, which is the deterministic-cold-start guarantee: a founder
+ * with no history behaves identically to the pre-Milestone-14 engine.
+ */
+function personalizationOf(candidate: DecisionCandidate, context: DailyContext): number {
+  return context.ruleAdjustments?.[candidate.ruleId] ?? 0;
+}
+
 export function scoreCandidate(candidate: DecisionCandidate, context: DailyContext): ScoredCandidate {
   const impact = IMPACT_WEIGHT[candidate.baseImpact];
   const urgency = urgencyOf(candidate, context);
   const opportunity = opportunityOf(candidate);
   const adherence = adherenceOf(candidate, context);
   const confidence = confidenceOf(context);
+  const personalization = personalizationOf(candidate, context);
 
-  const score = impact * 10 + urgency * 5 + opportunity * 5 + adherence * 10 + confidence * 5;
+  const score = impact * 10 + urgency * 5 + opportunity * 5 + adherence * 10 + confidence * 5 + personalization;
 
   return { ...candidate, score, confidence };
 }
