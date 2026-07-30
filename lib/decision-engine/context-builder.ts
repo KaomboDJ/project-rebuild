@@ -9,6 +9,7 @@ import type {
   DailyContext,
   DecisionRecord,
   FreeWindow,
+  PantryItemSummary,
   UserProfile,
 } from "./types";
 
@@ -155,6 +156,13 @@ export interface BuildDailyContextParams {
   now?: string;
   /** Empty until Milestone 3 (Google Calendar) is wired in. */
   calendarEvents?: CalendarEvent[];
+  /**
+   * Empty until Milestone 11C (calendar-aware meal recommendation) is
+   * wired in. Expected pre-sorted soonest-expiring first, same as
+   * lib/coach/pantry-context.ts's buildPantrySummary — the caller (the
+   * generate route) is responsible for that, since rules.ts stays pure.
+   */
+  pantryItems?: PantryItemSummary[];
 }
 
 export async function buildDailyContext({
@@ -163,6 +171,7 @@ export async function buildDailyContext({
   date,
   now,
   calendarEvents = [],
+  pantryItems = [],
 }: BuildDailyContextParams): Promise<DailyContext> {
   const [{ data: profileRow }, { data: checkInRow }, { data: recentRows }] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -210,5 +219,6 @@ export async function buildDailyContext({
     freeWindows,
     recentDecisions,
     userCheckIn,
+    pantryItems,
   };
 }

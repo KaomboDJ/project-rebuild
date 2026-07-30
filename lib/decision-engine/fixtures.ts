@@ -30,6 +30,7 @@ export function baseContext(overrides: Partial<DailyContext> = {}): DailyContext
     freeWindows: [],
     recentDecisions: [],
     userCheckIn: undefined,
+    pantryItems: [],
     ...overrides,
   };
 }

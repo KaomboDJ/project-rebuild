@@ -4,6 +4,7 @@ import { buildDailyContext } from "@/lib/decision-engine/context-builder";
 import { generateDecisions } from "@/lib/decision-engine/generator";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getCalendarEventsForDate } from "@/lib/google/calendar";
+import { buildPantrySummary } from "@/lib/coach/pantry-context";
 
 /**
  * Generates (or regenerates) today's exactly-three decisions for the
@@ -36,7 +37,27 @@ export async function POST() {
   // (docs/06_DECISION_ENGINE.md).
   const calendarEvents = await getCalendarEventsForDate(user.id, date, timezone);
 
-  const context = await buildDailyContext({ supabase, userId: user.id, date, now, calendarEvents });
+  // Milestone 11C: pantry data (Milestone 10) feeds the nutrition rules a
+  // specific at-home item to suggest instead of a generic "decide now"
+  // prompt. Already ordered soonest-expiring first by buildPantrySummary;
+  // empty array (not an error) if the founder has no pantry rows yet.
+  const pantrySummary = await buildPantrySummary(supabase, user.id);
+  const pantryItems = pantrySummary.map((item) => ({
+    name: item.name,
+    quantity: item.quantity,
+    unit: item.unit,
+    portable: item.portable,
+    expiresOn: item.expiresOn,
+  }));
+
+  const context = await buildDailyContext({
+    supabase,
+    userId: user.id,
+    date,
+    now,
+    calendarEvents,
+    pantryItems,
+  });
   const { decisions, engineVersion } = await generateDecisions(context);
 
   const { data: run, error: runError } = await supabase

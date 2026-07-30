@@ -112,6 +112,26 @@ describe("decideDinnerEarly", () => {
   it("does not fire far from dinner time", () => {
     expect(decideDinnerEarly(baseContext({ now: "2026-07-29T09:00:00" }))).toHaveLength(0);
   });
+
+  it("uses the generic prompt when there is no pantry data (Milestone 11C)", () => {
+    const [candidate] = decideDinnerEarly(baseContext({ now: "2026-07-29T17:30:00" }));
+    expect(candidate.recommendedAction).toBe("Decide o jantar agora, antes da janela de fadiga da noite.");
+  });
+
+  it("names the soonest-expiring pantry item when pantry data exists (Milestone 11C)", () => {
+    const [candidate] = decideDinnerEarly(
+      baseContext({
+        now: "2026-07-29T17:30:00",
+        pantryItems: [
+          { name: "Frango", quantity: 2, unit: "un", portable: true, expiresOn: "2026-07-30" },
+          { name: "Arroz", quantity: 1, unit: "kg", portable: true, expiresOn: null },
+        ],
+      })
+    );
+    expect(candidate.recommendedAction).toBe(
+      "Janta Frango, que já tens em casa. Decide agora, antes da janela de fadiga da noite."
+    );
+  });
 });
 
 describe("defrostIngredients", () => {
@@ -157,6 +177,22 @@ describe("avoidTakeawayCommitment", () => {
       })
     );
     expect(withPattern).toHaveLength(1);
+  });
+
+  it("names the soonest-expiring pantry item when pantry data exists (Milestone 11C)", () => {
+    const [candidate] = avoidTakeawayCommitment(
+      baseContext({
+        now: "2026-07-29T18:00:00",
+        recentDecisions: [
+          { date: "2026-07-27", domain: "nutrition", status: "skipped" },
+          { date: "2026-07-28", domain: "nutrition", status: "skipped" },
+        ],
+        pantryItems: [{ name: "Peixe", quantity: 1, unit: "un", portable: true, expiresOn: "2026-07-29" }],
+      })
+    );
+    expect(candidate.recommendedAction).toBe(
+      "Compromete-te já com Peixe, que já tens em casa, antes de abrires uma app de entregas."
+    );
   });
 });
 

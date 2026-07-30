@@ -61,6 +61,23 @@ export interface DecisionRecord {
   status: DecisionStatus;
 }
 
+/**
+ * Slim pantry snapshot for meal-recommendation rules (Milestone 11C) —
+ * mirrors lib/coach/pantry-context.ts's PantrySummaryItem shape but is
+ * defined independently here so the decision engine stays free of a
+ * dependency on the Coach module. Ordered soonest-expiring first by the
+ * caller (context-builder.ts / the API route), same as the Coach's
+ * pantry summary — rules.ts relies on that ordering rather than
+ * re-sorting, since it must stay pure/synchronous.
+ */
+export interface PantryItemSummary {
+  name: string;
+  quantity: number;
+  unit: string;
+  portable: boolean;
+  expiresOn: string | null;
+}
+
 export interface DailyContext {
   date: string; // "YYYY-MM-DD"
   timezone: string;
@@ -77,6 +94,8 @@ export interface DailyContext {
   freeWindows: FreeWindow[]; // empty until Milestone 3
   recentDecisions: DecisionRecord[]; // last 7 days, excluding today
   userCheckIn?: DailyCheckIn;
+  /** Empty until Milestone 11C — degrades gracefully to the pre-11C generic dinner rules. */
+  pantryItems: PantryItemSummary[];
 }
 
 export interface DecisionCandidate {

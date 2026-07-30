@@ -11,7 +11,7 @@
 // this is the deterministic-fallback contract, not a bug: the engine must
 // keep working with whatever context is actually available today.
 
-import type { DailyContext, DecisionCandidate, DecisionDomain } from "./types";
+import type { DailyContext, DecisionCandidate, DecisionDomain, PantryItemSummary } from "./types";
 
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -42,6 +42,20 @@ function hasRecentDomainStatus(
   return context.recentDecisions.filter(
     (d) => d.domain === domain && d.status === status && d.date >= cutoffStr
   ).length;
+}
+
+/**
+ * Milestone 11C: names a specific at-home meal item instead of a generic
+ * "decide now" prompt, when pantry data exists — directly serving the
+ * founder's non-negotiable ("Mesmo num dia péssimo, janto comida que já
+ * existe em casa"). `context.pantryItems` is expected pre-sorted
+ * soonest-expiring first (see context-builder.ts), so the first entry is
+ * simply the most useful one to suggest using before it's wasted. Returns
+ * null when there's no pantry data yet, so callers can fall back to the
+ * original generic phrasing untouched.
+ */
+function pickDinnerSuggestion(pantryItems: PantryItemSummary[]): PantryItemSummary | null {
+  return pantryItems[0] ?? null;
 }
 
 function findWindowOverlapping(
@@ -175,11 +189,15 @@ export function decideDinnerEarly(context: DailyContext): DecisionCandidate[] {
   const minutesUntilDinner = dinnerStart - current;
   if (minutesUntilDinner < 60 || minutesUntilDinner > 240) return [];
 
+  const suggestion = pickDinnerSuggestion(context.pantryItems);
+
   return [
     {
       ruleId: "decide-dinner-early",
       domain: "nutrition",
-      recommendedAction: "Decide o jantar agora, antes da janela de fadiga da noite.",
+      recommendedAction: suggestion
+        ? `Janta ${suggestion.name}, que já tens em casa. Decide agora, antes da janela de fadiga da noite.`
+        : "Decide o jantar agora, antes da janela de fadiga da noite.",
       baseTitle: "Decide o jantar",
       baseReason: "Decidir agora evita a decisão por cansaço mais tarde — janta comida que já existe em casa.",
       requiresFreeWindow: false,
@@ -240,11 +258,15 @@ export function avoidTakeawayCommitment(context: DailyContext): DecisionCandidat
   const recentSkippedNutrition = hasRecentDomainStatus(context, "nutrition", "skipped", 5);
   if (recentSkippedNutrition < 2) return [];
 
+  const suggestion = pickDinnerSuggestion(context.pantryItems);
+
   return [
     {
       ruleId: "avoid-takeaway-commitment",
       domain: "nutrition",
-      recommendedAction: "Compromete-te com a refeição de hoje antes de abrires uma app de entregas.",
+      recommendedAction: suggestion
+        ? `Compromete-te já com ${suggestion.name}, que já tens em casa, antes de abrires uma app de entregas.`
+        : "Compromete-te com a refeição de hoje antes de abrires uma app de entregas.",
       baseTitle: "Evita o Uber Eats",
       baseReason: "Nos últimos dias houve um padrão de saltar a decisão do jantar — vamos travar isso agora.",
       requiresFreeWindow: false,
