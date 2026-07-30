@@ -205,3 +205,22 @@ Per the founder's 2026-07-30 full-roadmap authorization and its update lifting t
 Tests added: `lib/nutrition/planner.test.ts` (17), `macros.test.ts` (8), `shopping.test.ts` (11), plus 4 new `lib/decision-engine/rules.test.ts` cases (meal-plan-priority dinner naming) and 4 new `lib/coach/tools.test.ts` cases (new tool names/summaries) — bringing the suite from 204 to 247, all passing.
 
 Validated in an isolated sandbox copy: typecheck clean, lint clean (`✔ No ESLint warnings or errors`), full suite 247/247 passing. Production build hits only the same pre-existing, sandbox-network-only Google Fonts restriction seen in Milestones 11B–11D (`Failed to fetch font 'Inter' from Google Fonts`) — not caused by this milestone's code.
+
+## Milestone 13 — Automation and continuous synchronization
+
+Per the founder's standing full-roadmap authorization. Full design rationale and explicitly-simplified scope: `docs/14_AUTOMATION.md`.
+
+| Item | Status | Notes |
+|---|---|---|
+| `supabase/migrations/202607300008_automation_sync.sql` | Done | New `daily_briefings` table (RLS owner-scoped). No changes to any existing table. |
+| `lib/supabase/database.types.ts` | Updated | `daily_briefings` table added. |
+| `lib/decision-engine/run.ts` | Done (new) | Extracted the context-build → generate → persist pipeline out of `app/api/decisions/generate/route.ts` into `runDecisionGeneration(supabase, userId)`, shared by the interactive route and the new cron route. |
+| `lib/decision-engine/drift.ts` | Done (new) | Pure `detectFreeWindowDrift` (aggregate free-window shape comparison) and `buildBriefingSummary`. |
+| `app/api/cron/daily-sync/route.ts` | Done (new) | `CRON_SECRET`-protected scheduled route: proactively generates today's decisions for every onboarded founder if none exist, otherwise flags `decisions_stale` on drift; upserts one `daily_briefings` row per founder per day. |
+| `vercel.json` | Done (new) | Cron schedule, once daily at 06:30 UTC (Vercel Hobby plan limitation — see `docs/14_AUTOMATION.md`). |
+| `app/api/decisions/generate/route.ts` | Simplified | Now a thin wrapper around `runDecisionGeneration`. |
+| `app/(app)/today/page.tsx`, `components/CalendarWorkspace.tsx` | Updated | Fetch/render the day's `daily_briefings` row as a summary card, with a "Regenerar decisões de hoje" button shown only when `decisions_stale`. |
+
+Explicitly simplified (all documented in `docs/14_AUTOMATION.md`, not silently dropped): "incremental sync" is a scheduled full poll rather than Google's `syncToken` protocol (judged too risky to implement unverified against a live API in this environment); cron runs once daily rather than continuously (Vercel Hobby plan limit); drift detection is aggregate (free-window shape), not a per-decision recheck; no push/email notifications exist, so "proactive" means "ready and flagged next time the app is opened."
+
+Tests added: `lib/decision-engine/drift.test.ts` (9) — bringing the suite from 247 to 256, all passing. Validated in an isolated sandbox copy: typecheck clean, lint clean, full suite 256/256 passing. Production build hits the same pre-existing sandbox-network-only Google Fonts restriction, not caused by this milestone's code.

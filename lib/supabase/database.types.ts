@@ -526,6 +526,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
         Relationships: [];
       };
+      daily_briefings: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          generated_at: string;
+          event_count: number;
+          free_minutes: number;
+          decisions_generated: boolean;
+          decisions_stale: boolean;
+          summary: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          generated_at?: string;
+          event_count?: number;
+          free_minutes?: number;
+          decisions_generated?: boolean;
+          decisions_stale?: boolean;
+          summary?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["daily_briefings"]["Insert"]>;
+        Relationships: [];
+      };
       meal_plan_items: {
         Row: {
           id: string;

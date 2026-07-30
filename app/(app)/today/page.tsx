@@ -39,7 +39,7 @@ export default async function TodayPage({
   const dateParam = (await searchParams).date;
   const initialCalendarDate = dateParam && DATE_KEY_PATTERN.test(dateParam) ? dateParam : date;
 
-  const [{ data: checkIn }, { data: decisions }, { data: profileRow }] = await Promise.all([
+  const [{ data: checkIn }, { data: decisions }, { data: profileRow }, { data: briefing }] = await Promise.all([
     supabase
       .from("daily_check_ins")
       .select("id")
@@ -53,6 +53,10 @@ export default async function TodayPage({
       .eq("date", date)
       .order("domain", { ascending: true }),
     supabase.from("profiles").select("timezone").eq("user_id", user.id).maybeSingle(),
+    // Milestone 13: written by the daily cron sync (app/api/cron/daily-sync)
+    // - null until the cron has run at least once for today, which is fine,
+    // not an error (the founder can still generate decisions manually).
+    supabase.from("daily_briefings").select("summary, decisions_stale").eq("user_id", user.id).eq("date", date).maybeSingle(),
   ]);
 
   // Pre-existing "Útil / Não útil" feedback, if the founder already gave it
@@ -96,6 +100,8 @@ export default async function TodayPage({
       freeWindowsDate={date}
       freeWindows={freeWindows}
       connections={connections}
+      briefingSummary={briefing?.summary ?? null}
+      decisionsStale={briefing?.decisions_stale ?? false}
     />
   );
 }

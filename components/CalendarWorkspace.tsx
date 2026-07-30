@@ -7,7 +7,7 @@
 // date the calendar is browsing; only the calendar canvas navigates freely.
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Loader2, ListChecks, Sparkles } from "lucide-react";
+import { CalendarDays, Loader2, ListChecks, RefreshCw, Sparkles } from "lucide-react";
 import { DailyCheckInForm } from "@/components/DailyCheckInForm";
 import { DecisionEngineCard, type DecisionRow } from "@/components/DecisionEngineCard";
 import type { ConnectionSummary } from "@/lib/google/calendar";
@@ -40,6 +40,8 @@ export function CalendarWorkspace({
   freeWindowsDate,
   freeWindows,
   connections,
+  briefingSummary = null,
+  decisionsStale = false,
 }: {
   /** Founder's real local "today" - decisions are always for this date. */
   date: string;
@@ -54,6 +56,13 @@ export function CalendarWorkspace({
    * to DecisionEngineCard so "Adicionar ao calendário" can ask which
    * account to write to when there's more than one. */
   connections: ConnectionSummary[];
+  /** Milestone 13: written by the daily cron sync - null until it has run
+   * at least once today. */
+  briefingSummary?: string | null;
+  /** Milestone 13: true when the calendar has drifted since today's
+   * decisions were generated - surfaces a "consider regenerating" banner
+   * rather than silently replacing anything (recommend, then confirm). */
+  decisionsStale?: boolean;
 }) {
   const [checkInDone, setCheckInDone] = useState(hasCheckIn);
   const [decisions, setDecisions] = useState<DecisionRow[]>(initialDecisions);
@@ -232,6 +241,25 @@ export function CalendarWorkspace({
         >
           <div className="space-y-3 p-3 md:p-0">
             <DecisionEngineScoreView decisions={decisions} />
+
+            {briefingSummary && (
+              <div
+                className={`surface-card space-y-2 p-3 text-sm ${
+                  decisionsStale ? "border-amber-600/40 text-amber-200" : "text-neutral-400"
+                }`}
+              >
+                <p>{briefingSummary}</p>
+                {decisionsStale && (
+                  <button
+                    disabled={loading}
+                    className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs"
+                    onClick={regenerate}
+                  >
+                    <RefreshCw size={13} /> Regenerar decisões de hoje
+                  </button>
+                )}
+              </div>
+            )}
 
             {decisions.length > 0 && !showPlanAccountPicker && (
               <button
