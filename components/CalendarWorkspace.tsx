@@ -7,7 +7,7 @@
 // date the calendar is browsing; only the calendar canvas navigates freely.
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Loader2, ListChecks } from "lucide-react";
+import { CalendarDays, Loader2, ListChecks, Sparkles } from "lucide-react";
 import { DailyCheckInForm } from "@/components/DailyCheckInForm";
 import { DecisionEngineCard, type DecisionRow } from "@/components/DecisionEngineCard";
 import type { ConnectionSummary } from "@/lib/google/calendar";
@@ -15,6 +15,11 @@ import { DecisionEngineScoreView } from "@/components/DecisionEngineScore";
 import { CalendarPanel, type CalendarClickPayload } from "@/components/CalendarPanel";
 import { EventDetailDrawer } from "@/components/EventDetailDrawer";
 import { CoachDrawer } from "@/components/CoachDrawer";
+import {
+  dayPlanWouldScheduleAnything,
+  decisionsNeedingAcceptance,
+  decisionsNeedingCalendarEvent,
+} from "@/lib/decision-engine/day-plan";
 
 const IMPACT_RANK: Record<DecisionRow["impact"], number> = { high: 2, medium: 1, low: 0 };
 const PENDING_STATUSES = new Set(["proposed", "accepted", "edited"]);
@@ -58,8 +63,22 @@ export function CalendarWorkspace({
   const [selectedEvent, setSelectedEvent] = useState<CalendarClickPayload | null>(null);
   const [mobileTab, setMobileTab] = useState<"calendar" | "decisions">("calendar");
 
+  // Milestone 11B: "Programar o meu dia" - a single batch action that
+  // accepts every proposed decision with a time window and creates
+  // calendar events for everything actionable, instead of the founder
+  // tapping Accept + Adicionar ao calendário up to three times. Asks once
+  // which connected account to use for the whole batch when there's more
+  // than one connection (not per event) - a deliberate, distinct choice
+  // from the per-decision "Adicionar ao calendário" picker, not a silent
+  // default: the founder is still asked, just once per plan run instead
+  // of once per event.
+  const [planning, setPlanning] = useState(false);
+  const [planSummary, setPlanSummary] = useState<string | null>(null);
+  const [showPlanAccountPicker, setShowPlanAccountPicker] = useState(false);
+
   const dominant = useMemo(() => pickDominant(decisions), [decisions]);
   const rest = useMemo(() => decisions.filter((d) => d.id !== dominant?.id), [decisions, dominant]);
+  const canPlanDay = useMemo(() => dayPlanWouldScheduleAnything(decisions), [decisions]);
 
   async function regenerate() {
     setLoading(true);
@@ -84,6 +103,72 @@ export function CalendarWorkspace({
         ? { kind: "decision", decision: updated }
         : current
     );
+  }
+
+  function handlePlanDayClick() {
+    if (connections.length > 1) {
+      setShowPlanAccountPicker(true);
+      return;
+    }
+    void planMyDay();
+  }
+
+  async function planMyDay(connectionId?: string) {
+    setPlanning(true);
+    setPlanSummary(null);
+    setShowPlanAccountPicker(false);
+    try {
+      let current = decisions;
+
+      // Step 1: accept every still-proposed decision that has a time
+      // window, so it becomes eligible for step 2 below.
+      const toAccept = decisionsNeedingAcceptance(current);
+      for (const d of toAccept) {
+        const response = await fetch(`/api/decisions/${d.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "accepted" }),
+        });
+        if (response.ok) {
+          const { decision: updated } = await response.json();
+          current = current.map((c) => (c.id === updated.id ? updated : c));
+        }
+      }
+      setDecisions(current);
+
+      // Step 2: create a calendar event for everything now actionable
+      // that doesn't already have one.
+      const toSchedule = decisionsNeedingCalendarEvent(current);
+      let scheduledCount = 0;
+      let blockedByConnection = false;
+      for (const d of toSchedule) {
+        const response = await fetch("/api/calendar/create-intervention", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decisionId: d.id, connectionId }),
+        });
+        if (response.ok) {
+          const { calendarEventId } = await response.json();
+          current = current.map((c) => (c.id === d.id ? { ...c, calendar_event_id: calendarEventId } : c));
+          scheduledCount += 1;
+        } else if (response.status === 409) {
+          blockedByConnection = true;
+        }
+      }
+      setDecisions(current);
+
+      if (blockedByConnection && scheduledCount === 0) {
+        setPlanSummary("Liga o Google Calendar em Definições para agendar as decisões de hoje.");
+      } else if (toAccept.length === 0 && scheduledCount === 0) {
+        setPlanSummary("Já não há nada para planear hoje.");
+      } else {
+        setPlanSummary(
+          `Dia planeado: ${toAccept.length} decisão(ões) aceite(s), ${scheduledCount} adicionada(s) ao calendário.`
+        );
+      }
+    } finally {
+      setPlanning(false);
+    }
   }
 
   if (!checkInDone) {
@@ -147,6 +232,43 @@ export function CalendarWorkspace({
         >
           <div className="space-y-3 p-3 md:p-0">
             <DecisionEngineScoreView decisions={decisions} />
+
+            {decisions.length > 0 && !showPlanAccountPicker && (
+              <button
+                disabled={planning || !canPlanDay}
+                className="btn-secondary flex w-full items-center justify-center gap-1.5 py-2.5 disabled:opacity-50"
+                onClick={handlePlanDayClick}
+              >
+                {planning ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                Programar o meu dia
+              </button>
+            )}
+
+            {showPlanAccountPicker && (
+              <div className="surface-card space-y-2 p-3">
+                <p className="text-sm text-neutral-400">
+                  A que conta adicionar os eventos de hoje?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {connections.map((connection) => (
+                    <button
+                      key={connection.id}
+                      disabled={planning}
+                      className="btn-secondary"
+                      onClick={() => planMyDay(connection.id)}
+                    >
+                      {connection.label || connection.googleAccountEmail || "Conta Google"}
+                      {connection.isPrimary && " (principal)"}
+                    </button>
+                  ))}
+                </div>
+                <button className="btn-ghost" onClick={() => setShowPlanAccountPicker(false)}>
+                  Cancelar
+                </button>
+              </div>
+            )}
+
+            {planSummary && <p className="px-1 text-sm text-neutral-400">{planSummary}</p>}
 
             {loading ? (
               <div className="flex items-center gap-2 py-6 text-sm text-neutral-400">
