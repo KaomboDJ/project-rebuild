@@ -83,6 +83,16 @@ Validated in an isolated sandbox copy of `node_modules`: lint clean, typecheck c
 
 Still not exercised: the end-to-end OAuth consent flow (actually visiting `/api/google/connect` and granting access as the test user) hasn't been run live — that's a "grant OAuth/SSO permissions" action, so it should happen with the founder present rather than via unattended browser automation.
 
+### Post-ship bugfix: `calendar_connections` was missing its `service_role` grant
+
+The founder tried connecting live and got "Não foi possível ligar o Google Calendar" every time. Vercel runtime logs (`/api/google/callback`) showed the real cause: `Error: Failed to save calendar connection: permission denied for table calendar_connections` — a Postgres-level GRANT error, not an RLS rejection.
+
+Root cause: `202607290001_foundation.sql` explicitly runs `grant select, insert, update, delete on table ... to authenticated;` for the other 5 tables, giving the RLS-scoped browser client its base privileges. `calendar_connections` correctly has no such grant to `anon`/`authenticated` (it's service-role only, per its own table comment) — but it also never got the equivalent grant to `service_role` itself. Unlike a default Supabase project, this database's default privileges don't automatically cover `service_role` on new tables, so the admin client (`lib/supabase/admin.ts`, the only thing that ever touches this table) had zero table-level access despite `service_role` correctly bypassing RLS.
+
+Fix: `supabase/migrations/202607300001_calendar_connections_service_role_grant.sql` — `grant select, insert, update, delete on table public.calendar_connections to service_role;`. Applied directly via the Supabase SQL Editor and verified with `information_schema.role_table_grants` (service_role now shows SELECT/INSERT/UPDATE/DELETE). Migration file committed to the repo so `supabase db push`/fresh environments stay in sync with what's live.
+
+The founder should retry connecting from `/settings` — this was the only blocker.
+
 ## Milestones 5–8
 
 Not started. See `12_ROADMAP.md` for full ordering.
