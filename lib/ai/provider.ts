@@ -136,7 +136,13 @@ class AnthropicCoachProvider implements CoachProvider {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
       const response = await this.client.messages.create({
         model: this.model,
-        max_tokens: 600,
+        // Was 600 - confirmed via live M10 smoke test (2026-07-30) that this
+        // truncates genuine multi-paragraph/bulleted answers mid-sentence
+        // even though the safety prompt asks for concise replies; the model
+        // still needs headroom for a full bulleted answer plus any tool_use
+        // blocks sharing the same budget. 2048 keeps a bound (no runaway
+        // cost/latency) while giving real answers room to finish.
+        max_tokens: 2048,
         system: buildSystemPrompt(context),
         messages,
         tools: tools ? TOOL_DEFINITIONS : undefined,

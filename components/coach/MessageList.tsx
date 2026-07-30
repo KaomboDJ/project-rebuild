@@ -21,13 +21,15 @@ export function MessageList({
       {messages.length === 0 && <p className="text-sm text-neutral-500">{emptyHint}</p>}
       {messages.map((message) => (
         <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[90%]" : "max-w-[90%] space-y-2"}>
-          <div
-            className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
-              message.role === "user" ? "bg-emerald-600 text-white" : "bg-white/[0.05] text-neutral-200"
-            }`}
-          >
-            {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : message.content}
-          </div>
+          {(message.role === "user" || message.content.trim().length > 0) && (
+            <div
+              className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                message.role === "user" ? "bg-emerald-600 text-white" : "bg-white/[0.05] text-neutral-200"
+              }`}
+            >
+              {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : message.content}
+            </div>
+          )}
           {message.toolCalls.length > 0 && (
             <div className="space-y-1.5">
               {message.toolCalls.map((call) => (
