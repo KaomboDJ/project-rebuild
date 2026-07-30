@@ -46,6 +46,12 @@ Before starting on this authorization, the founder was shown that the request wa
 
 See `docs/12_ROADMAP.md`'s "Full roadmap authorization" section for the milestone list and current status, and `docs/IMPLEMENTATION_STATUS.md` for the live per-milestone tracker.
 
+## Governance note — 2026-07-30 (standing go-ahead requirement lifted)
+
+After Milestone 11A shipped, the founder explicitly lifted the per-milestone check-in requirement set in the note above: "please go through all of them... ignore the first order on getting a 'go ahead' from me and implement them all." This authorizes building, validating, migrating, merging, and deploying Milestones 11B through 14 continuously, without pausing for a fresh go-ahead before each production migration/merge/deploy.
+
+This does not relax anything else in `CLAUDE.md`: the product rule (what real decision becomes easier?), the "do not build yet" list, coaching safety constraints, and the instruction to flag genuine architecture-or-scope conflicts still apply. Only the standing-authorization cadence changed — from "ask before each milestone's production step" to "proceed through the roadmap, still one coherent vertical slice at a time, still documented as it goes."
+
 ## Update rule
 
 Update this file only when the baseline, current experiment, non-negotiable, or operating plan materially changes.

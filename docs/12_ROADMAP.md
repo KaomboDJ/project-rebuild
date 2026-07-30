@@ -35,7 +35,9 @@ Not started until the calendar-aware decision loop is proven for the founder —
 
 ## Full roadmap authorization — 2026-07-30
 
-The founder explicitly authorized Milestones 10-14 below, overriding the Founder Pilot's "no new modules" rule for these specifically (see `PROJECT_REBUILD_STATE.md`'s matching governance note for the confirmation exchange). Execution mode: **milestone by milestone, with a check-in after each** — not one unattended run through production. Each milestone gets its own validation pass, its own commit(s), and its own explicit go-ahead before any production migration, branch merge, or Vercel production deploy.
+The founder explicitly authorized Milestones 10-14 below, overriding the Founder Pilot's "no new modules" rule for these specifically (see `PROJECT_REBUILD_STATE.md`'s matching governance note for the confirmation exchange). Execution mode through Milestone 11A: **milestone by milestone, with a check-in after each** — each milestone got its own validation pass, its own commit(s), and its own explicit go-ahead before any production migration, branch merge, or Vercel production deploy.
+
+**Update — 2026-07-30, after 11A shipped:** the founder lifted the per-milestone go-ahead requirement ("go through all of them... implement them all") — see `PROJECT_REBUILD_STATE.md`'s matching governance note. Milestones 11B-14 proceed continuously: still one coherent vertical slice at a time, still validated and documented as each lands, but without pausing for a fresh go-ahead before each production step.
 
 | # | Milestone | Status |
 |---|---|---|
