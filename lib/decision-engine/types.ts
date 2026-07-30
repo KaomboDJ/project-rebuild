@@ -96,6 +96,17 @@ export interface DailyContext {
   userCheckIn?: DailyCheckIn;
   /** Empty until Milestone 11C — degrades gracefully to the pre-11C generic dinner rules. */
   pantryItems: PantryItemSummary[];
+  /**
+   * Milestone 12: the recipe name of today's planned dinner
+   * (meal_plan_items, status 'planned'), when the Nutrition Toolkit's
+   * weekly plan covers it. Undefined/null when no plan exists for today —
+   * rules.ts falls back to the Milestone 11C pantry-based suggestion.
+   * Deliberately takes priority over the ad-hoc pantry pick: a planned meal
+   * is a stronger, already-decided commitment than "whatever's about to
+   * expire" (PRODUCT_BACKLOG.md: "before dinner risk: use the meal already
+   * assigned and available").
+   */
+  todaysDinnerPlanName?: string | null;
 }
 
 export interface DecisionCandidate {

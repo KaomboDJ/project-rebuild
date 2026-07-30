@@ -11,6 +11,10 @@ describe("isKnownTool", () => {
       "add_to_shopping_list",
       "mark_item_purchased",
       "record_meal",
+      "get_week_plan",
+      "generate_week_plan",
+      "replace_meal",
+      "mark_meal_eaten",
     ];
     for (const name of names) expect(isKnownTool(name)).toBe(true);
   });
@@ -73,5 +77,30 @@ describe("buildToolCallProposal - mutating tools require confirmation", () => {
   it("preserves the raw args on the proposal for later execution after confirmation", () => {
     const call = buildToolCallProposal({ id: "t8", name: "adjust_inventory", input: { pantry_item_id: "abc", new_quantity: 5 } });
     expect(call.args).toEqual({ pantry_item_id: "abc", new_quantity: 5 });
+  });
+});
+
+describe("buildToolCallProposal - Milestone 12 nutrition-plan tools", () => {
+  it("marks get_week_plan as already executed (read-only)", () => {
+    const call = buildToolCallProposal({ id: "t9", name: "get_week_plan", input: {} });
+    expect(call.status).toBe("executed");
+  });
+
+  it("marks generate_week_plan as proposed, never executed directly", () => {
+    const call = buildToolCallProposal({ id: "t10", name: "generate_week_plan", input: {} });
+    expect(call.status).toBe("proposed");
+  });
+
+  it("summarizes replace_meal with the day and slot", () => {
+    const call = buildToolCallProposal({ id: "t11", name: "replace_meal", input: { day_date: "2026-08-03", meal_slot: "dinner" } });
+    expect(call.summary).toContain("dinner");
+    expect(call.summary).toContain("2026-08-03");
+    expect(call.status).toBe("proposed");
+  });
+
+  it("summarizes mark_meal_eaten with the day and slot", () => {
+    const call = buildToolCallProposal({ id: "t12", name: "mark_meal_eaten", input: { day_date: "2026-08-03", meal_slot: "lunch" } });
+    expect(call.summary).toContain("lunch");
+    expect(call.status).toBe("proposed");
   });
 });

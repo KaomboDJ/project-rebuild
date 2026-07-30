@@ -179,3 +179,29 @@ Founder-authored milestone brief, approved to proceed mid-pilot ("Avançar já, 
 Not built (explicitly out of scope per the brief's Part 5): meal-plan generation, macro estimation, recipe library — those remain the separate, still-gated `PRODUCT_BACKLOG.md` Nutrition Toolkit entry.
 
 Validation: see the founder-facing completion report delivered alongside this milestone for the exact lint/typecheck/test/build results at time of handoff.
+
+## Milestone 12 — Complete Nutrition Toolkit
+
+Per the founder's 2026-07-30 full-roadmap authorization and its update lifting the per-milestone check-in requirement (`PROJECT_REBUILD_STATE.md`, `docs/12_ROADMAP.md`). Full design rationale, schema, and what's explicitly not built: `docs/13_NUTRITION_TOOLKIT.md`.
+
+| Item | Status | Notes |
+|---|---|---|
+| `supabase/migrations/202607300007_nutrition_toolkit.sql` | Done | `nutrition_profiles`, `recipes`, `recipe_ingredients`, `meal_plans`, `meal_plan_items`; RLS on all five (owner-scoped for the first and last two, read-only-to-everyone for the recipe library); `set_meal_plan_item_status` RPC; 24-recipe curated seed. |
+| `lib/supabase/database.types.ts` | Updated | 5 new tables + 1 new RPC signature. |
+| `lib/nutrition/types.ts`, `options.ts` | Done | Pure domain types + client-safe label lists (mirrors `lib/decision-engine/types.ts` / `lib/profile/onboarding.ts`'s split). |
+| `lib/nutrition/planner.ts` | Done | Deterministic "Decide for me" 7-day planner + same-slot/closest-calorie meal-replacement suggestion. No AI in the selection path. |
+| `lib/nutrition/macros.ts` | Done | Per-day/week-average macro estimates with a ±10% presentation band. |
+| `lib/nutrition/shopping.ts` | Done | Ingredient aggregation, realistic purchase-quantity rounding, pantry-stock subtraction. |
+| `lib/nutrition/queries.ts` | Done | Server-only Supabase CRUD: profile, recipe library reads, plan persistence/replacement/completion (with pantry auto-consume), shopping-list generation, and `getTodaysDinnerPlanName` for the Decision Engine hook. |
+| `app/api/nutrition/profile/route.ts` | Done | GET/PUT, Zod-validated. |
+| `app/api/nutrition/plan/route.ts`, `.../plan/[itemId]/route.ts`, `.../plan/shopping-list/route.ts` | Done | Get/generate current week; replace or mark eaten/skipped a single slot; regenerate the shopping list from the current plan. |
+| `components/nutrition/NutritionProfileForm.tsx`, `MealPlanView.tsx` | Done | Profile form; 7-day plan view with per-slot actions, macro summary, and shopping-list/regenerate buttons. |
+| `app/(app)/nutrition/profile/page.tsx`, `.../plan/page.tsx` | Done | Routes for the two new UI pieces above; `/nutrition` dashboard updated with links and a planned-meals count. |
+| `lib/decision-engine/types.ts`, `context-builder.ts`, `rules.ts` | Updated | `DailyContext.todaysDinnerPlanName` (Milestone 12) takes priority over the Milestone 11C pantry pick in `decideDinnerEarly`/`avoidTakeawayCommitment` — a planned meal outranks an ad-hoc suggestion. |
+| `app/api/decisions/generate/route.ts` | Updated | Fetches `getTodaysDinnerPlanName` alongside the existing pantry summary. |
+| `lib/coach/types.ts`, `tools.ts` | Updated | 4 new tools: `get_week_plan` (read-only), `generate_week_plan`, `replace_meal`, `mark_meal_eaten` (all three confirm-gated, same pattern as every other Coach mutation). |
+| `lib/ai/provider.ts` | Updated | System prompt tells the model to use `get_week_plan` before answering plan questions and never invent recipes/macros. |
+
+Tests added: `lib/nutrition/planner.test.ts` (17), `macros.test.ts` (8), `shopping.test.ts` (11), plus 4 new `lib/decision-engine/rules.test.ts` cases (meal-plan-priority dinner naming) and 4 new `lib/coach/tools.test.ts` cases (new tool names/summaries) — bringing the suite from 204 to 247, all passing.
+
+Validated in an isolated sandbox copy: typecheck clean, lint clean (`✔ No ESLint warnings or errors`), full suite 247/247 passing. Production build hits only the same pre-existing, sandbox-network-only Google Fonts restriction seen in Milestones 11B–11D (`Failed to fetch font 'Inter' from Google Fonts`) — not caused by this milestone's code.

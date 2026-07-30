@@ -5,6 +5,19 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { MUTATING_TOOLS, READ_ONLY_TOOLS, type ToolCall, type ToolName } from "./types";
+import { getFounderNow } from "@/lib/date/founder-now";
+import { getWeekRange } from "@/lib/date/ranges";
+import { generateWeekPlan, suggestReplacement } from "@/lib/nutrition/planner";
+import {
+  completeMealPlanItem,
+  getNutritionProfile,
+  getWeekPlan,
+  listRecipesWithIngredients,
+  replaceMealPlanItem,
+  saveWeekPlan,
+  toPlanResponse,
+  type MealPlanItemRow,
+} from "@/lib/nutrition/queries";
 
 type Supabase = SupabaseClient<Database>;
 type PantryItem = Database["public"]["Tables"]["pantry_items"]["Row"];
@@ -121,6 +134,44 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ["items"],
     },
   },
+  {
+    name: "get_week_plan",
+    description:
+      "Lista o plano de refeições da semana atual do utilizador (Milestone 12 — Nutrition Toolkit), com receitas, macros estimadas e estado (planeado/comido/saltado). Usa antes de responder a perguntas como 'o que é que tenho para o jantar hoje' ou 'qual é o plano desta semana'.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "generate_week_plan",
+    description:
+      "PROPÕE gerar (ou substituir) o plano de refeições das próximas 7 dias com base no perfil de alimentação do utilizador (objetivo, estilo alimentar, alergias, tempo de cozinha, etc.). Substitui qualquer plano já existente para essa semana. Requer confirmação explícita.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "replace_meal",
+    description:
+      "PROPÕE substituir uma refeição planeada por uma alternativa da mesma categoria (mesmo tipo de refeição, calorias semelhantes). Identifica a refeição por data e tipo de refeição. Requer confirmação explícita.",
+    input_schema: {
+      type: "object",
+      properties: {
+        day_date: { type: "string", description: "Data no formato YYYY-MM-DD." },
+        meal_slot: { type: "string", enum: ["breakfast", "lunch", "dinner", "snack"] },
+      },
+      required: ["day_date", "meal_slot"],
+    },
+  },
+  {
+    name: "mark_meal_eaten",
+    description:
+      "PROPÕE marcar uma refeição planeada como feita, o que consome automaticamente os ingredientes correspondentes da despensa quando existirem. Requer confirmação explícita.",
+    input_schema: {
+      type: "object",
+      properties: {
+        day_date: { type: "string", description: "Data no formato YYYY-MM-DD." },
+        meal_slot: { type: "string", enum: ["breakfast", "lunch", "dinner", "snack"] },
+      },
+      required: ["day_date", "meal_slot"],
+    },
+  },
 ];
 
 export function isKnownTool(name: string): name is ToolName {
@@ -146,6 +197,30 @@ async function resolvePantryItem(
     return data[0];
   }
   throw new Error("É necessário indicar pantry_item_id ou name.");
+}
+
+/** Resolves a meal_plan_items row from the (day_date, meal_slot) pair the
+ * model supplies — there's no id for it to reference, unlike pantry items,
+ * since the founder never sees raw ids for plan slots either. */
+async function resolveMealPlanItem(
+  supabase: Supabase,
+  userId: string,
+  args: { day_date?: unknown; meal_slot?: unknown }
+): Promise<MealPlanItemRow> {
+  const dayDate = typeof args.day_date === "string" ? args.day_date : undefined;
+  const mealSlot = typeof args.meal_slot === "string" ? args.meal_slot : undefined;
+  if (!dayDate || !mealSlot) throw new Error("É necessário indicar day_date e meal_slot.");
+
+  const { data, error } = await supabase
+    .from("meal_plan_items")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("day_date", dayDate)
+    .eq("meal_slot", mealSlot as MealPlanItemRow["meal_slot"])
+    .maybeSingle();
+  if (error) throw new Error("Falha ao ler o plano de refeições.");
+  if (!data) throw new Error(`Não encontrei nenhuma refeição planeada para ${mealSlot} em ${dayDate}.`);
+  return data;
 }
 
 // --- Read-only tools: executed immediately, result fed back to the model. ---
@@ -178,6 +253,14 @@ export async function executeReadOnlyTool(
     return { day_type: dayType ?? "unknown", candidates: items };
   }
 
+  if (name === "get_week_plan") {
+    const { date } = await getFounderNow(supabase, userId);
+    const weekStart = getWeekRange(date).start;
+    const planWithItems = await getWeekPlan(supabase, userId, weekStart);
+    const response = await toPlanResponse(supabase, planWithItems);
+    return { weekStart, ...response };
+  }
+
   throw new Error(`${name} não é uma tool de leitura.`);
 }
 
@@ -198,6 +281,12 @@ function summarize(name: ToolName, args: Record<string, unknown>): string {
       return `Marcar "${args.name ?? "item"}" como comprado`;
     case "record_meal":
       return `Registar refeição${args.meal ? ` (${args.meal})` : ""} com ${Array.isArray(args.items) ? args.items.length : 0} item(ns)`;
+    case "generate_week_plan":
+      return "Gerar (ou substituir) o plano de refeições da semana";
+    case "replace_meal":
+      return `Substituir ${args.meal_slot ?? "refeição"} de ${args.day_date ?? "?"} por uma alternativa`;
+    case "mark_meal_eaten":
+      return `Marcar ${args.meal_slot ?? "refeição"} de ${args.day_date ?? "?"} como feita`;
     default:
       return `Executar ${name}`;
   }
@@ -347,6 +436,32 @@ export async function executeMutatingTool(
       results.push({ item: item.name, event: data });
     }
     return { meal: args.meal ?? null, consumed: results };
+  }
+
+  if (name === "generate_week_plan") {
+    const { date } = await getFounderNow(supabase, userId);
+    const weekStart = getWeekRange(date).start;
+    const profile = await getNutritionProfile(supabase, userId);
+    const recipes = await listRecipesWithIngredients(supabase);
+    const result = generateWeekPlan({ weekStart, profile, recipes });
+    const planWithItems = await saveWeekPlan(supabase, userId, result);
+    const response = await toPlanResponse(supabase, planWithItems);
+    return { weekStart, limitedVariety: result.limitedVariety, ...response };
+  }
+
+  if (name === "replace_meal") {
+    const current = await resolveMealPlanItem(supabase, userId, args);
+    const [profile, recipes] = await Promise.all([getNutritionProfile(supabase, userId), listRecipesWithIngredients(supabase)]);
+    const suggestion = suggestReplacement(recipes, current.meal_slot, profile, current.recipe_id);
+    if (!suggestion) throw new Error("Não encontrei nenhuma alternativa adequada na biblioteca de receitas.");
+    const item = await replaceMealPlanItem(supabase, userId, current.id, suggestion.id);
+    return { item, newRecipe: suggestion.name };
+  }
+
+  if (name === "mark_meal_eaten") {
+    const current = await resolveMealPlanItem(supabase, userId, args);
+    const result = await completeMealPlanItem(supabase, userId, current.id, "eaten");
+    return { item: result.item, consumedIngredients: result.consumedIngredients };
   }
 
   throw new Error(`Tool ${name} não implementada.`);

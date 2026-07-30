@@ -28,6 +28,17 @@ type DayType = "home" | "office";
 type DefaultDayType = "home" | "office" | "mixed";
 type DayTypeSource = "check-in" | "profile" | "calendar-heuristic";
 
+type NutritionGoal = "lose-weight" | "maintain-weight" | "build-muscle" | "manage-blood-sugar" | "improve-energy";
+type DietStyle = "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "low-carb" | "mediterranean";
+type BudgetPreference = "low" | "medium" | "high";
+type VarietyPreference = "low" | "medium" | "high";
+type MacroSource = "system-estimate" | "user-provided" | "clinician-provided";
+type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+type GrocerySection = PantryCategory;
+type MealPlanMode = "decide-for-me";
+type MealPlanStatus = "active" | "archived";
+type MealPlanItemStatus = "planned" | "eaten" | "skipped";
+
 export interface Database {
   public: {
     Tables: {
@@ -383,6 +394,168 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["shopping_list_items"]["Insert"]>;
         Relationships: [];
       };
+      nutrition_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          goal: NutritionGoal;
+          diet_style: DietStyle;
+          allergies: string[];
+          exclusions: string[];
+          medical_constraints: string;
+          meals_per_day: number;
+          include_snack: boolean;
+          people_count: number;
+          cooking_time_minutes: number;
+          budget_preference: BudgetPreference;
+          variety_preference: VarietyPreference;
+          target_calories: number | null;
+          target_protein_g: number | null;
+          target_carbs_g: number | null;
+          target_fat_g: number | null;
+          macro_source: MacroSource;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          goal?: NutritionGoal;
+          diet_style?: DietStyle;
+          allergies?: string[];
+          exclusions?: string[];
+          medical_constraints?: string;
+          meals_per_day?: number;
+          include_snack?: boolean;
+          people_count?: number;
+          cooking_time_minutes?: number;
+          budget_preference?: BudgetPreference;
+          variety_preference?: VarietyPreference;
+          target_calories?: number | null;
+          target_protein_g?: number | null;
+          target_carbs_g?: number | null;
+          target_fat_g?: number | null;
+          macro_source?: MacroSource;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["nutrition_profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      recipes: {
+        Row: {
+          id: string;
+          name: string;
+          meal_type: MealType;
+          diet_tags: string[];
+          allergens: string[];
+          prep_minutes: number;
+          servings: number;
+          calories_per_serving: number;
+          protein_g_per_serving: number;
+          carbs_g_per_serving: number;
+          fat_g_per_serving: number;
+          fiber_g_per_serving: number;
+          budget_tier: BudgetPreference;
+          glycemic_note: string;
+          instructions: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          meal_type: MealType;
+          diet_tags?: string[];
+          allergens?: string[];
+          prep_minutes: number;
+          servings?: number;
+          calories_per_serving: number;
+          protein_g_per_serving: number;
+          carbs_g_per_serving: number;
+          fat_g_per_serving: number;
+          fiber_g_per_serving?: number;
+          budget_tier?: BudgetPreference;
+          glycemic_note?: string;
+          instructions?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["recipes"]["Insert"]>;
+        Relationships: [];
+      };
+      recipe_ingredients: {
+        Row: {
+          id: string;
+          recipe_id: string;
+          name: string;
+          quantity: number;
+          unit: PantryUnit;
+          optional: boolean;
+          grocery_section: GrocerySection;
+        };
+        Insert: {
+          id?: string;
+          recipe_id: string;
+          name: string;
+          quantity: number;
+          unit?: PantryUnit;
+          optional?: boolean;
+          grocery_section?: GrocerySection;
+        };
+        Update: Partial<Database["public"]["Tables"]["recipe_ingredients"]["Insert"]>;
+        Relationships: [];
+      };
+      meal_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_start: string;
+          mode: MealPlanMode;
+          status: MealPlanStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          week_start: string;
+          mode?: MealPlanMode;
+          status?: MealPlanStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      meal_plan_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          meal_plan_id: string;
+          day_date: string;
+          meal_slot: MealType;
+          recipe_id: string;
+          servings: number;
+          status: MealPlanItemStatus;
+          eaten_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          meal_plan_id: string;
+          day_date: string;
+          meal_slot: MealType;
+          recipe_id: string;
+          servings?: number;
+          status?: MealPlanItemStatus;
+          eaten_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_plan_items"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -402,6 +575,13 @@ export interface Database {
           p_actual_quantity?: number | null;
         };
         Returns: Database["public"]["Tables"]["shopping_list_items"]["Row"];
+      };
+      set_meal_plan_item_status: {
+        Args: {
+          p_meal_plan_item_id: string;
+          p_status: MealPlanItemStatus;
+        };
+        Returns: Database["public"]["Tables"]["meal_plan_items"]["Row"];
       };
     };
     Enums: Record<string, never>;

@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, ListChecks, ShoppingCart } from "lucide-react";
+import { AlertTriangle, CalendarRange, ListChecks, ShoppingCart, UserCog } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
+import { getWeekRange } from "@/lib/date/ranges";
 import { listPantryItems, getOrCreateOpenShoppingList, listShoppingItems } from "@/lib/pantry/queries";
+import { getWeekPlan } from "@/lib/nutrition/queries";
 
 export default async function NutritionDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -26,14 +28,17 @@ export default async function NutritionDashboardPage() {
   }
 
   const { date: today } = await getFounderNow(supabase, user.id);
-  const [pantryItems, listId] = await Promise.all([
+  const weekStart = getWeekRange(today).start;
+  const [pantryItems, listId, weekPlan] = await Promise.all([
     listPantryItems(supabase, user.id).catch(() => []),
     getOrCreateOpenShoppingList(supabase, user.id),
+    getWeekPlan(supabase, user.id, weekStart).catch(() => null),
   ]);
   const shoppingItems = await listShoppingItems(supabase, user.id, listId).catch(() => []);
 
   const expiringSoon = pantryItems.filter((item) => item.expires_on && item.expires_on <= today);
   const pendingShopping = shoppingItems.filter((item) => !item.purchased);
+  const plannedCount = weekPlan?.items.filter((i) => i.status === "planned").length ?? 0;
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
@@ -47,6 +52,20 @@ export default async function NutritionDashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/nutrition/plan" className="surface-card surface-card-hover block p-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
+            <CalendarRange size={17} />
+          </span>
+          <p className="mt-3 font-medium text-neutral-100">Plano da semana</p>
+          <p className="text-sm text-neutral-400">{weekPlan ? `${plannedCount} refeição(ões) por fazer` : "Ainda sem plano"}</p>
+        </Link>
+        <Link href="/nutrition/profile" className="surface-card surface-card-hover block p-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
+            <UserCog size={17} />
+          </span>
+          <p className="mt-3 font-medium text-neutral-100">Perfil de alimentação</p>
+          <p className="text-sm text-neutral-400">Objetivo, dieta, alergias, macros</p>
+        </Link>
         <Link href="/nutrition/pantry" className="surface-card surface-card-hover block p-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
             <ListChecks size={17} />

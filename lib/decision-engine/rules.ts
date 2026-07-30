@@ -58,6 +58,25 @@ function pickDinnerSuggestion(pantryItems: PantryItemSummary[]): PantryItemSumma
   return pantryItems[0] ?? null;
 }
 
+/**
+ * Milestone 12: what to name as tonight's dinner. A Nutrition Toolkit plan
+ * for today (context.todaysDinnerPlanName) takes priority over the
+ * Milestone 11C ad-hoc pantry pick — an already-decided weekly plan is a
+ * stronger commitment than "whatever's about to expire". `relatedPantryItem`
+ * is only ever set from the pantry-fallback path: a planned recipe name
+ * isn't a pantry_items row, so it must not flow into the Milestone 11D
+ * auto-consume mechanism (which does a full-quantity pantry match) — the
+ * meal plan has its own completion/auto-consume path
+ * (lib/nutrition/queries.ts's completeMealPlanItem).
+ */
+function pickDinnerLabel(context: DailyContext): { name: string; relatedPantryItem?: string } | null {
+  if (context.todaysDinnerPlanName) {
+    return { name: context.todaysDinnerPlanName };
+  }
+  const suggestion = pickDinnerSuggestion(context.pantryItems);
+  return suggestion ? { name: suggestion.name, relatedPantryItem: suggestion.name } : null;
+}
+
 function findWindowOverlapping(
   context: DailyContext,
   windowStartMin: number,
@@ -189,20 +208,22 @@ export function decideDinnerEarly(context: DailyContext): DecisionCandidate[] {
   const minutesUntilDinner = dinnerStart - current;
   if (minutesUntilDinner < 60 || minutesUntilDinner > 240) return [];
 
-  const suggestion = pickDinnerSuggestion(context.pantryItems);
+  const dinner = pickDinnerLabel(context);
 
   return [
     {
       ruleId: "decide-dinner-early",
       domain: "nutrition",
-      recommendedAction: suggestion
-        ? `Janta ${suggestion.name}, que já tens em casa. Decide agora, antes da janela de fadiga da noite.`
+      recommendedAction: dinner
+        ? context.todaysDinnerPlanName
+          ? `Segue o plano da semana: ${dinner.name}. Decide agora, antes da janela de fadiga da noite.`
+          : `Janta ${dinner.name}, que já tens em casa. Decide agora, antes da janela de fadiga da noite.`
         : "Decide o jantar agora, antes da janela de fadiga da noite.",
       baseTitle: "Decide o jantar",
       baseReason: "Decidir agora evita a decisão por cansaço mais tarde — janta comida que já existe em casa.",
       requiresFreeWindow: false,
       baseImpact: "high",
-      relatedPantryItem: suggestion?.name,
+      relatedPantryItem: dinner?.relatedPantryItem,
     },
   ];
 }
@@ -259,20 +280,22 @@ export function avoidTakeawayCommitment(context: DailyContext): DecisionCandidat
   const recentSkippedNutrition = hasRecentDomainStatus(context, "nutrition", "skipped", 5);
   if (recentSkippedNutrition < 2) return [];
 
-  const suggestion = pickDinnerSuggestion(context.pantryItems);
+  const dinner = pickDinnerLabel(context);
 
   return [
     {
       ruleId: "avoid-takeaway-commitment",
       domain: "nutrition",
-      recommendedAction: suggestion
-        ? `Compromete-te já com ${suggestion.name}, que já tens em casa, antes de abrires uma app de entregas.`
+      recommendedAction: dinner
+        ? context.todaysDinnerPlanName
+          ? `Compromete-te já com o plano de hoje — ${dinner.name} — antes de abrires uma app de entregas.`
+          : `Compromete-te já com ${dinner.name}, que já tens em casa, antes de abrires uma app de entregas.`
         : "Compromete-te com a refeição de hoje antes de abrires uma app de entregas.",
       baseTitle: "Evita o Uber Eats",
       baseReason: "Nos últimos dias houve um padrão de saltar a decisão do jantar — vamos travar isso agora.",
       requiresFreeWindow: false,
       baseImpact: "high",
-      relatedPantryItem: suggestion?.name,
+      relatedPantryItem: dinner?.relatedPantryItem,
     },
   ];
 }

@@ -147,6 +147,29 @@ describe("decideDinnerEarly", () => {
     );
     expect(candidate.relatedPantryItem).toBe("Frango");
   });
+
+  it("prefers today's meal-plan dinner over the pantry pick when both exist (Milestone 12)", () => {
+    const [candidate] = decideDinnerEarly(
+      baseContext({
+        now: "2026-07-29T17:30:00",
+        pantryItems: [{ name: "Frango", quantity: 2, unit: "un", portable: true, expiresOn: "2026-07-30" }],
+        todaysDinnerPlanName: "Salmão grelhado com espargos",
+      })
+    );
+    expect(candidate.recommendedAction).toContain("Salmão grelhado com espargos");
+    expect(candidate.recommendedAction).toContain("plano");
+  });
+
+  it("leaves relatedPantryItem unset when the dinner comes from the meal plan, not the pantry (Milestone 12)", () => {
+    const [candidate] = decideDinnerEarly(
+      baseContext({
+        now: "2026-07-29T17:30:00",
+        pantryItems: [{ name: "Frango", quantity: 2, unit: "un", portable: true, expiresOn: "2026-07-30" }],
+        todaysDinnerPlanName: "Salmão grelhado com espargos",
+      })
+    );
+    expect(candidate.relatedPantryItem).toBeUndefined();
+  });
 });
 
 describe("defrostIngredients", () => {
@@ -222,6 +245,22 @@ describe("avoidTakeawayCommitment", () => {
       })
     );
     expect(candidate.relatedPantryItem).toBe("Peixe");
+  });
+
+  it("names today's meal-plan dinner in preference to the pantry pick (Milestone 12)", () => {
+    const [candidate] = avoidTakeawayCommitment(
+      baseContext({
+        now: "2026-07-29T18:00:00",
+        recentDecisions: [
+          { date: "2026-07-27", domain: "nutrition", status: "skipped" },
+          { date: "2026-07-28", domain: "nutrition", status: "skipped" },
+        ],
+        pantryItems: [{ name: "Peixe", quantity: 1, unit: "un", portable: true, expiresOn: "2026-07-29" }],
+        todaysDinnerPlanName: "Frango estufado com batata-doce",
+      })
+    );
+    expect(candidate.recommendedAction).toContain("Frango estufado com batata-doce");
+    expect(candidate.relatedPantryItem).toBeUndefined();
   });
 });
 

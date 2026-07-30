@@ -163,6 +163,8 @@ export interface BuildDailyContextParams {
    * generate route) is responsible for that, since rules.ts stays pure.
    */
   pantryItems?: PantryItemSummary[];
+  /** Milestone 12 — see DailyContext.todaysDinnerPlanName's doc comment. */
+  todaysDinnerPlanName?: string | null;
 }
 
 export async function buildDailyContext({
@@ -172,6 +174,7 @@ export async function buildDailyContext({
   now,
   calendarEvents = [],
   pantryItems = [],
+  todaysDinnerPlanName = null,
 }: BuildDailyContextParams): Promise<DailyContext> {
   const [{ data: profileRow }, { data: checkInRow }, { data: recentRows }] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -220,5 +223,6 @@ export async function buildDailyContext({
     recentDecisions,
     userCheckIn,
     pantryItems,
+    todaysDinnerPlanName,
   };
 }

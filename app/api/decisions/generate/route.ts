@@ -5,6 +5,7 @@ import { generateDecisions } from "@/lib/decision-engine/generator";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getCalendarEventsForDate } from "@/lib/google/calendar";
 import { buildPantrySummary } from "@/lib/coach/pantry-context";
+import { getTodaysDinnerPlanName } from "@/lib/nutrition/queries";
 
 /**
  * Generates (or regenerates) today's exactly-three decisions for the
@@ -50,6 +51,12 @@ export async function POST() {
     expiresOn: item.expiresOn,
   }));
 
+  // Milestone 12: a planned dinner from the Nutrition Toolkit's weekly plan
+  // takes priority over the ad-hoc pantry pick above — see
+  // lib/decision-engine/rules.ts's pickDinnerLabel. null (not an error) if
+  // no plan covers today yet.
+  const todaysDinnerPlanName = await getTodaysDinnerPlanName(supabase, user.id, date).catch(() => null);
+
   const context = await buildDailyContext({
     supabase,
     userId: user.id,
@@ -57,6 +64,7 @@ export async function POST() {
     now,
     calendarEvents,
     pantryItems,
+    todaysDinnerPlanName,
   });
   const { decisions, engineVersion } = await generateDecisions(context);
 

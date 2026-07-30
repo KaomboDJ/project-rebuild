@@ -10,7 +10,11 @@ export type ToolName =
   | "add_to_shopping_list"
   | "mark_item_purchased"
   | "suggest_available_meal"
-  | "record_meal";
+  | "record_meal"
+  | "get_week_plan"
+  | "generate_week_plan"
+  | "replace_meal"
+  | "mark_meal_eaten";
 
 /** Tools the server executes immediately and feeds back to the model in the
  * same turn — they only read data, so there's nothing for the user to
@@ -18,6 +22,7 @@ export type ToolName =
 export const READ_ONLY_TOOLS: ReadonlySet<ToolName> = new Set([
   "get_inventory",
   "suggest_available_meal",
+  "get_week_plan",
 ]);
 
 /** Tools that change pantry/shopping state. The model may only *propose*
@@ -29,6 +34,9 @@ export const MUTATING_TOOLS: ReadonlySet<ToolName> = new Set([
   "add_to_shopping_list",
   "mark_item_purchased",
   "record_meal",
+  "generate_week_plan",
+  "replace_meal",
+  "mark_meal_eaten",
 ]);
 
 export type ToolCallStatus = "proposed" | "confirmed" | "declined" | "executed" | "failed";
