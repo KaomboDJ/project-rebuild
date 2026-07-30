@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarCheck2, LogOut, Mail } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { disconnectGoogleCalendar } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -29,26 +30,40 @@ export default async function SettingsPage({
   const statusMessage = calendar ? CALENDAR_STATUS_MESSAGE[calendar] : null;
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+    <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <div>
         <p className="text-sm uppercase tracking-wide text-neutral-500">Conta</p>
-        <h1 className="text-2xl font-semibold">Definições</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Definições</h1>
       </div>
-      <section className="rounded-xl border border-neutral-800 p-5">
-        <h2 className="font-medium">Sessão</h2>
-        <p className="mt-1 text-sm text-neutral-400">{user?.email}</p>
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] text-neutral-300">
+            <Mail size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Sessão</h2>
+            <p className="text-sm text-neutral-400">{user?.email}</p>
+          </div>
+        </div>
         <form action={signOut} className="mt-4">
-          <button
-            type="submit"
-            className="rounded-md border border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-900"
-          >
+          <button type="submit" className="btn-secondary">
+            <LogOut size={14} />
             Terminar sessão
           </button>
         </form>
       </section>
-      <section className="rounded-xl border border-neutral-800 p-5">
-        <h2 className="font-medium">Google Calendar</h2>
-        {statusMessage && <p className="mt-1 text-sm text-neutral-400">{statusMessage}</p>}
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+            <CalendarCheck2 size={16} />
+          </span>
+          <h2 className="font-medium">Google Calendar</h2>
+        </div>
+
+        {statusMessage && <p className="mt-2 text-sm text-neutral-400">{statusMessage}</p>}
+
         {!calendarConfigured ? (
           <p className="mt-3 text-sm text-neutral-400">
             A integração ainda não está configurada neste ambiente.
@@ -63,10 +78,7 @@ export default async function SettingsPage({
               .
             </p>
             <form action={disconnectGoogleCalendar}>
-              <button
-                type="submit"
-                className="rounded-md border border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-900"
-              >
+              <button type="submit" className="btn-secondary">
                 Desligar calendário
               </button>
             </form>
@@ -77,10 +89,7 @@ export default async function SettingsPage({
               Liga o teu Google Calendar para as decisões terem em conta os espaços livres na tua
               agenda.
             </p>
-            <a
-              href="/api/google/connect"
-              className="inline-block rounded-md bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-500"
-            >
+            <a href="/api/google/connect" className="btn-primary inline-flex">
               Ligar Google Calendar
             </a>
           </div>

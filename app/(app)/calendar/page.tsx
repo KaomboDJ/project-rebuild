@@ -1,36 +1,16 @@
-import Link from "next/link";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isCalendarConnected } from "@/lib/google/calendar";
-import { isGoogleCalendarConfigured } from "@/lib/google/oauth";
 import { CalendarView } from "@/components/CalendarView";
 
-export default async function CalendarPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
-
-  const configured = isGoogleCalendarConfigured();
-  const connected = user && configured ? await isCalendarConnected(user.id) : false;
-
+// CalendarView handles the "not connected" state itself (the events API
+// returns 409, which it turns into a message + link to /settings) - no
+// server-side pre-check needed here, single source of truth.
+export default function CalendarPage() {
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <div>
+    <main className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-6xl flex-col px-0 py-4 md:h-[calc(100vh-3.25rem)] md:px-6 md:py-6">
+      <div className="mb-2 px-4 md:px-0">
         <p className="text-sm uppercase tracking-wide text-neutral-500">Google Calendar</p>
-        <h1 className="text-2xl font-semibold">Calendário</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Calendário</h1>
       </div>
-
-      {!connected ? (
-        <div className="rounded-xl border border-neutral-800 p-5 text-sm text-neutral-400">
-          Ainda não ligaste o Google Calendar.{" "}
-          <Link href="/settings" className="text-emerald-400 hover:underline">
-            Liga-o em Definições
-          </Link>{" "}
-          para veres aqui os teus compromissos.
-        </div>
-      ) : (
-        <CalendarView />
-      )}
+      <CalendarView />
     </main>
   );
 }

@@ -17,10 +17,13 @@ export default async function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-16">
       <div className="max-w-xl space-y-6">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
-          Rebuild
-        </p>
-        <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
+            R
+          </span>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">Rebuild</p>
+        </div>
+        <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
           Torna-te atleta outra vez, uma decisão de cada vez.
         </h1>
         <p className="text-lg leading-relaxed text-neutral-400">
@@ -29,8 +32,8 @@ export default async function HomePage() {
         </p>
 
         {configured ? (
-          <form action={signInWithMagicLink} className="space-y-3 rounded-xl border border-neutral-800 p-5">
-            <label htmlFor="email" className="block text-sm font-medium">
+          <form action={signInWithMagicLink} className="surface-card space-y-3 p-5">
+            <label htmlFor="email" className="field-label">
               Entra com uma ligação segura
             </label>
             <input
@@ -40,17 +43,14 @@ export default async function HomePage() {
               required
               autoComplete="email"
               placeholder="nome@exemplo.com"
-              className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2"
+              className="field-input"
             />
-            <button
-              type="submit"
-              className="w-full rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
-            >
+            <button type="submit" className="btn-primary w-full py-2.5">
               Enviar ligação de acesso
             </button>
           </form>
         ) : (
-          <div className="rounded-xl border border-amber-800 bg-amber-950/30 p-5">
+          <div className="rounded-2xl border border-amber-800 bg-amber-950/30 p-5">
             <p className="font-medium text-amber-200">Fundação pronta para ligar</p>
             <p className="mt-1 text-sm text-amber-100/70">
               Adiciona as credenciais públicas do Supabase ao ficheiro .env.local para

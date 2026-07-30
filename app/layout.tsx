@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Inter } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
+
+// Self-hosted by Next at build time (no runtime request to Google Fonts) -
+// the clean, tight-tracking sans-serif every modern productivity app
+// (Linear, Notion, Fantastical) defaults to. Exposed as a CSS variable so
+// tailwind.config.ts can wire it into the `sans` font stack.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Project Rebuild",
@@ -29,8 +36,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt">
-      <body className="min-h-screen bg-neutral-950 text-neutral-100" suppressHydrationWarning>
+    <html lang="pt" className={inter.variable}>
+      <body className="min-h-screen bg-app font-sans text-neutral-100 antialiased" suppressHydrationWarning>
         <ServiceWorkerRegistration />
         {children}
       </body>

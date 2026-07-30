@@ -29,8 +29,8 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-8">
-      <p className="text-sm uppercase tracking-wide text-neutral-400">Project Rebuild</p>
-      <h1 className="mb-6 text-2xl font-semibold">Vamos começar</h1>
+      <p className="text-sm uppercase tracking-wide text-neutral-500">Project Rebuild</p>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Vamos começar</h1>
       <OnboardingForm initialProfile={profile ?? null} />
     </main>
   );

@@ -108,11 +108,11 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="surface-card space-y-5 p-5" onSubmit={handleSubmit}>
       <label className="block text-sm">
         Como te devemos chamar? <span className="text-rose-500">*</span>
         <input
-          className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="field-input mt-1"
           placeholder="Marco"
           value={draft.preferredName}
           onChange={(event) => setDraft({ ...draft, preferredName: event.target.value })}
@@ -125,7 +125,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       <label className="block text-sm">
         Quem és hoje? <span className="text-rose-500">*</span>
         <textarea
-          className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="field-input mt-1"
           placeholder="Ex.: ex-atleta, rotina interrompida, sono irregular"
           rows={2}
           value={draft.currentIdentity}
@@ -139,7 +139,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       <label className="block text-sm">
         Quem queres voltar a ser? <span className="text-rose-500">*</span>
         <textarea
-          className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="field-input mt-1"
           placeholder="Ex.: atleta em reconstrução"
           rows={2}
           value={draft.desiredIdentity}
@@ -153,7 +153,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       <label className="block text-sm">
         Objetivo principal <span className="text-rose-500">*</span>
         <select
-          className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="field-input mt-1"
           value={draft.primaryObjective}
           onChange={(event) => setDraft({ ...draft, primaryObjective: event.target.value })}
         >
@@ -177,11 +177,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
                 key={day.value}
                 type="button"
                 onClick={() => toggleDay(day.value)}
-                className={`rounded-full border px-3 py-1 text-xs ${
-                  checked
-                    ? "border-emerald-600 bg-emerald-600/20 text-emerald-300"
-                    : "border-neutral-700 text-neutral-400"
-                }`}
+                className={`chip ${checked ? "chip-active" : "chip-inactive"}`}
               >
                 {day.label}
               </button>
@@ -198,7 +194,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
           Hora de treino
           <input
             type="time"
-            className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+            className="field-input mt-1"
             value={draft.preferredTrainingTime}
             onChange={(event) => setDraft({ ...draft, preferredTrainingTime: event.target.value })}
           />
@@ -207,7 +203,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
           Hora do jantar
           <input
             type="time"
-            className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+            className="field-input mt-1"
             value={draft.typicalDinnerTime}
             onChange={(event) => setDraft({ ...draft, typicalDinnerTime: event.target.value })}
           />
@@ -216,7 +212,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
           Hora de dormir
           <input
             type="time"
-            className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+            className="field-input mt-1"
             value={draft.targetSleepTime}
             onChange={(event) => setDraft({ ...draft, targetSleepTime: event.target.value })}
           />
@@ -226,7 +222,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       <label className="block text-sm">
         Que responsabilidades e limites moldam a tua vida? <span className="text-rose-500">*</span>
         <textarea
-          className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="field-input mt-1"
           placeholder="Trabalho, família, sono..."
           rows={2}
           value={draft.currentConstraints}
@@ -240,7 +236,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       <label className="block text-sm">
         Que tom de comunicação funciona contigo? <span className="text-rose-500">*</span>
         <input
-          className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="field-input mt-1"
           placeholder="Ex.: direto, sem lição de moral"
           value={draft.interventionTone}
           onChange={(event) => setDraft({ ...draft, interventionTone: event.target.value })}
@@ -252,11 +248,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
 
       {submitError && <p className="text-sm text-red-400">{submitError}</p>}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-md bg-emerald-600 py-2 font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
-      >
+      <button type="submit" disabled={submitting} className="btn-primary w-full py-2.5">
         {submitting ? "A guardar..." : "Começar"}
       </button>
     </form>

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarPlus, Check, CheckCircle2, Pencil, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import { DOMAIN_LABEL } from "@/lib/decision-engine/labels";
+import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
 
 export type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
@@ -87,113 +89,104 @@ export function DecisionEngineCard({
   const start = formatTime(decision.recommended_start);
   const end = formatTime(decision.recommended_end);
   const isPending = decision.status === "proposed" || decision.status === "accepted" || decision.status === "edited";
+  const Icon = DOMAIN_ICON[decision.domain];
 
   return (
-    <div className="rounded-lg border border-neutral-800 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-neutral-500">
-            {DOMAIN_LABEL[decision.domain]}
-            {start && ` · ${start}${end ? `–${end}` : ""}`}
-          </p>
-          <p className="font-medium">{decision.title}</p>
-          <p className="text-sm text-neutral-400">{decision.reason}</p>
-          <p className="mt-1 text-sm">{decision.recommended_action}</p>
+    <div className="surface-card surface-card-hover p-4 md:p-5">
+      <div className="flex items-start gap-3">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${DOMAIN_BADGE_CLASS[decision.domain]}`}>
+          <Icon size={17} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+              {DOMAIN_LABEL[decision.domain]}
+              {start && ` · ${start}${end ? `–${end}` : ""}`}
+            </span>
+            <span className="text-xs font-medium text-neutral-500">+{IMPACT_XP[decision.impact]} XP</span>
+          </div>
+          <p className="mt-0.5 font-medium leading-snug text-neutral-50">{decision.title}</p>
+          <p className="mt-1 text-sm text-neutral-400">{decision.reason}</p>
+          <p className="mt-2 text-sm text-neutral-200">{decision.recommended_action}</p>
         </div>
-        <span className="shrink-0 text-sm text-neutral-400">+{IMPACT_XP[decision.impact]}</span>
       </div>
 
       {isPending && !showSkip && !showEdit && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2 pl-12">
           {decision.status === "proposed" && (
-            <button
-              disabled={busy}
-              className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
-              onClick={() => patch({ status: "accepted" })}
-            >
+            <button disabled={busy} className="btn-secondary" onClick={() => patch({ status: "accepted" })}>
               Aceitar
             </button>
           )}
-          <button
-            disabled={busy}
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
-            onClick={() => patch({ status: "completed" })}
-          >
+          <button disabled={busy} className="btn-primary" onClick={() => patch({ status: "completed" })}>
+            <Check size={15} />
             Feito
           </button>
-          <button
-            disabled={busy}
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
-            onClick={() => setShowEdit(true)}
-          >
+          <button disabled={busy} className="btn-ghost" onClick={() => setShowEdit(true)}>
+            <Pencil size={14} />
             Editar
           </button>
-          <button
-            disabled={busy}
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
-            onClick={() => setShowSkip(true)}
-          >
+          <button disabled={busy} className="btn-ghost" onClick={() => setShowSkip(true)}>
             Não deu
           </button>
           {start &&
             (decision.status === "accepted" || decision.status === "edited") &&
             !decision.calendar_event_id && (
-              <button
-                disabled={busy}
-                className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
-                onClick={addToCalendar}
-              >
+              <button disabled={busy} className="btn-ghost" onClick={addToCalendar}>
+                <CalendarPlus size={14} />
                 Adicionar ao calendário
               </button>
             )}
         </div>
       )}
       {decision.calendar_event_id && (
-        <p className="mt-2 text-xs text-neutral-500">No teu Google Calendar.</p>
+        <p className="mt-2 pl-12 text-xs text-neutral-500">No teu Google Calendar.</p>
       )}
-      {calendarError && <p className="mt-2 text-xs text-red-400">{calendarError}</p>}
+      {calendarError && <p className="mt-2 pl-12 text-xs text-red-400">{calendarError}</p>}
 
       {!isPending && (
-        <>
-          <p className="mt-3 text-sm text-neutral-400">
-            {decision.status === "completed"
-              ? "Concluído"
-              : `Não feito${decision.skipped_reason ? `: ${decision.skipped_reason}` : ""}`}
+        <div className="mt-4 pl-12">
+          <p className="flex items-center gap-1.5 text-sm text-neutral-400">
+            {decision.status === "completed" ? (
+              <>
+                <CheckCircle2 size={15} className="text-emerald-500" />
+                Concluído
+              </>
+            ) : (
+              <>
+                <XCircle size={15} className="text-neutral-500" />
+                Não feito{decision.skipped_reason ? `: ${decision.skipped_reason}` : ""}
+              </>
+            )}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Esta decisão foi útil?</span>
+            <span className="text-xs text-neutral-500">Foi útil?</span>
             <button
               disabled={feedbackBusy}
               aria-pressed={feedback === true}
-              className={`rounded-md border px-2.5 py-1 text-xs disabled:opacity-50 ${
-                feedback === true
-                  ? "border-emerald-600 bg-emerald-600/20 text-emerald-400"
-                  : "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
-              }`}
+              className={`chip ${feedback === true ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300" : "chip-inactive"}`}
               onClick={() => sendFeedback(true)}
             >
+              <ThumbsUp size={12} />
               Útil
             </button>
             <button
               disabled={feedbackBusy}
               aria-pressed={feedback === false}
-              className={`rounded-md border px-2.5 py-1 text-xs disabled:opacity-50 ${
-                feedback === false
-                  ? "border-red-600 bg-red-600/20 text-red-400"
-                  : "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
-              }`}
+              className={`chip ${feedback === false ? "border-red-500/40 bg-red-500/15 text-red-300" : "chip-inactive"}`}
               onClick={() => sendFeedback(false)}
             >
+              <ThumbsDown size={12} />
               Não útil
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {showEdit && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-2 pl-12">
           <textarea
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+            className="field-input"
             rows={2}
             value={editedAction}
             onChange={(event) => setEditedAction(event.target.value)}
@@ -201,7 +194,7 @@ export function DecisionEngineCard({
           <div className="flex gap-2">
             <button
               disabled={busy}
-              className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
+              className="btn-primary"
               onClick={async () => {
                 await patch({ status: "edited", recommendedAction: editedAction });
                 setShowEdit(false);
@@ -209,10 +202,7 @@ export function DecisionEngineCard({
             >
               Guardar
             </button>
-            <button
-              className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
-              onClick={() => setShowEdit(false)}
-            >
+            <button className="btn-ghost" onClick={() => setShowEdit(false)}>
               Cancelar
             </button>
           </div>
@@ -220,16 +210,16 @@ export function DecisionEngineCard({
       )}
 
       {showSkip && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-2 pl-12">
           <input
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+            className="field-input"
             placeholder="O que bloqueou? (sono, reuniões, comida, família...)"
             value={skipReason}
             onChange={(event) => setSkipReason(event.target.value)}
           />
           <button
             disabled={busy}
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50"
+            className="btn-secondary"
             onClick={async () => {
               await patch({ status: "skipped", skippedReason: skipReason || undefined });
               setShowSkip(false);

@@ -59,10 +59,10 @@ export default async function TodayPage() {
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
       <header>
-        <p className="text-sm uppercase tracking-wide text-neutral-400">
+        <p className="text-sm uppercase tracking-wide text-neutral-500">
           Sou um atleta em reconstrução.
         </p>
-        <h1 className="text-2xl font-semibold">Hoje</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Hoje</h1>
       </header>
       <DecisionDay
         date={date}

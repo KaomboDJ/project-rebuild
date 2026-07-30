@@ -1,12 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-
-const NAV_ITEMS = [
-  { href: "/today", label: "Hoje" },
-  { href: "/calendar", label: "Calendário" },
-  { href: "/history", label: "Histórico" },
-  { href: "/settings", label: "Definições" },
-];
+import { AppNav } from "@/components/AppNav";
 
 export function AppShell({
   children,
@@ -16,29 +10,28 @@ export function AppShell({
   email?: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <header className="border-b border-neutral-800">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
-          <Link href="/today" className="font-semibold tracking-tight">
-            Rebuild
-          </Link>
-          <nav aria-label="Navegação principal" className="flex items-center gap-4 text-sm">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-neutral-400 transition hover:text-neutral-100"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        {email && (
-          <p className="mx-auto max-w-3xl px-4 pb-3 text-xs text-neutral-500">{email}</p>
-        )}
+    <div className="min-h-screen bg-app text-neutral-100">
+      <AppNav />
+
+      {/* Slim top bar, mobile only - the sidebar already carries the brand
+          on desktop. Bottom padding on <main> reserves space for the fixed
+          mobile tab bar so the last card is never hidden behind it. */}
+      <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 md:hidden">
+        <Link href="/today" className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-600 text-[10px] font-bold text-white">
+            R
+          </span>
+          <span className="text-sm font-semibold tracking-tight">Rebuild</span>
+        </Link>
+        {email && <span className="text-xs text-neutral-500">{email}</span>}
       </header>
-      {children}
+
+      <div className="md:pl-60">
+        <header className="hidden items-center justify-end border-b border-white/[0.06] px-8 py-3 md:flex">
+          {email && <span className="text-xs text-neutral-500">{email}</span>}
+        </header>
+        <div className="pb-20 md:pb-8">{children}</div>
+      </div>
     </div>
   );
 }

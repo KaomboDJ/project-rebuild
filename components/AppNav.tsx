@@ -1,0 +1,87 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { CalendarDays, History, ListChecks, Settings } from "lucide-react";
+import type { ComponentType } from "react";
+
+const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }[] = [
+  { href: "/today", label: "Hoje", icon: ListChecks },
+  { href: "/calendar", label: "Calendário", icon: CalendarDays },
+  { href: "/history", label: "Histórico", icon: History },
+  { href: "/settings", label: "Definições", icon: Settings },
+];
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * Sidebar on desktop (md+), fixed bottom tab bar on mobile - the layout
+ * every installed-PWA/productivity app (Linear, Notion, Fantastical) uses,
+ * instead of the previous plain text links in a single top header. Split
+ * into its own client component because active-route highlighting needs
+ * usePathname(), while AppShell itself stays a server component.
+ */
+export function AppNav() {
+  const pathname = usePathname();
+
+  return (
+    <>
+      <nav
+        aria-label="Navegação principal"
+        className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-white/[0.06] bg-white/[0.015] px-3 py-5 md:flex"
+      >
+        <Link href="/today" className="mb-6 flex items-center gap-2 px-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
+            R
+          </span>
+          <span className="font-semibold tracking-tight">Rebuild</span>
+        </Link>
+        <div className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(pathname, item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  active
+                    ? "bg-emerald-500/15 text-emerald-300"
+                    : "text-neutral-400 hover:bg-white/[0.05] hover:text-neutral-100"
+                }`}
+              >
+                <Icon size={18} strokeWidth={2} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      <nav
+        aria-label="Navegação principal"
+        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-white/[0.06] bg-app/95 backdrop-blur md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(pathname, item.href);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${
+                active ? "text-emerald-400" : "text-neutral-500"
+              }`}
+            >
+              <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
+  );
+}

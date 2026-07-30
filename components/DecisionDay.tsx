@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { DailyCheckInForm } from "@/components/DailyCheckInForm";
 import { DecisionEngineCard, type DecisionRow } from "@/components/DecisionEngineCard";
 import { DecisionEngineScoreView } from "@/components/DecisionEngineScore";
@@ -54,17 +55,19 @@ export function DecisionDay({
   }
 
   if (loading) {
-    return <p className="text-sm text-neutral-400">A pensar nas tuas três decisões de hoje...</p>;
+    return (
+      <div className="flex items-center gap-2 py-8 text-sm text-neutral-400">
+        <Loader2 size={16} className="animate-spin" />
+        A pensar nas tuas três decisões de hoje...
+      </div>
+    );
   }
 
   if (decisions.length === 0) {
     return (
       <div className="space-y-3">
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <button
-          className="w-full rounded-md bg-emerald-600 py-2 font-medium text-white hover:bg-emerald-500"
-          onClick={regenerate}
-        >
+        <button className="btn-primary w-full py-2.5" onClick={regenerate}>
           Gerar as decisões de hoje
         </button>
       </div>
@@ -84,10 +87,7 @@ export function DecisionDay({
           />
         ))}
       </section>
-      <button
-        className="w-full rounded-md border border-neutral-700 py-2 text-sm hover:bg-neutral-800"
-        onClick={regenerate}
-      >
+      <button className="btn-secondary w-full py-2.5" onClick={regenerate}>
         Regenerar
       </button>
       {error && <p className="text-sm text-red-400">{error}</p>}
