@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Circle, History, ListChecks, Settings } from "lucide-react";
+import { Circle, History, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
 import type { ComponentType } from "react";
 import { MiniCalendar } from "@/components/MiniCalendar";
 
@@ -11,8 +11,15 @@ import { MiniCalendar } from "@/components/MiniCalendar";
 // app/(app)/calendar/page.tsx) - two nav entries pointing at the same page
 // would be confusing. "Hoje" now covers both the day's decisions and the
 // full calendar canvas.
+//
+// "Coach" and "Alimentação" added for the Coach UX + Pantry Intelligence
+// milestone (Part 1/2) - previously the Coach only existed as a drawer
+// inside /today, with no way to reach the full conversation-history page,
+// and pantry/shopping had no route at all.
 const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }[] = [
   { href: "/today", label: "Hoje", icon: ListChecks },
+  { href: "/coach", label: "Coach", icon: MessageCircleHeart },
+  { href: "/nutrition", label: "Alimentação", icon: ShoppingBasket },
   { href: "/history", label: "Histórico", icon: History },
   { href: "/settings", label: "Definições", icon: Settings },
 ];

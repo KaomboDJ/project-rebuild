@@ -6,7 +6,9 @@ The canonical product vision remains `FOUNDER_CONTEXT.md`.
 
 ## Nutrition Toolkit
 
-**Status:** Planned after validation of the core Decision Engine.
+**Status:** Planned after validation of the core Decision Engine. Still not built — see the note below on what a related, smaller milestone did ship.
+
+**2026-07-30 update (Coach UX + Pantry Intelligence milestone):** the founder approved and shipped a founder-pilot-gate override (see `PROJECT_REBUILD_STATE.md` and `docs/12_ROADMAP.md`) that added pantry inventory tracking, a shopping list, and Coach tool-calling against both (`pantry_items`, `inventory_events`, `shopping_lists`, `shopping_list_items`; `/nutrition`, `/nutrition/pantry`, `/nutrition/shopping`). That milestone is deliberately narrower than this Nutrition Toolkit entry: it tracks *what exists at home* and lets the Coach reason over it and propose actions the founder confirms — it does not generate meal plans, estimate macros, or produce shopping lists from a recipe library. This backlog entry (seven-day meal plan, macro estimates, "Decide for me") is the next-next milestone once the shipped pantry foundation and the Founder Pilot's core decision loop are both validated — do not start it without a separate founder decision, the same way this override required one. The shipped pantry data model is a useful input to it when the time comes (e.g. "prefer meals using what's about to expire"), not a substitute for it.
 
 ### Product purpose
 

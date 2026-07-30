@@ -137,3 +137,32 @@ Validated in an isolated sandbox copy: lint clean (one pre-existing, unrelated `
 ## Milestones 5–8
 
 Done — see the "Milestones (all done)" section of `12_ROADMAP.md` and the sprint notes above for what shipped in each.
+
+## Coach UX + Pantry Intelligence milestone — founder-approved pilot-gate override
+
+Founder-authored milestone brief, approved to proceed mid-pilot ("Avançar já, atualizar a governance" — see the governance note in `PROJECT_REBUILD_STATE.md` and the exception note in `docs/12_ROADMAP.md`'s "Founder Pilot" section). Not yet pushed or deployed — branch `calendar-workspace`, awaiting founder review per the brief's own "do not push or deploy without explicit approval."
+
+| Item | Status | Notes |
+|---|---|---|
+| `supabase/migrations/202607300002_coach_persistence.sql` | Done | `coach_conversations` + `coach_messages`, RLS, `last_message_at` touch trigger. |
+| `supabase/migrations/202607300003_pantry_shopping.sql` | Done | `pantry_items`, `inventory_events` (append-only, select+insert only), `shopping_lists`, `shopping_list_items`, RLS, and two SECURITY INVOKER RPCs: `apply_inventory_event` (atomic quantity mutation + ledger row) and `mark_shopping_item_purchased` (idempotent purchase → pantry flow). |
+| `supabase/migrations/202607300004_day_type_context.sql` | Done | `profiles.default_day_type`, `daily_check_ins.day_type` / `day_type_source`. |
+| `lib/supabase/database.types.ts` | Updated | All 6 new tables + the 2 new RPC signatures. |
+| `lib/coach/types.ts`, `conversations.ts`, `tools.ts`, `pantry-context.ts`, `day-type.ts` | Done | Shared Coach domain layer: message/tool-call types, conversation CRUD helpers, the 7 tool definitions + read-only execution + mutation execution, pantry summary builder for the system prompt, day-type inference (check-in → profile → low-confidence calendar heuristic → ask directly). |
+| `lib/ai/provider.ts` | Rewritten | `CoachContext` extended with optional `pantry`/`dayType`; `respond()` now takes conversation history and an optional tool runtime, runs a bounded (max 4 rounds) read-only tool loop via the Anthropic SDK's native tool use, and returns proposed (never executed) mutating tool calls separately from the text reply. |
+| `app/api/coach/route.ts` | Rewritten | Context is now built server-side from the authenticated session (previously trusted a client-assembled context object) — profile, check-in, decisions, pantry summary, day-type. Persists every user/assistant turn to `coach_conversations`/`coach_messages`. |
+| `app/api/coach/tools/confirm/route.ts` | Done | The only path from a `proposed` tool call to `executed` — explicit user confirm/decline, re-validated server-side, never triggered by the model itself. |
+| `app/api/coach/conversations/route.ts`, `app/api/coach/conversations/[id]/route.ts` | Done | History list + single-conversation message fetch for the full `/coach` page. |
+| `app/api/pantry/route.ts`, `app/api/pantry/[id]/route.ts` | Done | Manual pantry CRUD + quick inventory actions, routed through `apply_inventory_event`. |
+| `app/api/shopping/route.ts`, `app/api/shopping/[id]/route.ts` | Done | Manual shopping-list CRUD + purchase, routed through `mark_shopping_item_purchased`. |
+| `components/CoachDrawer.tsx` | Rewritten | Three explicit states (closed / compact ~420px preview with "Abrir conversa" / expanded full-height slide-over) instead of the single small drawer that previously clipped long replies. |
+| `components/coach/*` | Done | `useCoachConversation` (shared send/confirm/decline/load state), `MessageList`, `MarkdownMessage` (react-markdown + remark-gfm + rehype-sanitize), `ToolCallCard` (confirm/decline UI for proposed mutations), `CoachPageClient`. |
+| `app/(app)/coach/page.tsx` | Done | Full authenticated route: persisted history sidebar (desktop) / drawer (mobile), "Nova conversa", context summary panel. |
+| `components/nutrition/PantryList.tsx`, `ShoppingList.tsx` | Done | −1/+1/Terminou/remove quick actions; add-item forms; purchase flow. |
+| `app/(app)/nutrition/page.tsx`, `.../pantry/page.tsx`, `.../shopping/page.tsx` | Done | Dashboard (counts + expiring-soon) + the two management pages. |
+| `components/AppNav.tsx` | Updated | Added "Coach" and "Alimentação" nav entries. |
+| `PRODUCT_BACKLOG.md` | Updated | Nutrition Toolkit entry annotated to distinguish it from what shipped here — meal plans/macros/recipe-driven shopping remain unbuilt and still gated on pilot validation. |
+
+Not built (explicitly out of scope per the brief's Part 5): meal-plan generation, macro estimation, recipe library — those remain the separate, still-gated `PRODUCT_BACKLOG.md` Nutrition Toolkit entry.
+
+Validation: see the founder-facing completion report delivered alongside this milestone for the exact lint/typecheck/test/build results at time of handoff.

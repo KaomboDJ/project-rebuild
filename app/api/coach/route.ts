@@ -1,45 +1,122 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCoachProvider, type CoachContext } from "@/lib/ai/provider";
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createToolRuntime, getCoachProvider, type ChatTurn, type CoachContext } from "@/lib/ai/provider";
+import { executeReadOnlyTool } from "@/lib/coach/tools";
+import { buildPantrySummary } from "@/lib/coach/pantry-context";
+import { inferDayType } from "@/lib/coach/day-type";
+import { appendMessage, createConversation, getConversationMessages } from "@/lib/coach/conversations";
+import { getFounderNow } from "@/lib/date/founder-now";
 
 const MAX_MESSAGE_LENGTH = 1000;
+const HISTORY_TURNS = 16;
 
-function isValidContext(context: unknown): context is CoachContext {
-  if (!context || typeof context !== "object") return false;
-  const candidate = context as Partial<CoachContext>;
-  return (
-    typeof candidate.identity === "string" &&
-    typeof candidate.constraints === "string" &&
-    (candidate.checkIn === null || typeof candidate.checkIn === "object") &&
-    Array.isArray(candidate.decisions)
-  );
-}
+const bodySchema = z.object({
+  message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+  conversationId: z.string().uuid().optional(),
+});
 
+/**
+ * Rebuilt for the Coach UX + Pantry Intelligence milestone: this route used
+ * to trust a `context` object the client assembled from its own Supabase
+ * reads (see the old CoachDrawer). Context is now built server-side from
+ * the authenticated session instead - the client only sends the message
+ * text and, optionally, which conversation it belongs to. This is what
+ * makes persistence (coach_conversations/coach_messages) and pantry/day-type
+ * context (which the client has no reason to fetch itself) possible without
+ * duplicating reads on both sides.
+ */
 export async function POST(request: NextRequest) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "supabase-not-configured" }, { status: 503 });
   }
 
-  const { message, context } = (body ?? {}) as { message?: unknown; context?: unknown };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
 
-  if (typeof message !== "string" || message.trim().length === 0) {
-    return NextResponse.json({ error: "message_required" }, { status: 400 });
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid-body" }, { status: 400 });
   }
-  if (message.length > MAX_MESSAGE_LENGTH) {
-    return NextResponse.json({ error: "message_too_long" }, { status: 400 });
+  const { message, conversationId: requestedConversationId } = parsed.data;
+
+  const [{ data: profile }, { date }] = await Promise.all([
+    supabase.from("profiles").select("desired_identity, current_constraints").eq("user_id", user.id).maybeSingle(),
+    getFounderNow(supabase, user.id),
+  ]);
+
+  const [{ data: checkIn }, { data: decisions }, pantry, dayType] = await Promise.all([
+    supabase.from("daily_check_ins").select("sleep_quality, energy_level, stress_level").eq("user_id", user.id).eq("date", date).maybeSingle(),
+    supabase.from("decisions").select("title, status").eq("user_id", user.id).eq("date", date),
+    buildPantrySummary(supabase, user.id),
+    inferDayType(supabase, user.id, date),
+  ]);
+
+  const context: CoachContext = {
+    identity: profile?.desired_identity ?? "",
+    constraints: profile?.current_constraints ?? "",
+    checkIn: checkIn
+      ? { sleepQuality: checkIn.sleep_quality ?? 3, energyLevel: checkIn.energy_level ?? 3, stressLevel: checkIn.stress_level ?? 3 }
+      : null,
+    decisions: (decisions ?? []).map((d) => ({ title: d.title, status: d.status })),
+    pantry,
+    dayType,
+  };
+
+  let conversationId = requestedConversationId;
+  let history: ChatTurn[] = [];
+
+  if (conversationId) {
+    try {
+      const priorMessages = await getConversationMessages(supabase, user.id, conversationId);
+      if (priorMessages.length === 0) {
+        // Either a stale/foreign id or a brand-new conversation the client
+        // pre-generated - either way, RLS already prevents reading another
+        // user's rows, so this just means "start fresh under this id" is
+        // not possible; create a real one instead.
+        conversationId = undefined;
+      } else {
+        history = priorMessages.slice(-HISTORY_TURNS).map((m) => ({ role: m.role, content: m.content }));
+      }
+    } catch {
+      conversationId = undefined;
+    }
   }
-  if (!isValidContext(context)) {
-    return NextResponse.json({ error: "context_invalid" }, { status: 400 });
+
+  if (!conversationId) {
+    try {
+      conversationId = await createConversation(supabase, user.id, message);
+    } catch {
+      return NextResponse.json({ error: "conversation-create-failed" }, { status: 500 });
+    }
   }
+
+  await appendMessage(supabase, user.id, conversationId, { role: "user", content: message });
 
   try {
     const provider = getCoachProvider();
-    const reply = await provider.respond(context, message.trim());
-    return NextResponse.json({ reply });
+    const toolRuntime = createToolRuntime((name, args) => executeReadOnlyTool(supabase, user.id, name, args));
+    const { text, toolCalls } = await provider.respond(context, message, history, toolRuntime);
+
+    const assistantMessage = await appendMessage(supabase, user.id, conversationId, {
+      role: "assistant",
+      content: text,
+      toolCalls,
+    });
+
+    return NextResponse.json({
+      conversationId,
+      messageId: assistantMessage.id,
+      reply: text,
+      toolCalls,
+    });
   } catch (error) {
     console.error("coach_provider_error", error);
-    return NextResponse.json({ error: "coach_unavailable" }, { status: 502 });
+    return NextResponse.json({ error: "coach_unavailable", conversationId }, { status: 502 });
   }
 }

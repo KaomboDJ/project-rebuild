@@ -14,6 +14,8 @@ All eight MVP milestones (`docs/12_ROADMAP.md`) are built, validated, and deploy
 
 The app is now in a 14-day Founder Pilot: real daily usage by the founder to validate whether it measurably improves decisions, before any new module is built. See `PROJECT_REBUILD_STATE.md` for the pilot protocol and `docs/IMPLEMENTATION_STATUS.md` for full build/validation history.
 
+**Founder-approved exception (2026-07-30):** a Coach UX rework and a pantry/shopping-list module shipped mid-pilot on branch `calendar-workspace` — a deliberate, one-off override of the pilot's "no new modules" rule, not a resumption of general feature work. See `docs/12_ROADMAP.md`'s "Founder Pilot" section and `docs/IMPLEMENTATION_STATUS.md`'s "Coach UX + Pantry Intelligence milestone" section for what shipped: a three-state Coach (compact drawer / expanded drawer / full `/coach` page) with persisted history and Markdown rendering, and pantry/shopping tracking (`/nutrition`) the Coach can read and propose changes to — every proposed change requires explicit confirmation before it executes.
+
 ## Setup
 
 ```

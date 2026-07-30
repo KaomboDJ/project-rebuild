@@ -18,6 +18,16 @@ type DecisionImpact = "low" | "medium" | "high";
 type DecisionSource = "rule" | "ai" | "hybrid";
 type DecisionStatus = "proposed" | "accepted" | "edited" | "completed" | "skipped";
 
+type CoachMessageRole = "user" | "assistant";
+type PantryCategory = "produce" | "protein" | "dairy" | "grain" | "pantry" | "frozen" | "beverage" | "other";
+type PantryUnit = "unidade" | "g" | "kg" | "ml" | "l";
+type InventoryEventType = "purchase" | "consume" | "adjust" | "waste";
+type InventoryEventSource = "manual" | "coach" | "shopping";
+type ShoppingListStatus = "open" | "completed";
+type DayType = "home" | "office";
+type DefaultDayType = "home" | "office" | "mixed";
+type DayTypeSource = "check-in" | "profile" | "calendar-heuristic";
+
 export interface Database {
   public: {
     Tables: {
@@ -38,6 +48,7 @@ export interface Database {
           current_constraints: string;
           intervention_tone: string;
           onboarding_completed: boolean;
+          default_day_type: DefaultDayType | null;
           created_at: string;
           updated_at: string;
         };
@@ -57,6 +68,7 @@ export interface Database {
           current_constraints?: string;
           intervention_tone?: string;
           onboarding_completed?: boolean;
+          default_day_type?: DefaultDayType | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -101,6 +113,8 @@ export interface Database {
           stress_level: number | null;
           physical_limitation: string | null;
           notes: string | null;
+          day_type: DayType | null;
+          day_type_source: DayTypeSource | null;
           created_at: string;
           updated_at: string;
         };
@@ -113,6 +127,8 @@ export interface Database {
           stress_level?: number | null;
           physical_limitation?: string | null;
           notes?: string | null;
+          day_type?: DayType | null;
+          day_type_source?: DayTypeSource | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -207,9 +223,179 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["decision_feedback"]["Insert"]>;
         Relationships: [];
       };
+      coach_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          started_at: string;
+          last_message_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          started_at?: string;
+          last_message_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["coach_conversations"]["Insert"]>;
+        Relationships: [];
+      };
+      coach_messages: {
+        Row: {
+          id: string;
+          user_id: string;
+          conversation_id: string;
+          role: CoachMessageRole;
+          content: string;
+          tool_calls: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          conversation_id: string;
+          role: CoachMessageRole;
+          content: string;
+          tool_calls?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["coach_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      pantry_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          category: PantryCategory;
+          unit: PantryUnit;
+          quantity: number;
+          portable: boolean;
+          perishable: boolean;
+          expires_on: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          category?: PantryCategory;
+          unit?: PantryUnit;
+          quantity?: number;
+          portable?: boolean;
+          perishable?: boolean;
+          expires_on?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pantry_items"]["Insert"]>;
+        Relationships: [];
+      };
+      inventory_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          pantry_item_id: string;
+          event_type: InventoryEventType;
+          quantity_delta: number;
+          resulting_quantity: number;
+          source: InventoryEventSource;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          pantry_item_id: string;
+          event_type: InventoryEventType;
+          quantity_delta: number;
+          resulting_quantity: number;
+          source?: InventoryEventSource;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_events"]["Insert"]>;
+        Relationships: [];
+      };
+      shopping_lists: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          status: ShoppingListStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name?: string;
+          status?: ShoppingListStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["shopping_lists"]["Insert"]>;
+        Relationships: [];
+      };
+      shopping_list_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          shopping_list_id: string;
+          pantry_item_id: string | null;
+          name: string;
+          quantity: number;
+          unit: PantryUnit;
+          purchased: boolean;
+          purchased_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          shopping_list_id: string;
+          pantry_item_id?: string | null;
+          name: string;
+          quantity?: number;
+          unit?: PantryUnit;
+          purchased?: boolean;
+          purchased_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["shopping_list_items"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      apply_inventory_event: {
+        Args: {
+          p_pantry_item_id: string;
+          p_event_type: InventoryEventType;
+          p_quantity_delta: number;
+          p_source?: InventoryEventSource;
+          p_note?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["inventory_events"]["Row"];
+      };
+      mark_shopping_item_purchased: {
+        Args: {
+          p_shopping_list_item_id: string;
+          p_actual_quantity?: number | null;
+        };
+        Returns: Database["public"]["Tables"]["shopping_list_items"]["Row"];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

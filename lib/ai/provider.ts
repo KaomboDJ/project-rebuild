@@ -1,4 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { TOOL_DEFINITIONS, buildToolCallProposal } from "@/lib/coach/tools";
+import { READ_ONLY_TOOLS, type ToolCall, type ToolName } from "@/lib/coach/types";
+import type { PantrySummaryItem } from "@/lib/coach/pantry-context";
+import type { DayTypeInference } from "@/lib/coach/day-type";
 
 // CoachContext used to mirror lib/decisions/types.ts (the pre-Milestone-2
 // localStorage-era shape: OnboardingProfile/CheckIn/OperatingState/
@@ -6,6 +10,10 @@ import Anthropic from "@anthropic-ai/sdk";
 // (profiles/daily_check_ins/decisions) and nothing else in the app still
 // uses it - updated here to the current data model as part of wiring the
 // Coach into the Calendar Workspace's drawer (see components/CoachDrawer.tsx).
+//
+// Extended for the Coach UX + Pantry Intelligence milestone (Part 3/4)
+// with `pantry` and `dayType` - both optional so anything still
+// constructing the pre-milestone shape keeps compiling.
 export interface CoachContext {
   /** profiles.desired_identity - who the founder is rebuilding into. */
   identity: string;
@@ -15,10 +23,39 @@ export interface CoachContext {
   checkIn: { sleepQuality: number; energyLevel: number; stressLevel: number } | null;
   /** Today's decisions (title + current status), most-recent engine run. */
   decisions: { title: string; status: string }[];
+  /** Current pantry snapshot (Part 3) - omitted/empty for founders who
+   * haven't used the pantry feature, which keeps the prompt unchanged for
+   * them. */
+  pantry?: PantrySummaryItem[];
+  /** Home/office inference for today (Part 4) - null value means "ask the
+   * founder directly", not "assume home". */
+  dayType?: DayTypeInference;
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Executes read-only tools (get_inventory, suggest_available_meal)
+ * immediately, bound to the calling founder's Supabase session. Provided by
+ * the route handler so this module never imports Supabase directly - the
+ * provider stays a swappable AI adapter, not a data-access layer. */
+export interface CoachToolRuntime {
+  executeReadOnly(name: ToolName, args: Record<string, unknown>): Promise<unknown>;
+}
+
+export interface CoachReply {
+  text: string;
+  /** Mutating tool calls the model proposed this turn, awaiting explicit
+   * user confirmation via app/api/coach/tools/confirm/route.ts. Read-only
+   * tool calls are never surfaced here - they're already resolved into the
+   * text reply by the time respond() returns. */
+  toolCalls: ToolCall[];
 }
 
 export interface CoachProvider {
-  respond(context: CoachContext, message: string): Promise<string>;
+  respond(context: CoachContext, message: string, history: ChatTurn[], tools?: CoachToolRuntime): Promise<CoachReply>;
 }
 
 // Mirrors CLAUDE.md "Coaching safety": no diagnosis, no promised reversal of
@@ -30,11 +67,13 @@ Recommend one clear next action, briefly. Lead with the action, then the trigger
 Reinforce the identity "Sou um atleta em reconstrução." Never shame or moralize.
 Never diagnose, promise reversal of prediabetes/insulin resistance, prescribe medication or supplements, or recommend unsafe fasting, dehydration, punishment, or compensatory exercise.
 The user has reported prediabetes/possible insulin resistance, interrupted sleep, and a kidney-stone history - respect these constraints and defer to clinicians for medical judgment calls.
-Respond in Portuguese from Portugal, direct and concise.
+Respond in Portuguese from Portugal, direct and concise. You may use light Markdown (short paragraphs, bullet lists, bold for the single key action) - it will be rendered, not shown as raw text.
+You have tools to read and change the founder's pantry and shopping list. Use get_inventory or suggest_available_meal freely to ground suggestions in what actually exists at home - never invent pantry contents.
+Mutating tools (consume_item, adjust_inventory, add_to_shopping_list, mark_item_purchased, record_meal) only ever create a proposal the founder must confirm in the UI - never claim an action is done until it has actually been confirmed and executed; describe it as a suggestion ("queres que eu registe...?").
 `.trim();
 
 function buildSystemPrompt(context: CoachContext): string {
-  const { identity, constraints, checkIn, decisions } = context;
+  const { identity, constraints, checkIn, decisions, pantry, dayType } = context;
   const lines = [
     SAFETY_RULES,
     `Identidade que o utilizador está a reconstruir: ${identity || "não definida"}.`,
@@ -50,8 +89,31 @@ function buildSystemPrompt(context: CoachContext): string {
       ? `Decisões de hoje: ${decisions.map((d) => `${d.title} (${d.status})`).join("; ")}.`
       : "Ainda sem decisões geradas hoje."
   );
+
+  if (dayType) {
+    if (dayType.dayType) {
+      lines.push(`Tipo de dia (${dayType.source}): ${dayType.dayType === "home" ? "em casa" : "fora de casa / escritório"}.`);
+    } else if (dayType.shouldAsk) {
+      lines.push(
+        "Não sabemos se hoje é dia em casa ou fora - se for relevante para a pergunta (ex.: sugestão de refeição), pergunta diretamente antes de assumir."
+      );
+    }
+  }
+
+  if (pantry && pantry.length > 0) {
+    const summary = pantry
+      .slice(0, 25)
+      .map((item) => `${item.name} (${item.quantity}${item.unit}${item.portable ? ", portátil" : ""}${item.expiresOn ? `, expira ${item.expiresOn}` : ""})`)
+      .join("; ");
+    lines.push(`Despensa atual: ${summary}.`);
+  } else if (pantry) {
+    lines.push("Despensa vazia ou ainda não configurada.");
+  }
+
   return lines.join("\n");
 }
+
+const MAX_TOOL_ROUNDS = 4;
 
 class AnthropicCoachProvider implements CoachProvider {
   private client: Anthropic;
@@ -62,24 +124,72 @@ class AnthropicCoachProvider implements CoachProvider {
     this.model = model;
   }
 
-  async respond(context: CoachContext, message: string): Promise<string> {
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 400,
-      system: buildSystemPrompt(context),
-      messages: [{ role: "user", content: message }],
-    });
-    const block = response.content.find((b) => b.type === "text");
-    return block && block.type === "text" ? block.text : "";
+  async respond(context: CoachContext, message: string, history: ChatTurn[], tools?: CoachToolRuntime): Promise<CoachReply> {
+    const messages: Anthropic.MessageParam[] = [
+      ...history.map((turn) => ({ role: turn.role, content: turn.content }) as Anthropic.MessageParam),
+      { role: "user", content: message },
+    ];
+
+    let finalText = "";
+    const proposals: ToolCall[] = [];
+
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 600,
+        system: buildSystemPrompt(context),
+        messages,
+        tools: tools ? TOOL_DEFINITIONS : undefined,
+      });
+
+      const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text");
+      finalText = textBlocks.map((b) => b.text).join("\n").trim() || finalText;
+
+      const toolUseBlocks = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+      if (toolUseBlocks.length === 0 || !tools) break;
+
+      const mutatingBlocks = toolUseBlocks.filter((b) => !READ_ONLY_TOOLS.has(b.name as ToolName));
+      if (mutatingBlocks.length > 0) {
+        // Never execute mutations here - surface them as proposals and stop
+        // the loop. Any read-only calls in this same batch are dropped
+        // rather than executed, since the model would need to see their
+        // results to give a coherent final answer anyway, and the next
+        // user turn (after confirm/decline) will re-ground it.
+        proposals.push(...mutatingBlocks.map((b) => buildToolCallProposal(b)));
+        break;
+      }
+
+      // All tool_use blocks this round are read-only: execute each and
+      // feed the results back so the model can produce its real answer.
+      messages.push({ role: "assistant", content: response.content });
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      for (const block of toolUseBlocks) {
+        try {
+          const result = await tools.executeReadOnly(block.name as ToolName, (block.input ?? {}) as Record<string, unknown>);
+          toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(result) });
+        } catch (error) {
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: block.id,
+            content: error instanceof Error ? error.message : "Falha ao executar tool.",
+            is_error: true,
+          });
+        }
+      }
+      messages.push({ role: "user", content: toolResults });
+    }
+
+    return { text: finalText, toolCalls: proposals };
   }
 }
 
 class MockCoachProvider implements CoachProvider {
-  async respond(context: CoachContext): Promise<string> {
+  async respond(context: CoachContext): Promise<CoachReply> {
     const [first] = context.decisions;
-    return first
+    const text = first
       ? `Agora: ${first.title} (${first.status}). [Resposta simulada — configura ANTHROPIC_API_KEY para respostas reais.]`
       : "Ainda sem decisões definidas para hoje.";
+    return { text, toolCalls: [] };
   }
 }
 
@@ -88,4 +198,10 @@ export function getCoachProvider(): CoachProvider {
   if (!apiKey) return new MockCoachProvider();
   const model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
   return new AnthropicCoachProvider(apiKey, model);
+}
+
+export function createToolRuntime(
+  executeReadOnly: (name: ToolName, args: Record<string, unknown>) => Promise<unknown>
+): CoachToolRuntime {
+  return { executeReadOnly };
 }

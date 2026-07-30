@@ -1,120 +1,133 @@
 "use client";
 
-// Compact AI Coach drawer for the Calendar Workspace's right panel - replaces
-// components/CoachPanel.tsx (a full-page chat view built against the old
-// localStorage-era CoachContext shape). Fetches profile/check-in/decisions
-// client-side via the browser Supabase client only when opened, and posts to
-// the same /api/coach route (now validating the modernized CoachContext -
-// see lib/ai/provider.ts).
+// Coach entry point for the Calendar Workspace's right panel. Rebuilt for
+// the Coach UX + Pantry Intelligence milestone (Part 1) into three explicit
+// states instead of the previous single "small drawer that clips long
+// replies" (founder feedback, fixed once already in 174173b, then
+// superseded by this proper three-state design):
+//
+//   closed   -> "Falar com o Coach" button.
+//   compact  -> small docked card (~420px), shows only the latest exchange
+//               as a deliberate preview with "Abrir conversa" to expand -
+//               never tries to fit the whole scrollable history in a small
+//               box, which is what caused the original clipping bug.
+//   expanded -> full-height slide-over, full scrollable history, Markdown
+//               rendering, a context summary, and a link to the full
+//               /coach page for real conversation management (history,
+//               new conversation).
+//
+// Context (profile/check-in/decisions/pantry/day-type) is no longer
+// fetched client-side here - app/api/coach/route.ts now builds it
+// server-side from the authenticated session (see that file's comment).
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MessageCircleHeart, Send, X } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { ChevronDown, Maximize2, MessageCircleHeart, Send, X } from "lucide-react";
+import { useCoachConversation } from "@/components/coach/useCoachConversation";
+import { MessageList } from "@/components/coach/MessageList";
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  text: string;
-}
+type ViewState = "closed" | "compact" | "expanded";
 
-export function CoachDrawer({ date }: { date: string }) {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function CoachDrawer() {
+  const [view, setView] = useState<ViewState>("closed");
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { messages, sending, error, send, resolveToolCall } = useCoachConversation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Coach replies can run long (max_tokens: 400 in lib/ai/provider.ts, often
-  // several sentences) - a short fixed-height box clipped them mid-sentence
-  // with no visible scroll affordance (founder feedback on the calendar
-  // workspace preview). Auto-scrolling to the newest message on every change
-  // keeps the end of the latest reply in view by default, the same pattern
-  // any chat UI uses.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, sending]);
-
-  async function send() {
-    const message = input.trim();
-    if (!message || sending) return;
-
-    setSending(true);
-    setError(null);
-    setMessages((current) => [...current, { role: "user", text: message }]);
-    setInput("");
-
-    try {
-      const supabase = createSupabaseBrowserClient();
-      if (!supabase) throw new Error("supabase-not-configured");
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("unauthenticated");
-
-      const [{ data: profile }, { data: checkIn }, { data: decisions }] = await Promise.all([
-        supabase.from("profiles").select("desired_identity, current_constraints").eq("user_id", user.id).maybeSingle(),
-        supabase
-          .from("daily_check_ins")
-          .select("sleep_quality, energy_level, stress_level")
-          .eq("user_id", user.id)
-          .eq("date", date)
-          .maybeSingle(),
-        supabase.from("decisions").select("title, status").eq("user_id", user.id).eq("date", date),
-      ]);
-
-      const response = await fetch("/api/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          context: {
-            identity: profile?.desired_identity ?? "",
-            constraints: profile?.current_constraints ?? "",
-            checkIn: checkIn
-              ? {
-                  sleepQuality: checkIn.sleep_quality ?? 3,
-                  energyLevel: checkIn.energy_level ?? 3,
-                  stressLevel: checkIn.stress_level ?? 3,
-                }
-              : null,
-            decisions: (decisions ?? []).map((d) => ({ title: d.title, status: d.status })),
-          },
-        }),
-      });
-
-      if (!response.ok) throw new Error("coach-request-failed");
-      const { reply } = await response.json();
-      setMessages((current) => [...current, { role: "assistant", text: reply }]);
-    } catch {
-      setError("O coach não respondeu. Tenta novamente.");
-    } finally {
-      setSending(false);
+    if (view === "expanded") {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
     }
+  }, [messages, sending, view]);
+
+  async function submit() {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    await send(text);
   }
 
-  if (!open) {
+  if (view === "closed") {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="btn-secondary w-full justify-start gap-2.5 py-3"
-      >
+      <button onClick={() => setView("compact")} className="btn-secondary w-full justify-start gap-2.5 py-3">
         <MessageCircleHeart size={16} className="text-emerald-400" />
         Falar com o Coach
       </button>
     );
   }
 
+  if (view === "compact") {
+    const latest = messages[messages.length - 1];
+    return (
+      <div className="surface-card flex w-full flex-col overflow-hidden" style={{ maxHeight: 420, minHeight: 200 }}>
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-3.5 py-2.5">
+          <span className="flex items-center gap-2 text-sm font-medium text-neutral-100">
+            <MessageCircleHeart size={16} className="text-emerald-400" />
+            Coach
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              aria-label="Expandir"
+              onClick={() => setView("expanded")}
+              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            >
+              <Maximize2 size={14} />
+            </button>
+            <button
+              aria-label="Fechar"
+              onClick={() => setView("closed")}
+              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden px-3.5 py-3">
+          {!latest && <p className="text-sm text-neutral-500">Pergunta o que fazer a seguir, ou o que cozinhar com o que tens em casa.</p>}
+          {latest && (
+            <div className="space-y-2">
+              <p className="line-clamp-4 text-sm leading-relaxed text-neutral-300">{latest.content}</p>
+              <button
+                onClick={() => setView("expanded")}
+                className="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+              >
+                Abrir conversa <ChevronDown size={13} className="-rotate-90" />
+              </button>
+            </div>
+          )}
+          {sending && <p className="mt-2 text-xs text-neutral-500">A pensar...</p>}
+          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+        </div>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+          className="flex items-center gap-2 border-t border-white/[0.06] p-2.5"
+        >
+          <input
+            className="field-input flex-1 py-2 text-sm"
+            placeholder="Escreve aqui..."
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            disabled={sending}
+          />
+          <button type="submit" disabled={sending || !input.trim()} aria-label="Enviar" className="btn-primary p-2.5">
+            <Send size={14} />
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // expanded
   return (
-    // Full-height slide-over instead of a small inline card - a fixed
-    // ~26rem box clipped longer replies with no visible scroll cue
-    // (founder feedback). This still reads as a "drawer" (dismissible,
-    // not a route) per the spec's "compact AI Coach drawer, not a full
-    // chat page", but now has room for an actual back-and-forth.
-    <div className="fixed inset-0 z-30 flex justify-end bg-black/40" onClick={() => setOpen(false)}>
+    <div className="fixed inset-0 z-30 flex justify-end bg-black/40" onClick={() => setView("compact")}>
       <div
         className="surface-card m-3 flex w-full max-w-md flex-col overflow-hidden md:m-4"
-        style={{ height: "calc(100vh - 1.5rem)" }}
+        style={{ height: "calc(100vh - 1.5rem)", minHeight: 480 }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
@@ -122,46 +135,45 @@ export function CoachDrawer({ date }: { date: string }) {
             <MessageCircleHeart size={16} className="text-emerald-400" />
             Coach
           </span>
-          <button
-            aria-label="Fechar"
-            onClick={() => setOpen(false)}
-            className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/coach"
+              aria-label="Abrir página completa"
+              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            >
+              <Maximize2 size={15} />
+            </Link>
+            <button
+              aria-label="Minimizar"
+              onClick={() => setView("compact")}
+              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            >
+              <ChevronDown size={16} />
+            </button>
+            <button
+              aria-label="Fechar"
+              onClick={() => setView("closed")}
+              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-          {messages.length === 0 && (
-            <p className="text-sm text-neutral-500">
-              Pergunta o que fazer a seguir, ou como ajustar as decisões de hoje.
-            </p>
-          )}
-          {messages.map((message, i) => (
-            <div
-              key={i}
-              className={`max-w-[90%] whitespace-pre-wrap rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                message.role === "user"
-                  ? "ml-auto bg-emerald-600 text-white"
-                  : "bg-white/[0.05] text-neutral-200"
-              }`}
-            >
-              {message.text}
-            </div>
-          ))}
-          {sending && (
-            <div className="flex items-center gap-2 text-xs text-neutral-500">
-              <Loader2 size={13} className="animate-spin" />
-              A pensar...
-            </div>
-          )}
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          <MessageList
+            messages={messages}
+            sending={sending}
+            error={error}
+            emptyHint="Pergunta o que fazer a seguir, ou o que cozinhar com o que tens em casa."
+            onResolveToolCall={resolveToolCall}
+          />
         </div>
 
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            send();
+            submit();
           }}
           className="flex items-center gap-2 border-t border-white/[0.06] p-3"
         >
@@ -172,12 +184,7 @@ export function CoachDrawer({ date }: { date: string }) {
             onChange={(event) => setInput(event.target.value)}
             disabled={sending}
           />
-          <button
-            type="submit"
-            disabled={sending || !input.trim()}
-            aria-label="Enviar"
-            className="btn-primary p-2.5"
-          >
+          <button type="submit" disabled={sending || !input.trim()} aria-label="Enviar" className="btn-primary p-2.5">
             <Send size={14} />
           </button>
         </form>

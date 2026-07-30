@@ -194,7 +194,7 @@ export function CalendarWorkspace({
               </>
             )}
 
-            <CoachDrawer date={date} />
+            <CoachDrawer />
           </div>
         </div>
       </div>
