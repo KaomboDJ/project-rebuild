@@ -27,7 +27,20 @@ export function zonedWallTimeToUtc(dateKey: string, timeHHMMSS: string, timeZone
  * Google Calendar's timeMin/timeMax.
  */
 export function localDayRangeUtc(dateKey: string, timeZone: string): { timeMin: string; timeMax: string } {
-  const start = zonedWallTimeToUtc(dateKey, "00:00:00", timeZone);
-  const end = zonedWallTimeToUtc(dateKey, "23:59:59", timeZone);
+  return localRangeUtc(dateKey, dateKey, timeZone);
+}
+
+/**
+ * Same as localDayRangeUtc but spans from the start of `startDateKey` to the
+ * end of `endDateKey` (inclusive) - used for the /calendar week/month views
+ * (see lib/date/ranges.ts for computing those date keys).
+ */
+export function localRangeUtc(
+  startDateKey: string,
+  endDateKey: string,
+  timeZone: string
+): { timeMin: string; timeMax: string } {
+  const start = zonedWallTimeToUtc(startDateKey, "00:00:00", timeZone);
+  const end = zonedWallTimeToUtc(endDateKey, "23:59:59", timeZone);
   return { timeMin: start.toISOString(), timeMax: end.toISOString() };
 }

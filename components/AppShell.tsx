@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/today", label: "Hoje" },
+  { href: "/calendar", label: "Calendário" },
   { href: "/history", label: "Histórico" },
   { href: "/settings", label: "Definições" },
 ];

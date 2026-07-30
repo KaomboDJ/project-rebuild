@@ -93,6 +93,23 @@ Fix: `supabase/migrations/202607300001_calendar_connections_service_role_grant.s
 
 The founder should retry connecting from `/settings` — this was the only blocker.
 
+### Post-fix additions: `/calendar` view and a real `/history` page
+
+Once connected, the founder asked for visible proof the integration actually works (a day/week/month view of real events), not just a status message. Separately, `/history` was still showing its Milestone-1 placeholder text ("O histórico persistente será ativado quando as migrações do Supabase forem aplicadas") even though the `decisions` table has been live since Milestone 4 — nobody had gone back to wire it up.
+
+| Item | Status | Notes |
+|---|---|---|
+| `lib/date/ranges.ts` | Done, tested | Pure Monday–Sunday week / calendar-month range math, keyed off a date string. 6 tests. |
+| `lib/date/timezone.ts` | Extended | Added `localRangeUtc(start, end, timeZone)`; `localDayRangeUtc` is now a thin wrapper over it. Existing tests untouched. |
+| `lib/google/calendar.ts` | Extended | Added `getCalendarEventsForRange`; `getCalendarEventsForDate` is now a wrapper (`start === end`). Same fail-safe-to-`[]` behavior. |
+| `app/api/calendar/events/route.ts` | Done | Authenticated GET, `?view=day\|week\|month&date=YYYY-MM-DD`, computes the range server-side and returns events. |
+| `components/CalendarView.tsx` + `app/(app)/calendar/page.tsx` | Done | Simple list view (not a visual grid) with Day/Semana/Mês toggle, grouped by date. Points to `/settings` if not connected. |
+| `components/AppShell.tsx` | Updated | Added "Calendário" to the main nav. |
+| `lib/decision-engine/labels.ts` | Done | Extracted `DOMAIN_LABEL`/`STATUS_LABEL` (previously inline in `DecisionEngineCard.tsx`) so `/history` can reuse the same Portuguese labels. |
+| `app/(app)/history/page.tsx` | Rewritten | Real Server Component: past decisions (`date < today`) grouped by day, with domain/time/status/skip-reason/feedback, capped at 90 rows. Replaces the stale placeholder. |
+
+Validation and deploy for this batch not yet run — see the task list for the next step.
+
 ## Milestones 5–8
 
 Not started. See `12_ROADMAP.md` for full ordering.

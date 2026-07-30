@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { disconnectGoogleCalendar } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -55,7 +56,11 @@ export default async function SettingsPage({
         ) : calendarConnected ? (
           <div className="mt-3 space-y-3">
             <p className="text-sm text-neutral-400">
-              O motor de decisões já tem em conta os teus compromissos de hoje.
+              O motor de decisões já tem em conta os teus compromissos de hoje.{" "}
+              <Link href="/calendar" className="text-emerald-400 hover:underline">
+                Ver calendário
+              </Link>
+              .
             </p>
             <form action={disconnectGoogleCalendar}>
               <button

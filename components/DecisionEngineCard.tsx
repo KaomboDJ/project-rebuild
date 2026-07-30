@@ -2,16 +2,9 @@
 
 import { useState } from "react";
 import type { Database } from "@/lib/supabase/database.types";
+import { DOMAIN_LABEL } from "@/lib/decision-engine/labels";
 
 export type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
-
-const DOMAIN_LABEL: Record<DecisionRow["domain"], string> = {
-  training: "Treino",
-  nutrition: "Nutrição",
-  sleep: "Sono",
-  recovery: "Recuperação",
-  planning: "Planeamento",
-};
 
 const IMPACT_XP: Record<DecisionRow["impact"], number> = { high: 15, medium: 10, low: 5 };
 

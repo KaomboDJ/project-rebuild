@@ -2,7 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { decryptToken, encryptToken } from "@/lib/crypto/tokens";
-import { localDayRangeUtc } from "@/lib/date/timezone";
+import { localRangeUtc } from "@/lib/date/timezone";
 import type { CalendarEvent } from "@/lib/decision-engine/types";
 import { type GoogleTokenResponse, refreshAccessToken } from "./oauth";
 
@@ -159,6 +159,22 @@ export async function getCalendarEventsForDate(
   dateKey: string,
   timezone: string
 ): Promise<CalendarEvent[]> {
+  return getCalendarEventsForRange(userId, dateKey, dateKey, timezone);
+}
+
+/**
+ * Same as getCalendarEventsForDate but for an arbitrary inclusive date
+ * range - backs the /calendar day/week/month views (see lib/date/ranges.ts
+ * for computing week/month start/end date keys). Single-page fetch (no
+ * pagination) with a higher maxResults for the wider ranges; fine for a
+ * "simple list" MVP view, not meant to scale to thousands of events.
+ */
+export async function getCalendarEventsForRange(
+  userId: string,
+  startDateKey: string,
+  endDateKey: string,
+  timezone: string
+): Promise<CalendarEvent[]> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) return [];
 
@@ -171,13 +187,13 @@ export async function getCalendarEventsForDate(
     .maybeSingle();
   const calendarId = row?.calendar_id || "primary";
 
-  const { timeMin, timeMax } = localDayRangeUtc(dateKey, timezone);
+  const { timeMin, timeMax } = localRangeUtc(startDateKey, endDateKey, timezone);
   const params = new URLSearchParams({
     timeMin,
     timeMax,
     singleEvents: "true",
     orderBy: "startTime",
-    maxResults: "50",
+    maxResults: "250",
   });
 
   try {
