@@ -50,6 +50,12 @@ export async function GET(request: NextRequest) {
     .eq("onboarding_completed", true);
 
   if (profilesError) {
+    console.error("cron_list_founders_error", {
+      message: profilesError.message,
+      code: profilesError.code,
+      details: profilesError.details,
+      hint: profilesError.hint,
+    });
     return NextResponse.json({ error: "failed-to-list-founders" }, { status: 500 });
   }
 
@@ -104,10 +110,16 @@ export async function GET(request: NextRequest) {
       );
 
       results.push({ userId, decisionsGenerated, decisionsStale: drift?.changed ?? false });
-    } catch {
+    } catch (error) {
       // Best-effort across founders: one failure must not block the rest of
       // the batch (there is only one founder today, but this keeps the loop
-      // safe as the user base grows).
+      // safe as the user base grows). Logged (message only, no payload) so a
+      // per-founder failure is diagnosable instead of silently disappearing
+      // into a "processed" response that looks successful.
+      console.error("cron_founder_processing_error", {
+        userId,
+        message: error instanceof Error ? error.message : String(error),
+      });
       results.push({ userId, decisionsGenerated: false, decisionsStale: false });
     }
   }
