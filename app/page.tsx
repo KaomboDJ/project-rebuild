@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { signInWithGoogle, signInWithMicrosoft } from "@/app/auth/actions";
 import { isSupabaseConfigured } from "@/lib/env/public";
-import { isMicrosoftAuthEnabled } from "@/lib/auth/config";
+import { isEmailOtpEnabled, isMicrosoftAuthEnabled } from "@/lib/auth/config";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SignInPanel } from "@/components/auth/SignInPanel";
@@ -40,8 +40,8 @@ export default async function HomePage({
           Torna-te atleta outra vez, uma decisão de cada vez.
         </h1>
         <p className="text-lg leading-relaxed text-neutral-400">
-          O Rebuild usa contexto diário para identificar os momentos que importam e
-          recomendar a próxima ação útil — sem transformar a tua vida num dashboard.
+          O Rebuild usa contexto diário para identificar os momentos que importam e recomendar a
+          próxima ação útil — sem transformar a tua vida num dashboard.
         </p>
 
         {account === "deleted" && (
@@ -54,6 +54,7 @@ export default async function HomePage({
           <SignInPanel
             next={next}
             microsoftEnabled={isMicrosoftAuthEnabled()}
+            emailOtpEnabled={isEmailOtpEnabled()}
             googleAction={signInWithGoogle}
             microsoftAction={signInWithMicrosoft}
           />
@@ -61,8 +62,8 @@ export default async function HomePage({
           <div className="rounded-2xl border border-amber-800 bg-amber-950/30 p-5">
             <p className="font-medium text-amber-200">Fundação pronta para ligar</p>
             <p className="mt-1 text-sm text-amber-100/70">
-              Adiciona as credenciais públicas do Supabase ao ficheiro .env.local para
-              ativar autenticação e persistência.
+              Adiciona as credenciais públicas do Supabase ao ficheiro .env.local para ativar
+              autenticação e persistência.
             </p>
           </div>
         )}

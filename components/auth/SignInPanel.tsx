@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { mapOtpRequestError } from "@/lib/auth/errors";
@@ -22,11 +23,13 @@ const PENDING_OTP_KEY = "rebuild_otp_pending";
 export function SignInPanel({
   next,
   microsoftEnabled,
+  emailOtpEnabled,
   googleAction,
   microsoftAction,
 }: {
   next: string;
   microsoftEnabled: boolean;
+  emailOtpEnabled: boolean;
   googleAction: (formData: FormData) => void | Promise<void>;
   microsoftAction: (formData: FormData) => void | Promise<void>;
 }) {
@@ -102,44 +105,60 @@ export function SignInPanel({
         </form>
       )}
 
-      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-neutral-500">
-        <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
-        Ou continuar com email
-        <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
-      </div>
+      {emailOtpEnabled && (
+        <>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-neutral-500">
+            <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
+            Ou continuar com email
+            <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
+          </div>
 
-      <form onSubmit={handleSendCode} className="space-y-3" noValidate>
-        <div>
-          <label htmlFor={emailId} className="field-label">
-            Email
-          </label>
-          <input
-            id={emailId}
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            inputMode="email"
-            placeholder="nome@exemplo.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="field-input mt-1"
-            aria-describedby={`${emailId}-help`}
-            aria-invalid={error ? true : undefined}
-          />
-        </div>
-        <p id={`${emailId}-help`} className="text-sm text-neutral-400">
-          Enviamos um código de 6 dígitos. Não precisas de abrir nenhum link.
-        </p>
-        {error && (
-          <p role="alert" className="text-sm text-rose-400">
-            {error}
-          </p>
-        )}
-        <button type="submit" disabled={submitting} className="btn-secondary w-full py-2.5">
-          {submitting ? "A enviar…" : "Enviar código"}
-        </button>
-      </form>
+          <form onSubmit={handleSendCode} className="space-y-3" noValidate>
+            <div>
+              <label htmlFor={emailId} className="field-label">
+                Email
+              </label>
+              <input
+                id={emailId}
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                inputMode="email"
+                placeholder="nome@exemplo.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="field-input mt-1"
+                aria-describedby={`${emailId}-help`}
+                aria-invalid={error ? true : undefined}
+              />
+            </div>
+            <p id={`${emailId}-help`} className="text-sm text-neutral-400">
+              Enviamos um código de 6 dígitos. Não precisas de abrir nenhum link.
+            </p>
+            {error && (
+              <p role="alert" className="text-sm text-rose-400">
+                {error}
+              </p>
+            )}
+            <button type="submit" disabled={submitting} className="btn-secondary w-full py-2.5">
+              {submitting ? "A enviar…" : "Enviar código"}
+            </button>
+          </form>
+        </>
+      )}
+
+      <p className="text-xs leading-relaxed text-neutral-500">
+        Ao continuar, confirmas que leste os{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-neutral-300">
+          Termos da alpha
+        </Link>{" "}
+        e a{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-neutral-300">
+          Política de privacidade
+        </Link>
+        .
+      </p>
     </div>
   );
 }

@@ -29,6 +29,7 @@ const serverEnvironmentSchema = z.object({
   // fails on click, which the milestone explicitly forbids ("do not show a
   // non-functional Microsoft button").
   AUTH_MICROSOFT_ENABLED: z.enum(["true", "false"]).default("false"),
+  AUTH_EMAIL_OTP_ENABLED: z.enum(["true", "false"]).default("false"),
 });
 
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
@@ -46,6 +47,7 @@ export function getServerEnvironment(): ServerEnvironment {
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
     AUTH_MICROSOFT_ENABLED: process.env.AUTH_MICROSOFT_ENABLED || undefined,
+    AUTH_EMAIL_OTP_ENABLED: process.env.AUTH_EMAIL_OTP_ENABLED || undefined,
   });
 
   if (!result.success) {

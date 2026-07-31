@@ -17,7 +17,7 @@ Last updated: 2026-07-30, after the pre-pilot stabilization sprint (see `PROJECT
 
 Live, per-item detail and validation history is in `IMPLEMENTATION_STATUS.md` — check that file before assuming what already exists.
 
-**Auth UX Hardening milestone (2026-07-31, `feature/auth-ux-hardening`, not yet merged)**: Milestone 1's original "Supabase Auth (magic link)" line above describes what was originally built, but is no longer the current primary experience — real mobile testing showed the magic link failing across browsers/devices, so it was demoted to an undocumented technical fallback. The current authentication hierarchy is Google OAuth (primary) → Microsoft OAuth (feature-flagged, hidden until configured) → email one-time 6-digit code entered in-app. See `IMPLEMENTATION_STATUS.md`'s "Auth UX Hardening milestone" section for full detail.
+**Auth UX Hardening milestone (2026-07-31, `feature/auth-ux-hardening`, not yet merged)**: Milestone 1's original "Supabase Auth (magic link)" line above describes what was originally built, but is no longer the current primary experience. The invited-alpha hierarchy is Google OAuth (primary and operational, using a dedicated identity OAuth client) → Microsoft OAuth (feature-flagged, hidden until configured) → email one-time code (implemented but feature-flagged off until custom SMTP and a real token template are inbox-tested). Privacy/terms, explicit wellbeing-data consent, self-service data export, accurate processor disclosure, and standard browser security headers are included. See `IMPLEMENTATION_STATUS.md` for evidence and remaining public-launch gates.
 
 ## Current phase: Founder Pilot (14 days)
 

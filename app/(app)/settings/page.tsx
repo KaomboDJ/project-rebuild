@@ -33,9 +33,10 @@ export default async function SettingsPage({
   const connections = user && calendarConfigured ? await listConnections(user.id) : [];
   const statusMessage = calendar ? CALENDAR_STATUS_MESSAGE[calendar] : null;
 
-  const { data: profile } = supabase && user
-    ? await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()
-    : { data: null };
+  const { data: profile } =
+    supabase && user
+      ? await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()
+      : { data: null };
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -70,7 +71,8 @@ export default async function SettingsPage({
           <div>
             <h2 className="font-medium">Perfil</h2>
             <p className="text-sm text-neutral-400">
-              Identidade, objetivo, horários e tom de comunicação usados pelo motor de decisões e pelo Coach.
+              Identidade, objetivo, horários e tom de comunicação usados pelo motor de decisões e
+              pelo Coach.
             </p>
           </div>
         </div>
@@ -81,7 +83,10 @@ export default async function SettingsPage({
             <p className="text-sm text-neutral-400">Não foi possível carregar o teu perfil.</p>
           )}
         </div>
-        <Link href="/nutrition/profile" className="mt-4 inline-flex text-sm text-emerald-400 underline underline-offset-2">
+        <Link
+          href="/nutrition/profile"
+          className="mt-4 inline-flex text-sm text-emerald-400 underline underline-offset-2"
+        >
           Editar perfil de alimentação (objetivo, dieta, alergias, macros) →
         </Link>
       </section>
@@ -95,9 +100,9 @@ export default async function SettingsPage({
             Google Calendar
             {connections.length > 1 && (
               <HelpTip heading="Conta principal / conta de destino">
-                Com mais do que uma conta ligada, os espaços livres são calculados juntando todas, mas só uma
-                fica marcada como &quot;principal&quot; — é essa que é usada por omissão quando adicionas uma decisão ao
-                calendário sem escolher outra conta explicitamente.
+                Com mais do que uma conta ligada, os espaços livres são calculados juntando todas,
+                mas só uma fica marcada como &quot;principal&quot; — é essa que é usada por omissão
+                quando adicionas uma decisão ao calendário sem escolher outra conta explicitamente.
               </HelpTip>
             )}
           </h2>
@@ -193,15 +198,24 @@ export default async function SettingsPage({
           <h2 className="font-medium">Os teus dados</h2>
         </div>
         <p className="text-sm text-neutral-400">
-          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar (encriptados), o
-          histórico de decisões, as conversas com o Coach, a despensa e listas de compras, o plano de
-          refeições e as notas de personalização que crias em Memória. Nada disto é partilhado com terceiros
-          nem usado para publicidade. Podes rever e corrigir o que o motor de decisões aprendeu em{" "}
+          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar
+          (encriptados), o histórico de decisões, as conversas com o Coach, a despensa e listas de
+          compras, o plano de refeições e as notas de personalização que crias em Memória. Usamos
+          fornecedores técnicos para operar o serviço — Supabase, Vercel e Anthropic — e Google
+          quando ligas o calendário. Não vendemos estes dados nem os usamos para publicidade.
+          Consulta a{" "}
+          <Link href="/privacy" className="text-emerald-400 underline underline-offset-2">
+            Política de privacidade
+          </Link>
+          . Podes rever e corrigir o que o motor de decisões aprendeu em{" "}
           <Link href="/settings/memory" className="text-emerald-400 underline underline-offset-2">
             Memória
           </Link>
           , desligar o Google Calendar acima, ou eliminar a conta por completo abaixo.
         </p>
+        <a href="/api/account/export" className="btn-secondary inline-flex" download>
+          Descarregar os meus dados
+        </a>
         {user?.email && <DeleteAccountSection email={user.email} />}
       </section>
     </main>

@@ -1,17 +1,7 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 type ProfileObjective =
-  | "rebuild-fitness"
-  | "lose-weight"
-  | "train-consistently"
-  | "improve-nutrition"
-  | "improve-sleep";
+  "rebuild-fitness" | "lose-weight" | "train-consistently" | "improve-nutrition" | "improve-sleep";
 
 type DecisionDomain = "training" | "nutrition" | "sleep" | "recovery" | "planning";
 type DecisionImpact = "low" | "medium" | "high";
@@ -19,7 +9,8 @@ type DecisionSource = "rule" | "ai" | "hybrid";
 type DecisionStatus = "proposed" | "accepted" | "edited" | "completed" | "skipped";
 
 type CoachMessageRole = "user" | "assistant";
-type PantryCategory = "produce" | "protein" | "dairy" | "grain" | "pantry" | "frozen" | "beverage" | "other";
+type PantryCategory =
+  "produce" | "protein" | "dairy" | "grain" | "pantry" | "frozen" | "beverage" | "other";
 type PantryUnit = "unidade" | "g" | "kg" | "ml" | "l";
 type InventoryEventType = "purchase" | "consume" | "adjust" | "waste";
 type InventoryEventSource = "manual" | "coach" | "shopping";
@@ -28,7 +19,8 @@ type DayType = "home" | "office";
 type DefaultDayType = "home" | "office" | "mixed";
 type DayTypeSource = "check-in" | "profile" | "calendar-heuristic";
 
-type NutritionGoal = "lose-weight" | "maintain-weight" | "build-muscle" | "manage-blood-sugar" | "improve-energy";
+type NutritionGoal =
+  "lose-weight" | "maintain-weight" | "build-muscle" | "manage-blood-sugar" | "improve-energy";
 type DietStyle = "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "low-carb" | "mediterranean";
 type BudgetPreference = "low" | "medium" | "high";
 type VarietyPreference = "low" | "medium" | "high";
@@ -60,6 +52,8 @@ export interface Database {
           intervention_tone: string;
           onboarding_completed: boolean;
           default_day_type: DefaultDayType | null;
+          privacy_consent_at: string | null;
+          terms_accepted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -80,6 +74,8 @@ export interface Database {
           intervention_tone?: string;
           onboarding_completed?: boolean;
           default_day_type?: DefaultDayType | null;
+          privacy_consent_at?: string | null;
+          terms_accepted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

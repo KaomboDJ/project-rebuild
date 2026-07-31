@@ -88,7 +88,7 @@ Testing constraint (see §14): every persona below was evaluated by inspecting t
 
 Positive: the nutrition profile's medical-disclaimer copy (that health/constraint data is used only for context, never for diagnosis) is exactly the tone `CLAUDE.md`'s coaching-safety section calls for, and the Coach's one observed conversation respected it in practice — it asked rather than assumed, and did not invent pantry data. `/settings/memory`'s plain-language explanation of evidence thresholds and rule-muting is the strongest existing foundation for user trust in personalization anywhere in the app.
 
-Gap: there is no visible account-deletion or full-data-export path in `/settings`, and no in-app privacy policy or data-retention statement was found during this pass. For a product whose target user is explicitly described as privacy-conscious about health and calendar data (§3), this gap matters more than it would for a generic productivity tool.
+Resolved for invited alpha: `/settings` provides account deletion and a session-scoped JSON export; `/privacy` and `/terms` disclose the categories of data, processors, calendar-token encryption, user controls and current retention limitation. New onboarding profiles record explicit terms acceptance and consent to processing user-entered wellbeing/nutrition data. Public launch still requires legal review and a formal retention/incident policy.
 
 ## 9. Portuguese copy findings
 
