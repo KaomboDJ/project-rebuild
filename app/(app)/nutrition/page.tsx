@@ -4,7 +4,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getWeekRange } from "@/lib/date/ranges";
 import { listPantryItems, getOrCreateOpenShoppingList, listShoppingItems } from "@/lib/pantry/queries";
+import { countAvailable, countExpiringSoon, countTotalRegistered } from "@/lib/pantry/selectors";
 import { getWeekPlan } from "@/lib/nutrition/queries";
+import { pluralizePt } from "@/lib/format/pluralize";
+import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
 
 export default async function NutritionDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -36,7 +39,16 @@ export default async function NutritionDashboardPage() {
   ]);
   const shoppingItems = await listShoppingItems(supabase, user.id, listId).catch(() => []);
 
-  const expiringSoon = pantryItems.filter((item) => item.expires_on && item.expires_on <= today);
+  // Three distinct, explicitly labeled counts (docs/17_UX_AUDIT.md, N2 -
+  // confirmed P1) instead of one ambiguous "item(ns) registados" figure:
+  // total ever tracked, currently usable (quantity > 0, the same selector
+  // the Coach grounds on), and expiring/expired among the usable ones.
+  const totalRegistered = countTotalRegistered(pantryItems);
+  const available = countAvailable(pantryItems);
+  const expiringSoonCount = countExpiringSoon(pantryItems, today);
+  const expiringSoon = pantryItems.filter(
+    (item) => Number(item.quantity) > 0 && item.expires_on && item.expires_on <= today
+  );
   const pendingShopping = shoppingItems.filter((item) => !item.purchased);
   const plannedCount = weekPlan?.items.filter((i) => i.status === "planned").length ?? 0;
 
@@ -51,13 +63,20 @@ export default async function NutritionDashboardPage() {
         </p>
       </div>
 
+      <FirstUseCallout id="nutrition-dashboard">
+        Quatro peças: o plano da semana, o teu perfil (objetivo/dieta/alergias), a despensa, e a lista de
+        compras. Preenche o perfil primeiro — é o que torna o plano e as sugestões do Coach relevantes.
+      </FirstUseCallout>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/nutrition/plan" className="surface-card surface-card-hover block p-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
             <CalendarRange size={17} />
           </span>
           <p className="mt-3 font-medium text-neutral-100">Plano da semana</p>
-          <p className="text-sm text-neutral-400">{weekPlan ? `${plannedCount} refeição(ões) por fazer` : "Ainda sem plano"}</p>
+          <p className="text-sm text-neutral-400">
+            {weekPlan ? pluralizePt(plannedCount, "refeição por fazer", "refeições por fazer") : "Ainda sem plano"}
+          </p>
         </Link>
         <Link href="/nutrition/profile" className="surface-card surface-card-hover block p-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
@@ -71,21 +90,24 @@ export default async function NutritionDashboardPage() {
             <ListChecks size={17} />
           </span>
           <p className="mt-3 font-medium text-neutral-100">Despensa</p>
-          <p className="text-sm text-neutral-400">{pantryItems.length} item(ns) registados</p>
+          <p className="text-sm text-neutral-400">
+            {pluralizePt(available, "item disponível agora", "itens disponíveis agora")}
+          </p>
+          <p className="text-xs text-neutral-500">{pluralizePt(totalRegistered, "item registado", "itens registados")} no total</p>
         </Link>
         <Link href="/nutrition/shopping" className="surface-card surface-card-hover block p-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
             <ShoppingCart size={17} />
           </span>
           <p className="mt-3 font-medium text-neutral-100">Lista de compras</p>
-          <p className="text-sm text-neutral-400">{pendingShopping.length} por comprar</p>
+          <p className="text-sm text-neutral-400">{pluralizePt(pendingShopping.length, "item por comprar", "itens por comprar")}</p>
         </Link>
       </div>
 
-      {expiringSoon.length > 0 && (
+      {expiringSoonCount > 0 && (
         <div className="surface-card border-amber-500/20 p-4">
           <p className="flex items-center gap-2 text-sm font-medium text-amber-300">
-            <AlertTriangle size={15} /> A expirar
+            <AlertTriangle size={15} /> A expirar ({pluralizePt(expiringSoonCount, "item disponível", "itens disponíveis")})
           </p>
           <ul className="mt-2 space-y-1 text-sm text-neutral-300">
             {expiringSoon.map((item) => (

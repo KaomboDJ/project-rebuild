@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addMonths, getMonthGridDays } from "@/lib/date/calendar-grid";
 
 const MONTH_YEAR = new Intl.DateTimeFormat("pt-PT", { month: "long", year: "numeric" });
+const FULL_DATE = new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "long", year: "numeric" });
 const WEEKDAY_LETTERS = ["S", "T", "Q", "Q", "S", "S", "D"];
 
 function capitalize(text: string): string {
@@ -84,9 +85,21 @@ export function MiniCalendar({ selectedDate }: { selectedDate?: string }) {
           const inMonth = day.slice(0, 7) === currentMonth;
           const isToday = day === today;
           const isSelected = day === selectedDate;
+          // Bare visible text is just the day-of-month number ("27"), which
+          // read alone gives a screen-reader user no month/year context -
+          // unlike the main FullCalendar grid's date cells, which already
+          // announce a full date. Matching that here (docs/17_UX_AUDIT.md,
+          // J3-c) rather than leaving the two surfaces' day controls with
+          // inconsistent accessible names.
+          const fullDateLabel = FULL_DATE.format(parseDateKeyLocal(day));
+          const label = isToday ? `${fullDateLabel}, hoje` : fullDateLabel;
           return (
             <button
               key={day}
+              type="button"
+              aria-label={label}
+              aria-current={isToday ? "date" : undefined}
+              aria-pressed={isSelected}
               onClick={() => goToDate(day)}
               className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[11px] transition ${
                 isSelected

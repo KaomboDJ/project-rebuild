@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { MUTATING_TOOLS, READ_ONLY_TOOLS, type ToolCall, type ToolName } from "./types";
+import { pluralizePt } from "@/lib/format/pluralize";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getWeekRange } from "@/lib/date/ranges";
 import { generateWeekPlan, suggestReplacement } from "@/lib/nutrition/planner";
@@ -232,8 +233,16 @@ export async function executeReadOnlyTool(
   args: Record<string, unknown>
 ): Promise<unknown> {
   if (name === "get_inventory") {
+    // UX Hardening release (docs/17_UX_AUDIT.md, N2 - confirmed P1): this
+    // previously returned every pantry_items row including ones at quantity
+    // 0, while buildPantrySummary (the system-prompt context) and
+    // suggest_available_meal below both already filtered to quantity > 0 -
+    // so the model could call this tool and describe a zero-stock item as
+    // "in the pantry". The Coach must only ever ground recommendations in
+    // currently usable stock (lib/pantry/selectors.ts's countAvailable is
+    // the same selector), so this now matches the other two read paths.
     const category = typeof args.category === "string" ? args.category : undefined;
-    let query = supabase.from("pantry_items").select("*").eq("user_id", userId).order("name");
+    let query = supabase.from("pantry_items").select("*").eq("user_id", userId).gt("quantity", 0).order("name");
     if (category) query = query.eq("category", category as PantryItem["category"]);
     const { data, error } = await query;
     if (error) throw new Error("Falha ao ler a despensa.");
@@ -279,8 +288,10 @@ function summarize(name: ToolName, args: Record<string, unknown>): string {
       return `Adicionar "${args.name ?? "item"}" à lista de compras`;
     case "mark_item_purchased":
       return `Marcar "${args.name ?? "item"}" como comprado`;
-    case "record_meal":
-      return `Registar refeição${args.meal ? ` (${args.meal})` : ""} com ${Array.isArray(args.items) ? args.items.length : 0} item(ns)`;
+    case "record_meal": {
+      const count = Array.isArray(args.items) ? args.items.length : 0;
+      return `Registar refeição${args.meal ? ` (${args.meal})` : ""} com ${pluralizePt(count, "item", "itens")}`;
+    }
     case "generate_week_plan":
       return "Gerar (ou substituir) o plano de refeições da semana";
     case "replace_meal":

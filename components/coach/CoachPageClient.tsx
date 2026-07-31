@@ -5,6 +5,8 @@ import { Info, MessageCircleHeart, Plus, Send, X } from "lucide-react";
 import type { ChatMessage, ConversationSummary } from "@/lib/coach/types";
 import { useCoachConversation } from "./useCoachConversation";
 import { MessageList } from "./MessageList";
+import { Drawer } from "@/components/ui/Drawer";
+import { pluralizePt } from "@/lib/format/pluralize";
 
 const DAY_TYPE_LABEL: Record<string, string> = { home: "Em casa", office: "Fora / escritório" };
 
@@ -15,6 +17,14 @@ function ContextSummary({
   dayTypeSource,
 }: {
   identity: string;
+  /** Items with usable stock (quantity > 0) - the same "currently
+   * available" selector the Coach's own get_inventory/suggest_available_meal
+   * tools ground on (lib/pantry/selectors.ts), not the dashboard's "total
+   * registered" count. Showing the dashboard's total here was the exact
+   * source of docs/17_UX_AUDIT.md's N2 finding: the number the founder saw
+   * on /nutrition and the number the Coach actually reasoned from disagreed
+   * because they were two different concepts wearing the same unlabeled
+   * "item(ns) registados" text. */
   pantryCount: number;
   dayType: string | null;
   dayTypeSource: string;
@@ -29,7 +39,8 @@ function ContextSummary({
           <span className="text-neutral-300">Identidade:</span> {identity || "não definida"}
         </p>
         <p>
-          <span className="text-neutral-300">Despensa:</span> {pantryCount} item(ns) registados
+          <span className="text-neutral-300">Despensa (disponível agora):</span>{" "}
+          {pluralizePt(pantryCount, "item", "itens")}
         </p>
         <p>
           <span className="text-neutral-300">Tipo de dia:</span>{" "}
@@ -192,16 +203,26 @@ export function CoachPageClient({
       </aside>
 
       {mobileContextOpen && (
-        <div className="fixed inset-0 z-30 flex justify-end bg-black/40 md:hidden" onClick={() => setMobileContextOpen(false)}>
-          <div className="surface-card m-3 w-full max-w-xs p-4" onClick={(event) => event.stopPropagation()}>
+        <div className="md:hidden">
+          <Drawer
+            onClose={() => setMobileContextOpen(false)}
+            className="w-full max-w-xs p-4"
+            labelledBy="coach-context-drawer-title"
+          >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-neutral-100">Contexto</span>
-              <button onClick={() => setMobileContextOpen(false)} aria-label="Fechar" className="text-neutral-500 hover:text-neutral-200">
+              <span id="coach-context-drawer-title" className="text-sm font-medium text-neutral-100">
+                Contexto
+              </span>
+              <button
+                onClick={() => setMobileContextOpen(false)}
+                aria-label="Fechar"
+                className="text-neutral-500 hover:text-neutral-200"
+              >
                 <X size={16} />
               </button>
             </div>
             <ContextSummary identity={identity} pantryCount={pantryCount} dayType={dayType} dayTypeSource={dayTypeSource} />
-          </div>
+          </Drawer>
         </div>
       )}
     </main>
