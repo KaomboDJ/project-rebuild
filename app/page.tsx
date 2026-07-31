@@ -3,9 +3,14 @@ import { signInWithMagicLink } from "@/app/auth/actions";
 import { isSupabaseConfigured } from "@/lib/env/public";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ account?: string }>;
+}) {
   const configured = isSupabaseConfigured();
   const supabase = await createSupabaseServerClient();
+  const { account } = await searchParams;
 
   if (supabase) {
     const {
@@ -18,7 +23,7 @@ export default async function HomePage() {
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-16">
       <div className="max-w-xl space-y-6">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-700 text-sm font-bold text-white">
             R
           </span>
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">Rebuild</p>
@@ -31,11 +36,20 @@ export default async function HomePage() {
           recomendar a próxima ação útil — sem transformar a tua vida num dashboard.
         </p>
 
+        {account === "deleted" && (
+          <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-neutral-300">
+            A tua conta e todos os teus dados foram eliminados.
+          </p>
+        )}
+
         {configured ? (
           <form action={signInWithMagicLink} className="surface-card space-y-3 p-5">
             <label htmlFor="email" className="field-label">
-              Entra com uma ligação segura
+              Entrar com email
             </label>
+            <p className="text-sm text-neutral-400">
+              Enviamos uma ligação de acesso única para o teu email. Não precisas de palavra-passe.
+            </p>
             <input
               id="email"
               name="email"

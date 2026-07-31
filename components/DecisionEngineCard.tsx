@@ -1,11 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Check, CheckCircle2, Pencil, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
+import { CalendarPlus, Check, CheckCircle2, ChevronDown, Pencil, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import type { ConnectionSummary } from "@/lib/google/calendar";
 import { DOMAIN_LABEL } from "@/lib/decision-engine/labels";
 import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
+
+// UX Hardening release (docs/17_UX_AUDIT.md, section 4 - recommendation
+// transparency / "Why this?"). Every string below is derived directly from
+// columns already on the `decisions` row - nothing here is invented or
+// re-asks the AI provider for an explanation; if a field is genuinely
+// unavailable (no time window, no related pantry item) the panel says so
+// plainly rather than guessing.
+const SOURCE_LABEL: Record<DecisionRow["source"], string> = {
+  rule: "uma regra fixa do motor de decisões",
+  ai: "uma reformulação da IA sobre uma regra fixa",
+  hybrid: "uma regra fixa, com pequenos ajustes da IA",
+};
+
+function confidenceLabel(confidence: number): string {
+  if (confidence >= 0.75) return "alta";
+  if (confidence >= 0.5) return "média";
+  return "baixa (menos histórico para se basear)";
+}
 
 export type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
@@ -118,15 +136,40 @@ export function DecisionEngineCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">
               {DOMAIN_LABEL[decision.domain]}
               {start && ` · ${start}${end ? `–${end}` : ""}`}
             </span>
-            <span className="text-xs font-medium text-neutral-500">+{IMPACT_XP[decision.impact]} XP</span>
+            <span className="text-xs font-medium text-neutral-400">+{IMPACT_XP[decision.impact]} XP</span>
           </div>
           <p className="mt-0.5 font-medium leading-snug text-neutral-50">{decision.title}</p>
           <p className="mt-1 text-sm text-neutral-400">{decision.reason}</p>
           <p className="mt-2 text-sm text-neutral-200">{decision.recommended_action}</p>
+
+          <details className="mt-2 text-xs text-neutral-400">
+            <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-neutral-400 hover:text-neutral-300">
+              <ChevronDown size={12} />
+              Porquê esta sugestão?
+            </summary>
+            <div className="mt-2 space-y-1 rounded-lg bg-white/[0.03] p-3 text-neutral-400">
+              <p>
+                Baseada em {SOURCE_LABEL[decision.source]}, para a área &quot;{DOMAIN_LABEL[decision.domain]}&quot;.
+              </p>
+              <p>Confiança do motor de decisões: {confidenceLabel(Number(decision.confidence))}.</p>
+              <p>
+                {start
+                  ? `Encaixada na tua janela livre entre ${start}${end ? ` e ${end}` : ""}, com base no teu calendário de hoje.`
+                  : "Sem uma janela de horário específica no teu calendário de hoje."}
+              </p>
+              {decision.related_pantry_item && (
+                <p>Sugestão de refeição com base num item que já tens em casa: {decision.related_pantry_item}.</p>
+              )}
+              <p>
+                Achas que o contexto está errado? Podes editar esta decisão acima, ou corrigir o que o motor
+                de decisões sabe sobre ti em Definições → Memória.
+              </p>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -182,7 +225,7 @@ export function DecisionEngineCard({
       )}
 
       {decision.calendar_event_id && (
-        <p className="mt-2 pl-12 text-xs text-neutral-500">No teu Google Calendar.</p>
+        <p className="mt-2 pl-12 text-xs text-neutral-400">No teu Google Calendar.</p>
       )}
       {calendarError && <p className="mt-2 pl-12 text-xs text-red-400">{calendarError}</p>}
 
@@ -196,13 +239,13 @@ export function DecisionEngineCard({
               </>
             ) : (
               <>
-                <XCircle size={15} className="text-neutral-500" />
+                <XCircle size={15} className="text-neutral-400" />
                 Não feito{decision.skipped_reason ? `: ${decision.skipped_reason}` : ""}
               </>
             )}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Foi útil?</span>
+            <span className="text-xs text-neutral-400">Foi útil?</span>
             <button
               disabled={feedbackBusy}
               aria-pressed={feedback === true}

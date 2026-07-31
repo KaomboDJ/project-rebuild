@@ -34,6 +34,18 @@ Plain form sections, not a settings "dashboard": profile fields, calendar connec
 - Sufficient contrast on the dark theme (already the case with `neutral-100` on `neutral-950`).
 - Touch targets sized for mobile first (existing button padding is a reasonable baseline — keep it).
 - PWA: standalone display, app icon, splash matches the dark theme background.
+- Every authenticated page includes a visually-hidden-until-focused "Saltar para o conteúdo" skip link (see `components/AppShell.tsx`) as the first focusable element, and DOM/tab order must match visual reading order — primary navigation before page content, not after (docs/17_UX_AUDIT.md, J1).
+- Any slide-over/drawer must use the shared `components/ui/Drawer.tsx` shell: opaque background (never `surface-card`'s translucent treatment for a drawer panel), closes on Escape, traps focus while open, restores focus to its trigger on close (docs/17_UX_AUDIT.md, J3-a/J3-b).
+- Any count or label reused across screens (e.g. pantry size) must come from one named, shared selector (`lib/pantry/selectors.ts` is the existing example) rather than each screen re-deriving a similar-but-not-quite filter — don't force one number when the underlying concepts genuinely differ, but do name and share the selector once they're pinned down (docs/17_UX_AUDIT.md, N2).
+- Portuguese counts must use real singular/plural text (`lib/format/pluralizePt`), never a literal "item(ns)"-style bracket.
+
+## Contextual help (lightweight foundation only)
+
+Added in the UX Hardening release (docs/17_UX_AUDIT.md, §4/§10) as a deliberately small foundation — not the full six-layer "Rebuild Guide" that file specifies for a later release.
+
+- `components/ui/HelpTip.tsx`: a small info-icon popover for a genuinely unfamiliar concept (Decision Score, Regenerar, macro estimates, memory confidence, rule muting, destination/primary calendar account so far). Keyboard-focusable, opens on click/Enter (never hover-only), closes on Escape or on focus leaving it, restores focus to its trigger. Do not add one next to every field — only where a first-time user would otherwise have to guess.
+- `components/ui/FirstUseCallout.tsx`: one short, dismissible callout per complex screen (Today/Calendar, Programar o meu dia, Nutrition, Pantry, Shopping, Memory so far), never a forced multi-step tour. Dismissal persists in `localStorage` per browser for now — a deliberate scope choice, not yet true per-account persistence.
+- "Porquê esta sugestão?" on each decision card (`DecisionEngineCard.tsx`): a plain-language disclosure built only from data already on the `decisions` row (source, confidence, schedule reason, related pantry item) — never invented, never a re-ask of the AI provider for a justification.
 
 ## Explicitly avoid
 

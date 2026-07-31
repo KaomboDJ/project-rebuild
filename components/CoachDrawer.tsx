@@ -69,14 +69,14 @@ export function CoachDrawer() {
             <button
               aria-label="Expandir"
               onClick={() => setView("expanded")}
-              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+              className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
             >
               <Maximize2 size={14} />
             </button>
             <button
               aria-label="Fechar"
               onClick={() => setView("closed")}
-              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+              className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
             >
               <X size={14} />
             </button>
@@ -84,7 +84,7 @@ export function CoachDrawer() {
         </div>
 
         <div className="flex-1 overflow-hidden px-3.5 py-3">
-          {!latest && <p className="text-sm text-neutral-500">Pergunta o que fazer a seguir, ou o que cozinhar com o que tens em casa.</p>}
+          {!latest && <p className="text-sm text-neutral-400">Pergunta o que fazer a seguir, ou o que cozinhar com o que tens em casa.</p>}
           {latest && (
             <div className="space-y-2">
               <p className="line-clamp-4 text-sm leading-relaxed text-neutral-300">{latest.content}</p>
@@ -96,7 +96,7 @@ export function CoachDrawer() {
               </button>
             </div>
           )}
-          {sending && <p className="mt-2 text-xs text-neutral-500">A pensar...</p>}
+          {sending && <p className="mt-2 text-xs text-neutral-400">A pensar...</p>}
           {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
         </div>
 
@@ -139,21 +139,21 @@ export function CoachDrawer() {
             <Link
               href="/coach"
               aria-label="Abrir página completa"
-              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+              className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
             >
               <Maximize2 size={15} />
             </Link>
             <button
               aria-label="Minimizar"
               onClick={() => setView("compact")}
-              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+              className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
             >
               <ChevronDown size={16} />
             </button>
             <button
               aria-label="Fechar"
               onClick={() => setView("closed")}
-              className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+              className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
             >
               <X size={16} />
             </button>

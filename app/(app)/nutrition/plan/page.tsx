@@ -33,7 +33,7 @@ export default async function NutritionPlanPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Alimentação</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Alimentação</p>
         <h1 className="text-2xl font-semibold tracking-tight">Plano da semana</h1>
         <p className="mt-1 text-sm text-neutral-400">
           Sete dias, gerados a partir do teu perfil — macros são estimativas, nunca conselho médico.

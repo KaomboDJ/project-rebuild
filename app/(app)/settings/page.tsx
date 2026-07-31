@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { Brain, CalendarCheck2, LogOut, Mail, Star } from "lucide-react";
+import { Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { disconnectGoogleCalendar, setPrimaryGoogleAccount } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listConnections } from "@/lib/google/calendar";
 import { isGoogleCalendarConfigured } from "@/lib/google/oauth";
+import { ProfileEditForm } from "@/components/settings/ProfileEditForm";
+import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
+import { HelpTip } from "@/components/ui/HelpTip";
 
 const CALENDAR_STATUS_MESSAGE: Record<string, string> = {
   connected: "Conta Google adicionada.",
@@ -30,10 +33,14 @@ export default async function SettingsPage({
   const connections = user && calendarConfigured ? await listConnections(user.id) : [];
   const statusMessage = calendar ? CALENDAR_STATUS_MESSAGE[calendar] : null;
 
+  const { data: profile } = supabase && user
+    ? await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()
+    : { data: null };
+
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Conta</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Conta</p>
         <h1 className="text-2xl font-semibold tracking-tight">Definições</h1>
       </div>
 
@@ -57,10 +64,43 @@ export default async function SettingsPage({
 
       <section className="surface-card p-5">
         <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
+            <UserCog size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Perfil</h2>
+            <p className="text-sm text-neutral-400">
+              Identidade, objetivo, horários e tom de comunicação usados pelo motor de decisões e pelo Coach.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4">
+          {profile ? (
+            <ProfileEditForm initialProfile={profile} />
+          ) : (
+            <p className="text-sm text-neutral-400">Não foi possível carregar o teu perfil.</p>
+          )}
+        </div>
+        <Link href="/nutrition/profile" className="mt-4 inline-flex text-sm text-emerald-400 underline underline-offset-2">
+          Editar perfil de alimentação (objetivo, dieta, alergias, macros) →
+        </Link>
+      </section>
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
             <CalendarCheck2 size={16} />
           </span>
-          <h2 className="font-medium">Google Calendar</h2>
+          <h2 className="flex items-center gap-1.5 font-medium">
+            Google Calendar
+            {connections.length > 1 && (
+              <HelpTip heading="Conta principal / conta de destino">
+                Com mais do que uma conta ligada, os espaços livres são calculados juntando todas, mas só uma
+                fica marcada como &quot;principal&quot; — é essa que é usada por omissão quando adicionas uma decisão ao
+                calendário sem escolher outra conta explicitamente.
+              </HelpTip>
+            )}
+          </h2>
         </div>
 
         {statusMessage && <p className="mt-2 text-sm text-neutral-400">{statusMessage}</p>}
@@ -75,7 +115,7 @@ export default async function SettingsPage({
               <>
                 <p className="text-sm text-neutral-400">
                   O motor de decisões tem em conta os compromissos de todas as contas ligadas.{" "}
-                  <Link href="/calendar" className="text-emerald-400 hover:underline">
+                  <Link href="/calendar" className="text-emerald-400 underline underline-offset-2">
                     Ver calendário
                   </Link>
                   .
@@ -143,6 +183,26 @@ export default async function SettingsPage({
         <Link href="/settings/memory" className="btn-secondary mt-3 inline-flex">
           Abrir memória
         </Link>
+      </section>
+
+      <section className="surface-card space-y-3 p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] text-neutral-300">
+            <ShieldCheck size={16} />
+          </span>
+          <h2 className="font-medium">Os teus dados</h2>
+        </div>
+        <p className="text-sm text-neutral-400">
+          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar (encriptados), o
+          histórico de decisões, as conversas com o Coach, a despensa e listas de compras, o plano de
+          refeições e as notas de personalização que crias em Memória. Nada disto é partilhado com terceiros
+          nem usado para publicidade. Podes rever e corrigir o que o motor de decisões aprendeu em{" "}
+          <Link href="/settings/memory" className="text-emerald-400 underline underline-offset-2">
+            Memória
+          </Link>
+          , desligar o Google Calendar acima, ou eliminar a conta por completo abaixo.
+        </p>
+        {user?.email && <DeleteAccountSection email={user.email} />}
       </section>
     </main>
   );

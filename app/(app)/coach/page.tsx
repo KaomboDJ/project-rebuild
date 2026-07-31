@@ -9,7 +9,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <main className="mx-auto max-w-3xl space-y-4 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Coach</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Coach</p>
         <h1 className="text-2xl font-semibold tracking-tight">Conversa completa</h1>
       </div>
       <div className="surface-card p-5 text-sm text-neutral-400">{message}</div>

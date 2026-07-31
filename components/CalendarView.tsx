@@ -187,7 +187,7 @@ export function CalendarView() {
               key={mode}
               onClick={() => setView(mode)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                view === mode ? "bg-emerald-600 text-white" : "text-neutral-400 hover:text-neutral-100"
+                view === mode ? "bg-emerald-700 text-white" : "text-neutral-400 hover:text-neutral-100"
               }`}
             >
               {VIEW_LABEL[mode]}
@@ -198,7 +198,7 @@ export function CalendarView() {
 
       {notConnected && (
         <div className="surface-card mx-4 flex flex-col items-center gap-3 px-6 py-12 text-center md:mx-0">
-          <CalendarOff className="text-neutral-500" size={28} />
+          <CalendarOff className="text-neutral-400" size={28} />
           <p className="text-sm text-neutral-400">
             Liga o teu Google Calendar em Definições para veres a tua agenda aqui.
           </p>
@@ -266,12 +266,12 @@ function DayWeekGrid({
           <div />
           {days.map((day) => (
             <div key={day} className="flex flex-col items-center gap-0.5">
-              <span className="text-[11px] uppercase tracking-wide text-neutral-500">
+              <span className="text-[11px] uppercase tracking-wide text-neutral-400">
                 {WEEKDAY_SHORT.format(parseDateKeyLocal(day))}
               </span>
               <span
                 className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${
-                  day === today ? "bg-emerald-600 text-white" : "text-neutral-200"
+                  day === today ? "bg-emerald-700 text-white" : "text-neutral-200"
                 }`}
               >
                 {Number(day.slice(8, 10))}
@@ -286,7 +286,7 @@ function DayWeekGrid({
           className="mb-1 grid gap-1 border-b border-white/[0.06] pb-2"
           style={{ gridTemplateColumns: `48px repeat(${days.length}, 1fr)` }}
         >
-          <span className="text-[10px] text-neutral-600">Dia todo</span>
+          <span className="text-[10px] text-neutral-400">Dia todo</span>
           {allDayByDay.map((list, i) => (
             <div key={days[i]} className="flex flex-wrap gap-1">
               {list.map((event) => (
@@ -304,7 +304,7 @@ function DayWeekGrid({
       )}
 
       {loading ? (
-        <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">A carregar...</div>
+        <div className="flex flex-1 items-center justify-center text-sm text-neutral-400">A carregar...</div>
       ) : (
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div
@@ -315,7 +315,7 @@ function DayWeekGrid({
               {HOURS.map((hour) => (
                 <div
                   key={hour}
-                  className="absolute right-2 -translate-y-1/2 text-[11px] text-neutral-600"
+                  className="absolute right-2 -translate-y-1/2 text-[11px] text-neutral-400"
                   style={{ top: hour * HOUR_HEIGHT }}
                 >
                   {hour === 0 ? "" : `${String(hour).padStart(2, "0")}:00`}
@@ -408,14 +408,14 @@ function MonthGrid({
   }, [days, events]);
 
   if (loading) {
-    return <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">A carregar...</div>;
+    return <div className="flex flex-1 items-center justify-center text-sm text-neutral-400">A carregar...</div>;
   }
 
   return (
     <div className="flex flex-1 flex-col px-4 md:px-0">
       <div className="grid grid-cols-7 border-b border-white/[0.06] pb-2">
         {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label) => (
-          <div key={label} className="text-center text-[11px] uppercase tracking-wide text-neutral-500">
+          <div key={label} className="text-center text-[11px] uppercase tracking-wide text-neutral-400">
             {label}
           </div>
         ))}
@@ -437,7 +437,7 @@ function MonthGrid({
             >
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                  isToday ? "bg-emerald-600 text-white" : "text-neutral-300"
+                  isToday ? "bg-emerald-700 text-white" : "text-neutral-300"
                 }`}
               >
                 {Number(day.slice(8, 10))}
@@ -451,7 +451,7 @@ function MonthGrid({
                     {event.title}
                   </span>
                 ))}
-                {overflow > 0 && <span className="text-[10px] text-neutral-500">+{overflow} mais</span>}
+                {overflow > 0 && <span className="text-[10px] text-neutral-400">+{overflow} mais</span>}
               </div>
             </button>
           );

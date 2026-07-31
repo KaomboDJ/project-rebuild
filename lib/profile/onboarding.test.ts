@@ -63,4 +63,30 @@ describe("validateOnboardingDraft", () => {
     expect(errors.currentConstraints).toBeDefined();
     expect(errors.interventionTone).toBeDefined();
   });
+
+  // Working hours (docs/17_UX_AUDIT.md, S1) - added to onboarding and reused
+  // by the Settings profile-edit form. profiles.working_hours has been read
+  // by the Decision Engine since Milestone 1 (DEFAULT_PROFILE), but no form
+  // ever exposed it until this release.
+  it.each(["9:00", "24:00", "12:60", "noon", ""])(
+    "rejects invalid workingHoursStart %s",
+    (time) => {
+      const errors = validateOnboardingDraft({ ...VALID, workingHoursStart: time });
+      expect(errors.workingHoursStart).toBeDefined();
+    }
+  );
+
+  it("rejects working hours where the end is not after the start", () => {
+    const equal = validateOnboardingDraft({ ...VALID, workingHoursStart: "09:00", workingHoursEnd: "09:00" });
+    expect(equal.workingHoursEnd).toBeDefined();
+
+    const reversed = validateOnboardingDraft({ ...VALID, workingHoursStart: "18:00", workingHoursEnd: "09:00" });
+    expect(reversed.workingHoursEnd).toBeDefined();
+  });
+
+  it("accepts a valid working-hours range", () => {
+    const errors = validateOnboardingDraft({ ...VALID, workingHoursStart: "08:00", workingHoursEnd: "17:00" });
+    expect(errors.workingHoursStart).toBeUndefined();
+    expect(errors.workingHoursEnd).toBeUndefined();
+  });
 });

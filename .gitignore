@@ -7,3 +7,5 @@ out
 next-env.d.ts
 .claude/settings.local.json
 .pnpm-store/
+playwright-report/
+test-results/

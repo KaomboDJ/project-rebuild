@@ -153,7 +153,7 @@ export function MealPlanView({
         <div>
           <p className="text-sm font-medium text-neutral-100">{hasPlan ? "Plano desta semana" : "Ainda sem plano esta semana"}</p>
           {weekAverage && (
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-400">
               Média diária estimada: ≈{weekAverage.calories} kcal · {weekAverage.proteinG}g proteína · {weekAverage.carbsG}g
               hidratos · {weekAverage.fatG}g gordura
             </p>
@@ -193,7 +193,7 @@ export function MealPlanView({
             <div className="mb-2 flex items-center justify-between">
               <p className="text-sm font-medium capitalize text-neutral-200">{formatDay(dateKey)}</p>
               {macro && (
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-400">
                   ≈{macro.calories} kcal · {macro.proteinG}g P · {macro.carbsG}g H · {macro.fatG}g G
                 </p>
               )}
@@ -202,12 +202,12 @@ export function MealPlanView({
               {dayItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] p-3">
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500">{MEAL_TYPE_LABELS[item.mealSlot]}</p>
-                    <p className={`truncate text-sm ${item.status === "skipped" ? "text-neutral-500 line-through" : "text-neutral-100"}`}>
+                    <p className="text-xs uppercase tracking-wide text-neutral-400">{MEAL_TYPE_LABELS[item.mealSlot]}</p>
+                    <p className={`truncate text-sm ${item.status === "skipped" ? "text-neutral-400 line-through" : "text-neutral-100"}`}>
                       {item.recipe?.name ?? "Sem sugestão disponível"}
                     </p>
                     {item.recipe && (
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-neutral-400">
                         ≈{item.recipe.caloriesPerServing} kcal · {item.recipe.prepMinutes} min
                         {item.status === "eaten" ? " · feito" : ""}
                       </p>

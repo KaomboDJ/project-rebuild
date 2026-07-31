@@ -171,7 +171,7 @@ export function CalendarPanel({
               key={mode}
               onClick={() => changeView(mode)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                view === mode ? "bg-emerald-600 text-white" : "text-neutral-400 hover:text-neutral-100"
+                view === mode ? "bg-emerald-700 text-white" : "text-neutral-400 hover:text-neutral-100"
               }`}
             >
               {VIEW_LABEL[mode]}
@@ -182,7 +182,7 @@ export function CalendarPanel({
 
       {notConnected && (
         <div className="surface-card mx-4 mt-4 flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <CalendarOff className="text-neutral-500" size={28} />
+          <CalendarOff className="text-neutral-400" size={28} />
           <p className="text-sm text-neutral-400">
             Liga o teu Google Calendar em Definições para veres a tua agenda aqui.
           </p>
@@ -196,7 +196,7 @@ export function CalendarPanel({
       {!notConnected && !error && (
         <div className="relative flex-1 overflow-hidden px-2 pb-2 md:px-4 md:pb-4">
           {loading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-app/40 text-sm text-neutral-500">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-app/40 text-sm text-neutral-400">
               A carregar...
             </div>
           )}

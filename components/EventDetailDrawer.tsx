@@ -12,6 +12,7 @@ import type { DecisionRow } from "@/components/DecisionEngineCard";
 import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
 import { DOMAIN_LABEL } from "@/lib/decision-engine/labels";
 import type { CalendarClickPayload } from "@/components/CalendarPanel";
+import { Drawer } from "@/components/ui/Drawer";
 
 const TIME_FMT = new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit" });
 
@@ -49,36 +50,31 @@ export function EventDetailDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex justify-end bg-black/40" onClick={onClose}>
-      <div
-        className="surface-card m-3 flex w-full max-w-sm flex-col overflow-hidden md:m-4"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-          <span className="text-sm font-medium text-neutral-100">
-            {payload.kind === "google" ? "Evento" : "Decisão Rebuild"}
-          </span>
-          <button
-            aria-label="Fechar"
-            onClick={onClose}
-            className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {payload.kind === "google" ? (
-          <div className="space-y-2 p-4">
-            <p className="font-medium text-neutral-50">{payload.event.title}</p>
-            <p className="text-sm text-neutral-400">
-              {formatRange(payload.event.start, payload.event.end, payload.event.isAllDay)}
-            </p>
-          </div>
-        ) : (
-          <DecisionDetail decision={payload.decision} busy={busy} onPatch={patch} />
-        )}
+    <Drawer onClose={onClose} className="w-full max-w-sm" labelledBy="event-detail-drawer-title">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+        <span id="event-detail-drawer-title" className="text-sm font-medium text-neutral-100">
+          {payload.kind === "google" ? "Evento" : "Decisão Rebuild"}
+        </span>
+        <button
+          aria-label="Fechar"
+          onClick={onClose}
+          className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
+        >
+          <X size={16} />
+        </button>
       </div>
-    </div>
+
+      {payload.kind === "google" ? (
+        <div className="space-y-2 p-4">
+          <p className="font-medium text-neutral-50">{payload.event.title}</p>
+          <p className="text-sm text-neutral-400">
+            {formatRange(payload.event.start, payload.event.end, payload.event.isAllDay)}
+          </p>
+        </div>
+      ) : (
+        <DecisionDetail decision={payload.decision} busy={busy} onPatch={patch} />
+      )}
+    </Drawer>
   );
 }
 
@@ -101,7 +97,7 @@ function DecisionDetail({
           <Icon size={17} />
         </span>
         <div className="min-w-0">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">
             {DOMAIN_LABEL[decision.domain]}
           </span>
           <p className="font-medium leading-snug text-neutral-50">{decision.title}</p>

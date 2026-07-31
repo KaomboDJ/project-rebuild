@@ -14,8 +14,20 @@ import {
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
+function workingHoursFromRow(value: ProfileRow["working_hours"]): { start: string; end: string } {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as { start?: unknown; end?: unknown };
+    return {
+      start: typeof record.start === "string" ? record.start : ONBOARDING_DEFAULTS.workingHoursStart,
+      end: typeof record.end === "string" ? record.end : ONBOARDING_DEFAULTS.workingHoursEnd,
+    };
+  }
+  return { start: ONBOARDING_DEFAULTS.workingHoursStart, end: ONBOARDING_DEFAULTS.workingHoursEnd };
+}
+
 function draftFromProfile(profile: ProfileRow | null): OnboardingDraft {
   if (!profile) return ONBOARDING_DEFAULTS;
+  const workingHours = workingHoursFromRow(profile.working_hours);
   return {
     preferredName: profile.preferred_name,
     timezone: profile.timezone,
@@ -29,6 +41,8 @@ function draftFromProfile(profile: ProfileRow | null): OnboardingDraft {
     preferredTrainingTime: profile.preferred_training_time,
     typicalDinnerTime: profile.typical_dinner_time,
     targetSleepTime: profile.target_sleep_time,
+    workingHoursStart: workingHours.start,
+    workingHoursEnd: workingHours.end,
     currentConstraints: profile.current_constraints,
     interventionTone: profile.intervention_tone,
   };
@@ -90,6 +104,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
         preferred_training_time: draft.preferredTrainingTime,
         typical_dinner_time: draft.typicalDinnerTime,
         target_sleep_time: draft.targetSleepTime,
+        working_hours: { start: draft.workingHoursStart, end: draft.workingHoursEnd },
         current_constraints: draft.currentConstraints.trim(),
         intervention_tone: draft.interventionTone.trim(),
         onboarding_completed: true,
@@ -104,7 +119,6 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
     }
 
     router.replace("/today");
-    router.refresh();
   }
 
   return (
@@ -216,6 +230,33 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
             value={draft.targetSleepTime}
             onChange={(event) => setDraft({ ...draft, targetSleepTime: event.target.value })}
           />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block text-sm">
+          Início do horário de trabalho
+          <input
+            type="time"
+            className="field-input mt-1"
+            value={draft.workingHoursStart}
+            onChange={(event) => setDraft({ ...draft, workingHoursStart: event.target.value })}
+          />
+          {showErrors && errors.workingHoursStart && (
+            <span className="mt-1 block text-xs text-rose-500">{errors.workingHoursStart}</span>
+          )}
+        </label>
+        <label className="block text-sm">
+          Fim do horário de trabalho
+          <input
+            type="time"
+            className="field-input mt-1"
+            value={draft.workingHoursEnd}
+            onChange={(event) => setDraft({ ...draft, workingHoursEnd: event.target.value })}
+          />
+          {showErrors && errors.workingHoursEnd && (
+            <span className="mt-1 block text-xs text-rose-500">{errors.workingHoursEnd}</span>
+          )}
         </label>
       </div>
 

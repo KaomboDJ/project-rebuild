@@ -58,7 +58,7 @@ export function CoachPanel({
         onChange={(event) => setMessage(event.target.value)}
       />
       <button
-        className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
+        className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm text-white hover:bg-emerald-800 disabled:opacity-50"
         onClick={ask}
         disabled={loading || !message.trim()}
       >

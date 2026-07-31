@@ -30,7 +30,7 @@ export function ToolCallCard({
 
   if (toolCall.status === "declined") {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-neutral-500">
+      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-neutral-400">
         <X size={13} />
         {toolCall.summary} — recusado.
       </div>

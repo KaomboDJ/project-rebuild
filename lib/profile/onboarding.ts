@@ -37,6 +37,8 @@ export const ONBOARDING_DEFAULTS: OnboardingDraft = {
   preferredTrainingTime: "12:00",
   typicalDinnerTime: "20:00",
   targetSleepTime: "23:00",
+  workingHoursStart: "09:00",
+  workingHoursEnd: "18:00",
   currentConstraints: "",
   interventionTone: "",
 };
@@ -51,6 +53,12 @@ export interface OnboardingDraft {
   preferredTrainingTime: string;
   typicalDinnerTime: string;
   targetSleepTime: string;
+  /** Persisted as `profiles.working_hours` ({start,end} jsonb) - the Decision
+   * Engine (context-builder.ts) has read this since Milestone 1, but until
+   * the UX Hardening release (docs/17_UX_AUDIT.md, S1) no form ever exposed
+   * it, so every account silently ran on the DB default of 09:00-18:00. */
+  workingHoursStart: string;
+  workingHoursEnd: string;
   currentConstraints: string;
   interventionTone: string;
 }
@@ -64,6 +72,8 @@ export interface OnboardingErrors {
   preferredTrainingTime?: string;
   typicalDinnerTime?: string;
   targetSleepTime?: string;
+  workingHoursStart?: string;
+  workingHoursEnd?: string;
   currentConstraints?: string;
   interventionTone?: string;
 }
@@ -71,7 +81,10 @@ export interface OnboardingErrors {
 const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 
 /** Same shape of checks as the DB constraints, run client-side first so a
- * bad submission never round-trips to Supabase only to be rejected there. */
+ * bad submission never round-trips to Supabase only to be rejected there.
+ * Reused as-is by the Settings profile-edit form (components/settings/
+ * ProfileEditForm.tsx) - onboarding and editing persist the same fields, so
+ * they share one validation function rather than drifting into two. */
 export function validateOnboardingDraft(draft: OnboardingDraft): OnboardingErrors {
   const errors: OnboardingErrors = {};
 
@@ -87,6 +100,15 @@ export function validateOnboardingDraft(draft: OnboardingDraft): OnboardingError
   if (!TIME_RE.test(draft.preferredTrainingTime)) errors.preferredTrainingTime = "Hora inválida (HH:MM).";
   if (!TIME_RE.test(draft.typicalDinnerTime)) errors.typicalDinnerTime = "Hora inválida (HH:MM).";
   if (!TIME_RE.test(draft.targetSleepTime)) errors.targetSleepTime = "Hora inválida (HH:MM).";
+  if (!TIME_RE.test(draft.workingHoursStart)) errors.workingHoursStart = "Hora inválida (HH:MM).";
+  if (!TIME_RE.test(draft.workingHoursEnd)) errors.workingHoursEnd = "Hora inválida (HH:MM).";
+  if (
+    TIME_RE.test(draft.workingHoursStart) &&
+    TIME_RE.test(draft.workingHoursEnd) &&
+    draft.workingHoursEnd <= draft.workingHoursStart
+  ) {
+    errors.workingHoursEnd = "Tem de ser depois da hora de início.";
+  }
   if (!draft.currentConstraints.trim()) errors.currentConstraints = "Obrigatório.";
   if (!draft.interventionTone.trim()) errors.interventionTone = "Obrigatório.";
 

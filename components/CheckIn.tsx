@@ -81,7 +81,7 @@ export function CheckInForm({ onSubmit }: { onSubmit: (checkIn: CheckIn) => void
 
       <button
         type="submit"
-        className="w-full rounded-md bg-emerald-600 py-2 font-medium text-white hover:bg-emerald-500"
+        className="w-full rounded-md bg-emerald-700 py-2 font-medium text-white hover:bg-emerald-800"
       >
         Ver as decisões de hoje
       </button>

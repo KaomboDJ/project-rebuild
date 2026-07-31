@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from "react";
 import type { RuleInsight } from "@/lib/decision-engine/patterns";
+import { HelpTip } from "@/components/ui/HelpTip";
 
 interface InsightRow {
   ruleId: string;
@@ -125,7 +126,7 @@ export function MemoryManager() {
               </button>
             </div>
           ))}
-          {generalNotes.length === 0 && <p className="text-sm text-neutral-500">Ainda sem notas gerais.</p>}
+          {generalNotes.length === 0 && <p className="text-sm text-neutral-400">Ainda sem notas gerais.</p>}
         </div>
         <div className="flex gap-2">
           <input
@@ -142,7 +143,14 @@ export function MemoryManager() {
 
       <section className="surface-card space-y-4 p-5">
         <div>
-          <h2 className="font-medium">Padrões por regra</h2>
+          <h2 className="flex items-center gap-1.5 font-medium">
+            Padrões por regra
+            <HelpTip heading="Confiança da memória e silenciar regras">
+              O Rebuild só personaliza uma regra depois de ver evidência suficiente (ver texto abaixo) — antes
+              disso mostra sempre o comportamento por omissão. &quot;Silenciar&quot; desliga uma regra por completo,
+              sem apagar o que já foi aprendido, e podes reativá-la a qualquer momento.
+            </HelpTip>
+          </h2>
           <p className="mt-1 text-sm text-neutral-400">
             Cada regra precisa de pelo menos {minEvidenceCount} sugestões para ter um ajuste — sem histórico
             suficiente, o comportamento é o mesmo de sempre. Podes silenciar qualquer regra a qualquer momento.
@@ -164,7 +172,7 @@ export function MemoryManager() {
               <p className="mt-1 text-sm text-neutral-400">{row.description}</p>
             </div>
           ))}
-          {rows === null && <p className="text-sm text-neutral-500">A carregar…</p>}
+          {rows === null && <p className="text-sm text-neutral-400">A carregar…</p>}
         </div>
       </section>
     </div>
