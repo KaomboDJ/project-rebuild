@@ -91,13 +91,17 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
         {pending.length === 0 && purchased.length === 0 && (
           <p className="surface-card p-4 text-sm text-neutral-500">Lista vazia. Adiciona o primeiro item acima.</p>
         )}
+        {pending.length === 0 && purchased.length > 0 && (
+          <p className="surface-card p-4 text-sm text-neutral-500">
+            Nada por comprar — tudo o que estava na lista já foi marcado como comprado.
+          </p>
+        )}
         {pending.map((item) => (
           <div key={item.id} className="surface-card flex items-center justify-between gap-3 p-3.5">
             <div className="min-w-0">
               <p className="truncate font-medium text-neutral-100">{item.name}</p>
               <p className="text-xs text-neutral-500">
-                {item.quantity}
-                {item.unit}
+                {item.quantity} {item.unit}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">

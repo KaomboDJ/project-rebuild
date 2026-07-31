@@ -41,6 +41,20 @@
   input[type="range"] {
     accent-color: theme("colors.emerald.500");
   }
+
+  /* UX Hardening release (docs/17_UX_AUDIT.md, A1): a keyboard user tabbing
+     into a control near the edge of a nested scroll container (e.g. the
+     Calendar Workspace's right-hand decisions panel) could end up with the
+     newly focused element only partially brought into view, because the
+     browser's default focus-scroll accounts for page scroll more reliably
+     than scroll inside an inner `overflow-y-auto` region. This scroll-margin
+     gives focused elements breathing room from the container edge in
+     browsers that honor it during focus-triggered scrolling - a mitigation,
+     not a guaranteed fix for every browser/container combination, so it's
+     also called out as a known limitation rather than a closed issue. */
+  :focus-visible {
+    scroll-margin-block: 24px;
+  }
 }
 
 @layer components {

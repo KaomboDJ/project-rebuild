@@ -10,7 +10,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { NutritionProfile } from "@/lib/nutrition/types";
-import { BUDGET_PREFERENCES, DIET_STYLES, KNOWN_ALLERGENS, NUTRITION_GOALS, VARIETY_PREFERENCES } from "@/lib/nutrition/options";
+import {
+  ALLERGEN_LABELS,
+  BUDGET_PREFERENCES,
+  DIET_STYLES,
+  KNOWN_ALLERGENS,
+  NUTRITION_GOALS,
+  VARIETY_PREFERENCES,
+} from "@/lib/nutrition/options";
+import { HelpTip } from "@/components/ui/HelpTip";
 
 function toggleInList(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -114,7 +122,7 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
                   : "bg-white/[0.05] text-neutral-400 hover:text-neutral-200"
               }`}
             >
-              {allergen}
+              {ALLERGEN_LABELS[allergen]}
             </button>
           ))}
         </div>
@@ -205,8 +213,13 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
       </div>
 
       <div className="border-t border-white/[0.06] pt-4">
-        <p className="mb-2 text-sm text-neutral-400">
+        <p className="mb-2 flex items-center gap-1.5 text-sm text-neutral-400">
           Alvos de macros (opcional — deixa em branco para uma estimativa do sistema)
+          <HelpTip heading="Estimativa de macros">
+            Se deixares em branco, o Rebuild calcula uma estimativa aproximada de calorias/proteína/hidratos/
+            gordura com base no teu objetivo e nas receitas planeadas. Não substitui indicação de um
+            profissional de saúde — preenche os campos se já tiveres valores indicados por um.
+          </HelpTip>
         </p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {(

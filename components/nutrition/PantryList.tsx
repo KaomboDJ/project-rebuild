@@ -118,8 +118,7 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
             <div className="min-w-0">
               <p className="truncate font-medium text-neutral-100">{item.name}</p>
               <p className="text-xs text-neutral-500">
-                {CATEGORY_LABEL[item.category]} · {item.quantity}
-                {item.unit}
+                {CATEGORY_LABEL[item.category]} · {item.quantity} {item.unit}
                 {item.portable ? " · portátil" : ""}
                 {item.expires_on ? ` · expira ${item.expires_on}` : ""}
               </p>

@@ -41,6 +41,23 @@ export const MACRO_SOURCES = [
 
 export const KNOWN_ALLERGENS = ["gluten", "lactose", "eggs", "nuts", "shellfish", "soy", "fish"] as const;
 
+// UX Hardening release (docs/17_UX_AUDIT.md, N1 - confirmed P2): these
+// values are stored as-is in `nutrition_profiles.allergies` (already live in
+// production - changing the stored values would need a data migration for
+// no real benefit), but the form was rendering the English keys directly as
+// button labels on an otherwise fully Portuguese page. This maps each value
+// to its Portuguese (Portugal) display label without touching what's
+// persisted.
+export const ALLERGEN_LABELS: Record<(typeof KNOWN_ALLERGENS)[number], string> = {
+  gluten: "Glúten",
+  lactose: "Lactose",
+  eggs: "Ovos",
+  nuts: "Frutos de casca rija",
+  shellfish: "Marisco",
+  soy: "Soja",
+  fish: "Peixe",
+};
+
 export const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: "Pequeno-almoço",
   lunch: "Almoço",
