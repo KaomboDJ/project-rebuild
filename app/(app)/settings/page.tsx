@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
-import { disconnectGoogleCalendar, setPrimaryGoogleAccount } from "./actions";
+import { disconnectGoogleCalendar, disconnectMicrosoftAccount, setPrimaryGoogleAccount } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listConnections } from "@/lib/google/calendar";
 import { isGoogleCalendarConfigured } from "@/lib/google/oauth";
+import { listMicrosoftConnections } from "@/lib/microsoft/calendar";
+import { isMicrosoftCalendarConfigured } from "@/lib/microsoft/oauth";
 import { ProfileEditForm } from "@/components/settings/ProfileEditForm";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 import { HelpTip } from "@/components/ui/HelpTip";
@@ -18,12 +20,20 @@ const CALENDAR_STATUS_MESSAGE: Record<string, string> = {
   "not-configured": "A integração com o Google Calendar ainda não está configurada.",
 };
 
+const OUTLOOK_STATUS_MESSAGE: Record<string, string> = {
+  connected: "Conta Outlook adicionada (só leitura).",
+  disconnected: "Conta Outlook desligada.",
+  denied: "Autorização cancelada — a conta não foi ligada.",
+  error: "Não foi possível ligar a conta Outlook. Tenta novamente.",
+  "not-configured": "A integração com o Outlook ainda não está configurada.",
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string }>;
+  searchParams: Promise<{ calendar?: string; outlook?: string }>;
 }) {
-  const { calendar } = await searchParams;
+  const { calendar, outlook } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -32,6 +42,10 @@ export default async function SettingsPage({
   const calendarConfigured = isGoogleCalendarConfigured();
   const connections = user && calendarConfigured ? await listConnections(user.id) : [];
   const statusMessage = calendar ? CALENDAR_STATUS_MESSAGE[calendar] : null;
+
+  const outlookConfigured = isMicrosoftCalendarConfigured();
+  const outlookConnections = user && outlookConfigured ? await listMicrosoftConnections(user.id) : [];
+  const outlookStatusMessage = outlook ? OUTLOOK_STATUS_MESSAGE[outlook] : null;
 
   const { data: profile } = supabase && user
     ? await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()
@@ -172,6 +186,64 @@ export default async function SettingsPage({
 
       <section className="surface-card p-5">
         <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
+            <CalendarCheck2 size={16} />
+          </span>
+          <h2 className="flex items-center gap-1.5 font-medium">
+            Outlook
+            <HelpTip heading="Outlook é só de leitura">
+              O Rebuild usa os teus eventos do Outlook apenas para saber quando estás ocupado — nunca cria,
+              edita ou apaga nada no teu Outlook. Se quiseres adicionar uma decisão a um calendário, isso
+              continua a ser feito numa conta Google ligada.
+            </HelpTip>
+          </h2>
+        </div>
+
+        {outlookStatusMessage && <p className="mt-2 text-sm text-neutral-400">{outlookStatusMessage}</p>}
+
+        {!outlookConfigured ? (
+          <p className="mt-3 text-sm text-neutral-400">
+            A integração com o Outlook ainda não está configurada neste ambiente.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {outlookConnections.length > 0 && (
+              <ul className="space-y-2">
+                {outlookConnections.map((connection) => (
+                  <li
+                    key={connection.id}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-neutral-200">
+                        {connection.accountEmail || "Conta Outlook"}
+                      </p>
+                      <p className="text-xs text-neutral-500">Só leitura</p>
+                    </div>
+                    <form action={disconnectMicrosoftAccount.bind(null, connection.id)}>
+                      <button type="submit" className="btn-secondary">
+                        Desligar
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="text-sm text-neutral-400">
+              {outlookConnections.length === 0
+                ? "Liga o teu Outlook para o motor de decisões também ter em conta esses compromissos — só de leitura."
+                : "Podes ligar outra conta Outlook."}
+            </p>
+            <a href="/api/microsoft/connect" className="btn-primary inline-flex">
+              {outlookConnections.length === 0 ? "Ligar Outlook" : "Ligar outra conta"}
+            </a>
+          </div>
+        )}
+      </section>
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
             <Brain size={16} />
           </span>
@@ -193,7 +265,7 @@ export default async function SettingsPage({
           <h2 className="font-medium">Os teus dados</h2>
         </div>
         <p className="text-sm text-neutral-400">
-          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar (encriptados), o
+          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar e do Outlook (encriptados, este último só de leitura), o
           histórico de decisões, as conversas com o Coach, a despensa e listas de compras, o plano de
           refeições e as notas de personalização que crias em Memória. Nada disto é partilhado com terceiros
           nem usado para publicidade. Podes rever e corrigir o que o motor de decisões aprendeu em{" "}
