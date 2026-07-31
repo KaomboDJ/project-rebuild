@@ -35,7 +35,7 @@ export default async function ShoppingPage() {
         <p className="mt-1 text-sm text-neutral-400">Marcar como comprado adiciona automaticamente à despensa.</p>
       </div>
       <FirstUseCallout id="shopping-list">
-        Adiciona itens à mão, ou deixa o Coach adicionar quando sugerir algo que falta. Marcar "Comprado"
+        Adiciona itens à mão, ou deixa o Coach adicionar quando sugerir algo que falta. Marcar &quot;Comprado&quot;
         soma automaticamente o item à despensa.
       </FirstUseCallout>
       <ShoppingList initialItems={items} />

@@ -272,7 +272,7 @@ export function CalendarWorkspace({
             {decisions.length > 0 && !showPlanAccountPicker && (
               <>
                 <FirstUseCallout id="plan-my-day">
-                  "Programar o meu dia" aceita as decisões com horário e adiciona-as ao Google Calendar de uma
+                  &quot;Programar o meu dia&quot; aceita as decisões com horário e adiciona-as ao Google Calendar de uma
                   vez, em vez de teres de aceitar e agendar cada uma à parte.
                 </FirstUseCallout>
                 <button
@@ -366,7 +366,7 @@ export function CalendarWorkspace({
                   <HelpTip heading="Regenerar">
                     Substitui as três decisões de hoje por uma nova proposta do motor de decisões, com base no
                     contexto atual (calendário, despensa, sono). As decisões já concluídas ou marcadas como
-                    "não deu" não voltam a aparecer.
+                    &quot;não deu&quot; não voltam a aparecer.
                   </HelpTip>
                 </div>
                 {error && <p className="text-sm text-red-400">{error}</p>}

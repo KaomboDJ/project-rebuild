@@ -110,9 +110,9 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-  admin: async ({}, use) => {
+  admin: async ({}, provide) => {
     const client = adminClient();
-    await use(client);
+    await provide(client);
   },
 });
 

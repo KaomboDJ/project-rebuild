@@ -36,7 +36,7 @@ export default async function PantryPage() {
         </p>
       </div>
       <FirstUseCallout id="pantry">
-        Regista o que tens e as quantidades aproximadas. Usa +/− para ajustar rápido, ou "Terminou" quando
+        Regista o que tens e as quantidades aproximadas. Usa +/− para ajustar rápido, ou &quot;Terminou&quot; quando
         acabar. O Coach só sugere refeições com itens que aqui aparecem como disponíveis.
       </FirstUseCallout>
       <PantryList initialItems={items} />

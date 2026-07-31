@@ -96,7 +96,7 @@ export default async function SettingsPage({
             {connections.length > 1 && (
               <HelpTip heading="Conta principal / conta de destino">
                 Com mais do que uma conta ligada, os espaços livres são calculados juntando todas, mas só uma
-                fica marcada como "principal" — é essa que é usada por omissão quando adicionas uma decisão ao
+                fica marcada como &quot;principal&quot; — é essa que é usada por omissão quando adicionas uma decisão ao
                 calendário sem escolher outra conta explicitamente.
               </HelpTip>
             )}

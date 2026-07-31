@@ -152,7 +152,9 @@ export function DecisionEngineCard({
               Porquê esta sugestão?
             </summary>
             <div className="mt-2 space-y-1 rounded-lg bg-white/[0.03] p-3 text-neutral-400">
-              <p>Baseada em {SOURCE_LABEL[decision.source]}, para a área "{DOMAIN_LABEL[decision.domain]}".</p>
+              <p>
+                Baseada em {SOURCE_LABEL[decision.source]}, para a área &quot;{DOMAIN_LABEL[decision.domain]}&quot;.
+              </p>
               <p>Confiança do motor de decisões: {confidenceLabel(Number(decision.confidence))}.</p>
               <p>
                 {start

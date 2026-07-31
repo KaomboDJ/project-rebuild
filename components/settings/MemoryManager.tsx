@@ -147,7 +147,7 @@ export function MemoryManager() {
             Padrões por regra
             <HelpTip heading="Confiança da memória e silenciar regras">
               O Rebuild só personaliza uma regra depois de ver evidência suficiente (ver texto abaixo) — antes
-              disso mostra sempre o comportamento por omissão. "Silenciar" desliga uma regra por completo,
+              disso mostra sempre o comportamento por omissão. &quot;Silenciar&quot; desliga uma regra por completo,
               sem apagar o que já foi aprendido, e podes reativá-la a qualquer momento.
             </HelpTip>
           </h2>
