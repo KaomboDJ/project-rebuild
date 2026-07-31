@@ -2,26 +2,29 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-import { getPublicEnvironment } from "@/lib/env/public";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-const emailSchema = z.string().trim().email();
+import { isMicrosoftAuthEnabled } from "@/lib/auth/config";
+import { safeRedirectPath } from "@/lib/auth/safe-redirect";
+import { getPublicEnvironment } from "@/lib/env/public";
 
 /**
- * The base URL the magic link should send the founder back to. Previously
- * this was the fixed NEXT_PUBLIC_APP_URL env var (always the production
- * domain) - harmless on production itself, but broken on any Vercel Preview
- * deployment (e.g. a branch pushed for review): signInWithOtp's PKCE
- * code_verifier cookie is set on the domain the founder actually requested
- * the link from, so redirecting the click to a *different* domain
- * (production) leaves that cookie behind and /auth/callback fails to
- * exchange the code ("Não foi possível concluir a autenticação"). Deriving
- * the origin from the incoming request's own host fixes this on
- * production, every preview branch, and localhost alike. Vercel sets
- * x-forwarded-host/x-forwarded-proto correctly in all three cases.
+ * The base URL any auth redirect should send the founder back to.
+ * Previously this was the fixed NEXT_PUBLIC_APP_URL env var (always the
+ * production domain) - harmless on production itself, but broken on any
+ * Vercel Preview deployment: the PKCE code_verifier cookie is set on the
+ * domain the founder actually started the flow from, so redirecting to a
+ * *different* domain (production) leaves that cookie behind and
+ * /auth/callback fails to exchange the code ("Não foi possível concluir a
+ * autenticação"). Deriving the origin from the incoming request's own host
+ * fixes this on production, every preview branch, and localhost alike -
+ * Vercel sets x-forwarded-host/x-forwarded-proto correctly in all three
+ * cases. Exported so both OAuth actions below and the OTP request path
+ * (which needs the same origin for its own bookkeeping) share one
+ * implementation.
  */
-async function resolveAppOrigin(fallback: string): Promise<string> {
+export async function resolveAppOrigin(): Promise<string> {
+  const environment = getPublicEnvironment();
+  const fallback = environment?.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
   if (!host) return fallback;
@@ -29,32 +32,61 @@ async function resolveAppOrigin(fallback: string): Promise<string> {
   return `${protocol}://${host}`;
 }
 
-export async function signInWithMagicLink(formData: FormData) {
-  const email = emailSchema.safeParse(formData.get("email"));
-  if (!email.success) {
-    redirect("/auth/error?code=invalid-email");
-  }
+function readNext(formData: FormData): string {
+  const raw = formData.get("next");
+  return safeRedirectPath(typeof raw === "string" ? raw : null);
+}
 
-  const environment = getPublicEnvironment();
+async function startOAuth(provider: "google" | "azure", next: string) {
   const supabase = await createSupabaseServerClient();
-  if (!environment || !supabase) {
+  if (!supabase) {
     redirect("/auth/error?code=supabase-not-configured");
   }
 
-  const origin = await resolveAppOrigin(environment.NEXT_PUBLIC_APP_URL);
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email.data,
+  const origin = await resolveAppOrigin();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      // "select_account" (Google) / "select_account" (Azure) - always show
+      // the account chooser rather than silently reusing whatever Google/
+      // Microsoft account the browser happens to already be signed into.
+      // This is the founder's *identity* sign-in, not a background token
+      // grant, so an explicit choice matters more than one less click.
+      queryParams: { prompt: "select_account" },
     },
   });
 
-  if (error) {
-    redirect("/auth/error?code=magic-link-failed");
+  if (error || !data?.url) {
+    redirect("/auth/error?code=oauth-failed");
   }
 
-  redirect("/auth/check-email");
+  redirect(data.url);
+}
+
+/** "Continuar com Google" - the primary sign-in action. Uses Supabase's own
+ * Google OAuth provider (configured in the Supabase dashboard) for
+ * *identity* only. This is entirely separate from lib/google/oauth.ts,
+ * which is a hand-rolled OAuth client for *Google Calendar data access*
+ * (different scopes, different client credentials, stored per-connection
+ * in calendar_connections) - signing in with Google here never grants, and
+ * is never confused with, calendar read/write access. */
+export async function signInWithGoogle(formData: FormData) {
+  const next = readNext(formData);
+  await startOAuth("google", next);
+}
+
+/** "Continuar com Microsoft" - only ever reachable from a rendered button,
+ * and the button is only rendered when isMicrosoftAuthEnabled() is true
+ * (see app/page.tsx). This second, server-side check is defense in depth:
+ * even a forged POST to this action with the feature flag off must not
+ * start an OAuth flow Supabase itself isn't configured for. */
+export async function signInWithMicrosoft(formData: FormData) {
+  if (!isMicrosoftAuthEnabled()) {
+    redirect("/auth/error?code=microsoft-not-configured");
+  }
+  const next = readNext(formData);
+  await startOAuth("azure", next);
 }
 
 export async function signOut() {

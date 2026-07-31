@@ -17,6 +17,8 @@ Last updated: 2026-07-30, after the pre-pilot stabilization sprint (see `PROJECT
 
 Live, per-item detail and validation history is in `IMPLEMENTATION_STATUS.md` — check that file before assuming what already exists.
 
+**Auth UX Hardening milestone (2026-07-31, `feature/auth-ux-hardening`, not yet merged)**: Milestone 1's original "Supabase Auth (magic link)" line above describes what was originally built, but is no longer the current primary experience — real mobile testing showed the magic link failing across browsers/devices, so it was demoted to an undocumented technical fallback. The current authentication hierarchy is Google OAuth (primary) → Microsoft OAuth (feature-flagged, hidden until configured) → email one-time 6-digit code entered in-app. See `IMPLEMENTATION_STATUS.md`'s "Auth UX Hardening milestone" section for full detail.
+
 ## Current phase: Founder Pilot (14 days)
 
 Per `PROJECT_REBUILD_STATE.md`: the technical loop is complete (auth → onboarding → calendar → three daily decisions → action → history). The open question isn't "what else to build" — it's whether the app measurably improves real decisions for the founder. The pilot is a usage-and-measurement period, not an engineering phase; no new modules ship during it unless the pilot itself surfaces a blocking bug.

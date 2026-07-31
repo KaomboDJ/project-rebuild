@@ -81,6 +81,23 @@
     @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-100 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
+  /* Auth UX Hardening milestone: Google must be the visually primary
+     sign-in action. A white/light pill reads as "primary" against this
+     app's otherwise all-dark surface much more strongly than another
+     emerald button would (which is already used elsewhere for the "main
+     app action" and would visually compete with itself), while still
+     matching Google's own brand guidance of a light button with the
+     full-color "G" mark. */
+  .btn-google {
+    @apply inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 shadow-sm transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Deliberately quieter than .btn-google - Microsoft is a supported, but
+     secondary and conditionally-shown, sign-in option. */
+  .btn-microsoft {
+    @apply inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:border-white/15 hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
   .field-input {
     @apply w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-400 transition focus:border-emerald-500/40 focus:outline-none focus:ring-4 focus:ring-emerald-500/10;
   }

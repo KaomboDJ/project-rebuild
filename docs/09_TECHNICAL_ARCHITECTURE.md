@@ -15,12 +15,12 @@ Next.js (App Router) · TypeScript · Tailwind CSS · Supabase (Auth + Postgres 
 ```
 app/
   layout.tsx                        (existing, root layout)
-  page.tsx                          (auth-aware landing: magic-link sign-in, or redirect to /today if already signed in)
-  onboarding/page.tsx                (still the localStorage-based slice; Supabase migration is Milestone 2)
+  page.tsx                          (auth-aware landing: Google OAuth primary, Microsoft OAuth when configured, email OTP third option, or redirect to the intended destination if already signed in — Auth UX Hardening milestone, 2026-07-31)
+  onboarding/page.tsx                (Supabase-backed since Milestone 2 — this comment predates that migration and was left stale until noticed; see IMPLEMENTATION_STATUS.md for the current behavior)
   auth/
-    actions.ts                       — signInWithMagicLink, signOut (Server Actions)
-    callback/route.ts                — exchanges the magic-link code for a session
-    check-email/page.tsx             — "check your email" landing after requesting a magic link
+    actions.ts                       — signInWithGoogle, signInWithMicrosoft, signOut (Server Actions); signInWithMagicLink was removed — email sign-in now calls signInWithOtp directly from components/auth/SignInPanel.tsx
+    verify/page.tsx                  — six-digit OTP entry screen (components/auth/OtpVerifyForm.tsx)
+    callback/route.ts                — exchanges an OAuth or (legacy fallback) magic-link code for a session; classifies OAuth cancellation/failure into friendly copy
     error/page.tsx                   — auth error landing, keyed by ?code=
   (app)/                             — route group: everything behind the authenticated shell
     layout.tsx                       — re-checks auth server-side, wraps children in <AppShell>
@@ -91,7 +91,7 @@ Validated by `lib/env/public.ts` (zod, safe — returns `null`/`false` instead o
 
 ## Auth flow
 
-Supabase Auth via email magic link (`supabase.auth.signInWithOtp`). `app/page.tsx` renders the sign-in form when unconfigured/unauthenticated, redirects to `/today` when a session exists. `app/auth/callback/route.ts` exchanges the code for a session. `middleware.ts` (via `lib/supabase/middleware.ts`) refreshes the session on every request and redirects unauthenticated requests to `/today`, `/history`, `/settings`, `/onboarding` back to `/`. `app/(app)/layout.tsx` re-checks auth server-side as defense in depth before rendering `<AppShell>`.
+**Auth UX Hardening milestone (2026-07-31)**: three sign-in methods, all landing on the same Supabase session/cookie architecture. (1) **Google OAuth** (`supabase.auth.signInWithOAuth({ provider: "google" })`, primary/most prominent) and (2) **Microsoft OAuth** (`provider: "azure"`, only rendered when `isMicrosoftAuthEnabled()` — `lib/auth/config.ts` — is true) both use Supabase's own OAuth providers (configured in the Supabase dashboard, not this app's env) purely for *identity*; this is entirely separate from `lib/google/oauth.ts`'s hand-rolled Google Calendar *data* OAuth client, which uses different credentials and different scopes. (3) **Email one-time code**: `components/auth/SignInPanel.tsx` calls `supabase.auth.signInWithOtp({ email })` directly from the browser client (no `emailRedirectTo` — the code is typed in-app, not clicked from a link), then `components/auth/OtpVerifyForm.tsx` calls `supabase.auth.verifyOtp({ email, token, type: "email" })`. All three converge on `app/auth/callback/route.ts` (OAuth's PKCE `?code=` exchange, and the legacy magic-link fallback if Supabase's email template still includes a clickable link) or, for OTP, directly on the client via `verifyOtp` followed by `router.refresh()`. `lib/auth/safe-redirect.ts` is the single allowlist used everywhere a post-auth destination is read (`?returnTo=` on `/`, `?next=` on the callback route, the OTP verify screen's stored destination). `middleware.ts` (via `lib/supabase/middleware.ts`) refreshes the session on every request and redirects unauthenticated requests to `/today`, `/history`, `/settings`, `/onboarding` back to `/` (with `?returnTo=`, now actually honored end to end). `app/(app)/layout.tsx` re-checks auth server-side as defense in depth before rendering `<AppShell>`, and is also what makes "new users continue onboarding, existing users don't" work automatically regardless of which of the three methods was used — it doesn't care how the session was established, only whether `profiles.onboarding_completed` is true.
 
 ## Google token lifecycle (Milestone 3, not yet implemented)
 

@@ -1,22 +1,30 @@
 import { redirect } from "next/navigation";
-import { signInWithMagicLink } from "@/app/auth/actions";
+import { signInWithGoogle, signInWithMicrosoft } from "@/app/auth/actions";
 import { isSupabaseConfigured } from "@/lib/env/public";
+import { isMicrosoftAuthEnabled } from "@/lib/auth/config";
+import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { SignInPanel } from "@/components/auth/SignInPanel";
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ account?: string }>;
+  searchParams: Promise<{ account?: string; returnTo?: string }>;
 }) {
   const configured = isSupabaseConfigured();
   const supabase = await createSupabaseServerClient();
-  const { account } = await searchParams;
+  const { account, returnTo } = await searchParams;
+  // lib/supabase/middleware.ts sets ?returnTo=<path> when redirecting an
+  // unauthenticated request away from a protected route - honoring it here
+  // (threaded through as `next` into every sign-in method below) is what
+  // "preserve the intended destination route" actually means end to end.
+  const next = safeRedirectPath(returnTo);
 
   if (supabase) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user) redirect("/today");
+    if (user) redirect(next);
   }
 
   return (
@@ -43,26 +51,12 @@ export default async function HomePage({
         )}
 
         {configured ? (
-          <form action={signInWithMagicLink} className="surface-card space-y-3 p-5">
-            <label htmlFor="email" className="field-label">
-              Entrar com email
-            </label>
-            <p className="text-sm text-neutral-400">
-              Enviamos uma ligação de acesso única para o teu email. Não precisas de palavra-passe.
-            </p>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="nome@exemplo.com"
-              className="field-input"
-            />
-            <button type="submit" className="btn-primary w-full py-2.5">
-              Enviar ligação de acesso
-            </button>
-          </form>
+          <SignInPanel
+            next={next}
+            microsoftEnabled={isMicrosoftAuthEnabled()}
+            googleAction={signInWithGoogle}
+            microsoftAction={signInWithMicrosoft}
+          />
         ) : (
           <div className="rounded-2xl border border-amber-800 bg-amber-950/30 p-5">
             <p className="font-medium text-amber-200">Fundação pronta para ligar</p>
