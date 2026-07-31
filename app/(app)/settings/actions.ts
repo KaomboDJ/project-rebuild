@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { disconnectCalendarConnection, setPrimaryConnection } from "@/lib/google/calendar";
+import { disconnectMicrosoftConnection } from "@/lib/microsoft/calendar";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -35,4 +36,13 @@ export async function setPrimaryGoogleAccount(connectionId: string) {
   const user = await requireUser();
   await setPrimaryConnection(user.id, connectionId);
   redirect("/settings?calendar=primary-updated");
+}
+
+/** Disconnects one connected Microsoft/Outlook account (read-only
+ * integration - see lib/microsoft/oauth.ts). Never touches the Outlook
+ * calendar itself, only this app's stored connection. */
+export async function disconnectMicrosoftAccount(connectionId: string) {
+  const user = await requireUser();
+  await disconnectMicrosoftConnection(user.id, connectionId);
+  redirect("/settings?outlook=disconnected");
 }
