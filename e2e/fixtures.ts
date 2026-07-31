@@ -32,7 +32,30 @@ function requireEnv(name: string): string {
   return value;
 }
 
+// Invited-alpha CI incident (2026-08-01): every authenticated test in this
+// suite failed within ~300ms on GitHub Actions runners pinned to Node 20,
+// with the real cause buried at the bottom of a five-frame @supabase
+// stack trace ("Error: Node.js detected but native WebSocket not found.").
+// @supabase/supabase-js's SupabaseClient constructor unconditionally builds
+// a RealtimeClient, which throws synchronously if no native `WebSocket`
+// global exists and no transport was supplied - Node 22+ has one built in,
+// Node 20 does not. This project's CI now pins Node 22 (see
+// .github/workflows/ci.yml) specifically so this never recurs, but this
+// guard turns any future regression (a local run on an old Node, or CI
+// drifting back down) into one clear, immediate error instead of dozens of
+// cascading, confusing per-test failures.
+function assertWebSocketCapableRuntime(): void {
+  if (typeof globalThis.WebSocket === "undefined") {
+    throw new Error(
+      "This Playwright suite requires Node.js 22+ (native WebSocket global) because " +
+        "@supabase/supabase-js's admin client initializes a RealtimeClient on construction. " +
+        `Detected ${process.version}. Upgrade Node, or see e2e/fixtures.ts's adminClient() comment.`
+    );
+  }
+}
+
 export function adminClient(): SupabaseClient {
+  assertWebSocketCapableRuntime();
   return createClient(requireEnv("NEXT_PUBLIC_SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { autoRefreshToken: false, persistSession: false },
   });
