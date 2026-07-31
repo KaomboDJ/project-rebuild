@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { MemoryManager } from "@/components/settings/MemoryManager";
+import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
 
 export default function MemoryPage() {
   return (
@@ -15,6 +16,10 @@ export default function MemoryPage() {
           O que o motor de decisões aprendeu contigo, sempre visível e editável.
         </p>
       </div>
+      <FirstUseCallout id="memory">
+        Esta página é totalmente tua: vê exatamente o que o motor de decisões aprendeu, corrige-o com notas,
+        ou silencia qualquer regra que não faça sentido para ti.
+      </FirstUseCallout>
       <MemoryManager />
     </main>
   );

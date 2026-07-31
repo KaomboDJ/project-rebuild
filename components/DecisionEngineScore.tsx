@@ -1,6 +1,7 @@
 import { Flame } from "lucide-react";
 import { computeDecisionScore } from "@/lib/decision-engine/scorer";
 import type { DecisionRow } from "./DecisionEngineCard";
+import { HelpTip } from "@/components/ui/HelpTip";
 
 export function DecisionEngineScoreView({ decisions }: { decisions: DecisionRow[] }) {
   const xp = computeDecisionScore(decisions);
@@ -16,7 +17,14 @@ export function DecisionEngineScoreView({ decisions }: { decisions: DecisionRow[
             <Flame size={18} />
           </span>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Decision XP hoje</p>
+            <p className="flex items-center gap-1 text-xs uppercase tracking-wide text-neutral-500">
+              Decision XP hoje
+              <HelpTip heading="Decision XP">
+                Pontos por decisões concluídas hoje (mais para as de maior impacto), mais um pequeno bónus por
+                aceitar ou editar em vez de ignorar. Não é uma meta a perseguir — só um resumo rápido de como o
+                dia está a correr.
+              </HelpTip>
+            </p>
             <p className="text-2xl font-semibold tracking-tight">{xp}</p>
           </div>
         </div>

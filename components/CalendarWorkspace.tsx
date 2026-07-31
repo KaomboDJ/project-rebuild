@@ -20,6 +20,9 @@ import {
   decisionsNeedingAcceptance,
   decisionsNeedingCalendarEvent,
 } from "@/lib/decision-engine/day-plan";
+import { pluralizePt } from "@/lib/format/pluralize";
+import { HelpTip } from "@/components/ui/HelpTip";
+import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
 
 const IMPACT_RANK: Record<DecisionRow["impact"], number> = { high: 2, medium: 1, low: 0 };
 const PENDING_STATUSES = new Set(["proposed", "accepted", "edited"]);
@@ -171,9 +174,9 @@ export function CalendarWorkspace({
       } else if (toAccept.length === 0 && scheduledCount === 0) {
         setPlanSummary("Já não há nada para planear hoje.");
       } else {
-        setPlanSummary(
-          `Dia planeado: ${toAccept.length} decisão(ões) aceite(s), ${scheduledCount} adicionada(s) ao calendário.`
-        );
+        const acceptedText = pluralizePt(toAccept.length, "decisão aceite", "decisões aceites");
+        const scheduledText = pluralizePt(scheduledCount, "adicionada", "adicionadas");
+        setPlanSummary(`Dia planeado: ${acceptedText}, ${scheduledText} ao calendário.`);
       }
     } finally {
       setPlanning(false);
@@ -240,6 +243,11 @@ export function CalendarWorkspace({
           }`}
         >
           <div className="space-y-3 p-3 md:p-0">
+            <FirstUseCallout id="today-calendar-workspace">
+              À esquerda está o teu calendário (Google + decisões do Rebuild); aqui à direita ficam as três
+              decisões de hoje. Não precisas de gerir isto como um sistema — só olhar e agir na próxima
+              decisão.
+            </FirstUseCallout>
             <DecisionEngineScoreView decisions={decisions} />
 
             {briefingSummary && (
@@ -262,14 +270,20 @@ export function CalendarWorkspace({
             )}
 
             {decisions.length > 0 && !showPlanAccountPicker && (
-              <button
-                disabled={planning || !canPlanDay}
-                className="btn-secondary flex w-full items-center justify-center gap-1.5 py-2.5 disabled:opacity-50"
-                onClick={handlePlanDayClick}
-              >
-                {planning ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                Programar o meu dia
-              </button>
+              <>
+                <FirstUseCallout id="plan-my-day">
+                  "Programar o meu dia" aceita as decisões com horário e adiciona-as ao Google Calendar de uma
+                  vez, em vez de teres de aceitar e agendar cada uma à parte.
+                </FirstUseCallout>
+                <button
+                  disabled={planning || !canPlanDay}
+                  className="btn-secondary flex w-full items-center justify-center gap-1.5 py-2.5 disabled:opacity-50"
+                  onClick={handlePlanDayClick}
+                >
+                  {planning ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                  Programar o meu dia
+                </button>
+              </>
             )}
 
             {showPlanAccountPicker && (
@@ -345,9 +359,16 @@ export function CalendarWorkspace({
                     ))}
                   </section>
                 )}
-                <button className="btn-secondary w-full py-2.5" onClick={regenerate}>
-                  Regenerar
-                </button>
+                <div className="flex items-center justify-center gap-1.5">
+                  <button className="btn-secondary w-full py-2.5" onClick={regenerate}>
+                    Regenerar
+                  </button>
+                  <HelpTip heading="Regenerar">
+                    Substitui as três decisões de hoje por uma nova proposta do motor de decisões, com base no
+                    contexto atual (calendário, despensa, sono). As decisões já concluídas ou marcadas como
+                    "não deu" não voltam a aparecer.
+                  </HelpTip>
+                </div>
                 {error && <p className="text-sm text-red-400">{error}</p>}
               </>
             )}

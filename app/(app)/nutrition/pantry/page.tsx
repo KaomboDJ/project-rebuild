@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listPantryItems } from "@/lib/pantry/queries";
 import { PantryList } from "@/components/nutrition/PantryList";
+import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
 
 export default async function PantryPage() {
   const supabase = await createSupabaseServerClient();
@@ -34,6 +35,10 @@ export default async function PantryPage() {
           O que tens em casa agora. O Coach usa isto para sugerir refeições em vez de assumir.
         </p>
       </div>
+      <FirstUseCallout id="pantry">
+        Regista o que tens e as quantidades aproximadas. Usa +/− para ajustar rápido, ou "Terminou" quando
+        acabar. O Coach só sugere refeições com itens que aqui aparecem como disponíveis.
+      </FirstUseCallout>
       <PantryList initialItems={items} />
     </main>
   );
