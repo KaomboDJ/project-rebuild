@@ -126,7 +126,7 @@ export function MemoryManager() {
               </button>
             </div>
           ))}
-          {generalNotes.length === 0 && <p className="text-sm text-neutral-500">Ainda sem notas gerais.</p>}
+          {generalNotes.length === 0 && <p className="text-sm text-neutral-400">Ainda sem notas gerais.</p>}
         </div>
         <div className="flex gap-2">
           <input
@@ -172,7 +172,7 @@ export function MemoryManager() {
               <p className="mt-1 text-sm text-neutral-400">{row.description}</p>
             </div>
           ))}
-          {rows === null && <p className="text-sm text-neutral-500">A carregar…</p>}
+          {rows === null && <p className="text-sm text-neutral-400">A carregar…</p>}
         </div>
       </section>
     </div>

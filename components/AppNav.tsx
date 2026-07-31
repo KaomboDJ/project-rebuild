@@ -45,7 +45,7 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
         className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-white/[0.06] bg-white/[0.015] px-3 py-5 md:flex"
       >
         <Link href="/today" className="mb-6 flex items-center gap-2 px-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-700 text-xs font-bold text-white">
             R
           </span>
           <span className="font-semibold tracking-tight">Rebuild</span>
@@ -77,11 +77,11 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
         <div className="mt-auto pt-4">
           <Link
             href="/settings"
-            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-500 transition hover:bg-white/[0.05] hover:text-neutral-300"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-400 transition hover:bg-white/[0.05] hover:text-neutral-300"
           >
             <Circle
               size={8}
-              className={calendarConnected ? "fill-emerald-500 text-emerald-500" : "fill-neutral-600 text-neutral-600"}
+              className={calendarConnected ? "fill-emerald-500 text-emerald-500" : "fill-neutral-600 text-neutral-400"}
             />
             {calendarConnected ? "Google Calendar ligado" : "Google Calendar por ligar"}
           </Link>
@@ -101,7 +101,7 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
               key={item.href}
               href={item.href}
               className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${
-                active ? "text-emerald-400" : "text-neutral-500"
+                active ? "text-emerald-400" : "text-neutral-400"
               }`}
             >
               <Icon size={20} strokeWidth={active ? 2.4 : 2} />

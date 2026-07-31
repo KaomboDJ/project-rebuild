@@ -52,7 +52,7 @@ export function MiniCalendar({ selectedDate }: { selectedDate?: string }) {
           <button
             aria-label="Mês anterior"
             onClick={() => setMonthAnchor((current) => addMonths(current, -1))}
-            className="rounded p-0.5 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            className="rounded p-0.5 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
           >
             <ChevronLeft size={13} />
           </button>
@@ -62,14 +62,14 @@ export function MiniCalendar({ selectedDate }: { selectedDate?: string }) {
               setMonthAnchor(today);
               goToDate(today);
             }}
-            className="rounded px-1 text-[10px] font-medium text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            className="rounded px-1 text-[10px] font-medium text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
           >
             hoje
           </button>
           <button
             aria-label="Mês seguinte"
             onClick={() => setMonthAnchor((current) => addMonths(current, 1))}
-            className="rounded p-0.5 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+            className="rounded p-0.5 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
           >
             <ChevronRight size={13} />
           </button>
@@ -77,7 +77,7 @@ export function MiniCalendar({ selectedDate }: { selectedDate?: string }) {
       </div>
       <div className="grid grid-cols-7 gap-y-0.5 text-center">
         {WEEKDAY_LETTERS.map((letter, i) => (
-          <span key={`${letter}-${i}`} className="text-[9px] font-medium text-neutral-600">
+          <span key={`${letter}-${i}`} className="text-[9px] font-medium text-neutral-400">
             {letter}
           </span>
         ))}
@@ -103,12 +103,12 @@ export function MiniCalendar({ selectedDate }: { selectedDate?: string }) {
               onClick={() => goToDate(day)}
               className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[11px] transition ${
                 isSelected
-                  ? "bg-emerald-600 font-semibold text-white"
+                  ? "bg-emerald-700 font-semibold text-white"
                   : isToday
                     ? "font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/40"
                     : inMonth
                       ? "text-neutral-300 hover:bg-white/[0.06]"
-                      : "text-neutral-700 hover:bg-white/[0.04]"
+                      : "text-neutral-400 hover:bg-white/[0.04]"
               }`}
             >
               {Number(day.slice(8, 10))}

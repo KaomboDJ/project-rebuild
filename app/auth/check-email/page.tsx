@@ -14,7 +14,7 @@ export default function CheckEmailPage() {
         <li>• Abre-a no mesmo dispositivo e navegador onde pediste o acesso.</li>
         <li>• Deixa de funcionar depois de usada uma vez ou passado algum tempo.</li>
       </ul>
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-neutral-400">
         Não chegou, ou a ligação já não funciona?{" "}
         <Link href="/" className="text-emerald-400 hover:underline">
           Pede uma nova ligação de acesso

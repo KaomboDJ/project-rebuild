@@ -26,25 +26,32 @@ test.describe("Landing and Magic Link request (@functional-only)", () => {
     await expect(page.getByText("Entra com uma ligação segura")).toHaveCount(0);
   });
 
-  test("submitting the email form leads to a fully-explained check-email screen", async ({ page, admin }) => {
+  test("the check-email screen fully explains the next step", async ({ page }) => {
+    await page.goto("/auth/check-email");
+
+    // Where it was sent, that it's personal/non-forwardable, expected delay,
+    // and what to do if it doesn't arrive or has expired - all four
+    // explicitly required by the release brief. This deterministic UI test
+    // does not depend on an external email provider or its rate limits.
+    await expect(page.getByText(/email que indicaste/)).toBeVisible();
+    await expect(page.getByText(/pessoal/i)).toBeVisible();
+    await expect(page.getByText(/um ou dois minutos/i)).toBeVisible();
+    await expect(page.getByRole("link", { name: /nova ligação de acesso/i })).toBeVisible();
+  });
+
+  test("submitting the email form leads to the check-email screen @live-email", async ({ page, admin }) => {
+    test.skip(process.env.PLAYWRIGHT_LIVE_EMAIL !== "1", "Requires live Supabase email delivery and quota");
     const email = `pw-copy-check-${Date.now()}@example.com`;
     await page.goto("/");
     await page.getByLabel("Entrar com email").fill(email);
     await page.getByRole("button", { name: "Enviar ligação de acesso" }).click();
     await expect(page).toHaveURL(/\/auth\/check-email/);
 
-    // Where it was sent, that it's personal/non-forwardable, expected delay,
-    // and what to do if it doesn't arrive or has expired - all four
-    // explicitly required by the release brief.
-    await expect(page.getByText(/email que indicaste/)).toBeVisible();
-    await expect(page.getByText(/pessoal/i)).toBeVisible();
-    await expect(page.getByText(/um ou dois minutos/i)).toBeVisible();
-    await expect(page.getByRole("link", { name: /nova ligação de acesso/i })).toBeVisible();
-
     await cleanupByEmail(admin, email);
   });
 
-  test("does not reveal whether an email is already registered", async ({ page, admin }) => {
+  test("does not reveal whether an email is already registered @live-email", async ({ page, admin }) => {
+    test.skip(process.env.PLAYWRIGHT_LIVE_EMAIL !== "1", "Requires live Supabase email delivery and quota");
     // Same visible outcome for an address that has never signed up as for
     // one that (in a real run) might already exist - signInWithOtp's default
     // shouldCreateUser behavior plus this app's fixed check-email redirect

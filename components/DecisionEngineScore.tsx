@@ -17,7 +17,7 @@ export function DecisionEngineScoreView({ decisions }: { decisions: DecisionRow[
             <Flame size={18} />
           </span>
           <div>
-            <p className="flex items-center gap-1 text-xs uppercase tracking-wide text-neutral-500">
+            <p className="flex items-center gap-1 text-xs uppercase tracking-wide text-neutral-400">
               Decision XP hoje
               <HelpTip heading="Decision XP">
                 Pontos por decisões concluídas hoje (mais para as de maior impacto), mais um pequeno bónus por

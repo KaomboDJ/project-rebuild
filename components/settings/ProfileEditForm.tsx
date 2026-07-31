@@ -297,7 +297,7 @@ export function ProfileEditForm({ initialProfile }: { initialProfile: ProfileRow
           {saveState === "saved" && !isDirty && <span className="text-emerald-400">Alterações guardadas.</span>}
           {saveState === "error" && errorMessage && <span className="text-rose-400">{errorMessage}</span>}
           {saveState !== "error" && saveState !== "saved" && !isDirty && (
-            <span className="text-neutral-500">Sem alterações por guardar.</span>
+            <span className="text-neutral-400">Sem alterações por guardar.</span>
           )}
         </span>
       </div>

@@ -18,13 +18,13 @@ export function MessageList({
 }) {
   return (
     <>
-      {messages.length === 0 && <p className="text-sm text-neutral-500">{emptyHint}</p>}
+      {messages.length === 0 && <p className="text-sm text-neutral-400">{emptyHint}</p>}
       {messages.map((message) => (
         <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[90%]" : "max-w-[90%] space-y-2"}>
           {(message.role === "user" || message.content.trim().length > 0) && (
             <div
               className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                message.role === "user" ? "bg-emerald-600 text-white" : "bg-white/[0.05] text-neutral-200"
+                message.role === "user" ? "bg-emerald-700 text-white" : "bg-white/[0.05] text-neutral-200"
               }`}
             >
               {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : message.content}
@@ -45,7 +45,7 @@ export function MessageList({
         </div>
       ))}
       {sending && (
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
+        <div className="flex items-center gap-2 text-xs text-neutral-400">
           <Loader2 size={13} className="animate-spin" />
           A pensar...
         </div>

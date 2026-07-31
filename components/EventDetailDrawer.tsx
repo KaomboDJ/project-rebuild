@@ -58,7 +58,7 @@ export function EventDetailDrawer({
         <button
           aria-label="Fechar"
           onClick={onClose}
-          className="rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+          className="rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
         >
           <X size={16} />
         </button>
@@ -97,7 +97,7 @@ function DecisionDetail({
           <Icon size={17} />
         </span>
         <div className="min-w-0">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">
             {DOMAIN_LABEL[decision.domain]}
           </span>
           <p className="font-medium leading-snug text-neutral-50">{decision.title}</p>

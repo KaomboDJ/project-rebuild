@@ -12,7 +12,6 @@
 // explicitly rather than silently presented as fully per-user.
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 
 const STORAGE_PREFIX = "rebuild:dismissed-callout:";
 
@@ -45,9 +44,11 @@ export function FirstUseCallout({ id, children }: { id: string; children: React.
       <button
         aria-label="Dispensar"
         onClick={dismiss}
-        className="shrink-0 rounded-lg p-1 text-neutral-500 transition hover:bg-white/[0.06] hover:text-neutral-200"
+        className="shrink-0 rounded-lg p-1 text-neutral-400 transition hover:bg-white/[0.06] hover:text-neutral-200"
       >
-        <X size={14} />
+        <span aria-hidden="true" className="text-base leading-none">
+          ×
+        </span>
       </button>
     </div>
   );

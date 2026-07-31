@@ -51,7 +51,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <main className="mx-auto max-w-3xl space-y-4 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Decisões</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Decisões</p>
         <h1 className="text-2xl font-semibold tracking-tight">Histórico</h1>
       </div>
       <div className="surface-card p-5 text-sm text-neutral-400">{message}</div>
@@ -110,7 +110,7 @@ export default async function HistoryPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Decisões</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Decisões</p>
         <h1 className="text-2xl font-semibold tracking-tight">Histórico</h1>
       </div>
 
@@ -141,7 +141,7 @@ export default async function HistoryPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="text-xs uppercase tracking-wide text-neutral-500">
+                          <p className="text-xs uppercase tracking-wide text-neutral-400">
                             {DOMAIN_LABEL[decision.domain]}
                             {start && ` · ${start}${end ? `–${end}` : ""}`}
                           </p>
@@ -150,7 +150,7 @@ export default async function HistoryPage() {
                               decision.status === "completed"
                                 ? "text-emerald-400"
                                 : decision.status === "skipped"
-                                  ? "text-neutral-500"
+                                  ? "text-neutral-400"
                                   : "text-neutral-400"
                             }`}
                           >
@@ -161,7 +161,7 @@ export default async function HistoryPage() {
                         <p className="font-medium text-neutral-100">{decision.title}</p>
                         <p className="text-sm text-neutral-400">{decision.reason}</p>
                         {decision.status === "skipped" && decision.skipped_reason && (
-                          <p className="mt-1 text-sm text-neutral-500">Motivo: {decision.skipped_reason}</p>
+                          <p className="mt-1 text-sm text-neutral-400">Motivo: {decision.skipped_reason}</p>
                         )}
                         {useful !== undefined && (
                           <p

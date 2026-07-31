@@ -55,7 +55,7 @@ export default async function NutritionDashboardPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Alimentação</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Alimentação</p>
         <h1 className="text-2xl font-semibold tracking-tight">Despensa e compras</h1>
         <p className="mt-1 text-sm text-neutral-400">
           O Coach usa isto para sugerir refeições com o que já existe em casa — parte do não-negociável de janta com
@@ -93,7 +93,7 @@ export default async function NutritionDashboardPage() {
           <p className="text-sm text-neutral-400">
             {pluralizePt(available, "item disponível agora", "itens disponíveis agora")}
           </p>
-          <p className="text-xs text-neutral-500">{pluralizePt(totalRegistered, "item registado", "itens registados")} no total</p>
+          <p className="text-xs text-neutral-400">{pluralizePt(totalRegistered, "item registado", "itens registados")} no total</p>
         </Link>
         <Link href="/nutrition/shopping" className="surface-card surface-card-hover block p-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">

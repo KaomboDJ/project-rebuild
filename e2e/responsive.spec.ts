@@ -39,10 +39,11 @@ test.describe("Responsive layout across breakpoints", () => {
   });
 
   test("planner controls (Regenerar / Programar o meu dia) stay reachable", async ({ page }) => {
-    const width = await page.evaluate(() => window.innerWidth);
-    if (width < 768) {
-      // Mobile collapses to a tab switcher between calendar and decisions.
-      await page.getByRole("button", { name: "Decisões" }).click();
+    const decisionsTab = page.getByRole("button", { name: "Decisões", exact: true });
+    if (await decisionsTab.isVisible()) {
+      // Phone and tablet widths collapse to a tab switcher between calendar
+      // and decisions; wide desktop displays both panels side by side.
+      await decisionsTab.click();
     }
     await expect(page.getByRole("button", { name: "Regenerar" }).or(page.getByRole("button", { name: "Gerar as decisões de hoje" }))).toBeVisible();
   });

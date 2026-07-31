@@ -28,7 +28,7 @@ export default async function NutritionProfilePage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Alimentação</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Alimentação</p>
         <h1 className="text-2xl font-semibold tracking-tight">Perfil de alimentação</h1>
         <p className="mt-1 text-sm text-neutral-400">
           O mínimo necessário para o planeador gerar a tua semana — &ldquo;Decide por mim&rdquo;.

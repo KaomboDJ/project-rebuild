@@ -1,5 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 
 // UX Hardening release (docs/17_UX_AUDIT.md, section 5). Isolated test-data
@@ -9,11 +10,13 @@ import { randomUUID } from "node:crypto";
 // Every account created here is: (1) a brand-new Supabase auth user with a
 // clearly-marked disposable email (`pw-test-...@example.com`, `example.com`
 // resolves nowhere and is IANA-reserved for exactly this purpose), (2)
-// authenticated via a real magic-link action link minted server-side with
-// the service-role admin API (`auth.admin.generateLink`) - Playwright
-// navigates to that link the same way a person would click it in their
-// inbox, so the test exercises the app's real `/auth/callback` code path
-// rather than hand-forging a session cookie, and (3) deleted again via
+// authenticated with a disposable password and a genuine Supabase session
+// written to the local Playwright browser's SSR cookie. This keeps test
+// traffic on localhost: Supabase's project-level Site URL points at
+// production, so admin-generated magic links otherwise leave the isolated
+// test server before any feature assertion can run. Public auth/callback
+// behaviour is covered separately in landing-auth.spec.ts. Each user is
+// then deleted again via
 // `auth.admin.deleteUser` in fixture teardown, which cascades every
 // user-owned row via the `on delete cascade` foreign keys already present
 // on every table (verified against every migration file before relying on
@@ -46,6 +49,17 @@ const MINIMAL_PROFILE = {
   onboarding_completed: true,
 };
 
+const testPasswords = new Map<string, string>();
+const TRANSIENT_RETRY_DELAYS_MS = [250, 750];
+
+function isTransientNetworkError(message: string | undefined): boolean {
+  return message?.toLowerCase().includes("fetch failed") ?? false;
+}
+
+async function wait(milliseconds: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 export interface TestUser {
   id: string;
   email: string;
@@ -56,17 +70,32 @@ export interface TestUser {
  * Settings, Memory); omit it for the onboarding flow itself. */
 export async function createTestUser(admin: SupabaseClient, options: { withProfile?: boolean } = {}): Promise<TestUser> {
   const email = `pw-test-${randomUUID()}@example.com`;
-  const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true });
-  if (error || !data.user) throw new Error(`Failed to create Playwright test user: ${error?.message}`);
+  const password = `Pw-${randomUUID()}-aA1!`;
+  let createdUser: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["data"]["user"] = null;
+  let createError: string | undefined;
+
+  for (let attempt = 0; attempt <= TRANSIENT_RETRY_DELAYS_MS.length; attempt += 1) {
+    const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+    if (data.user) {
+      createdUser = data.user;
+      break;
+    }
+    createError = error?.message;
+    if (!isTransientNetworkError(createError) || attempt === TRANSIENT_RETRY_DELAYS_MS.length) break;
+    await wait(TRANSIENT_RETRY_DELAYS_MS[attempt]);
+  }
+
+  if (!createdUser) throw new Error(`Failed to create Playwright test user: ${createError}`);
+  testPasswords.set(email, password);
 
   if (options.withProfile) {
     const { error: profileError } = await admin
       .from("profiles")
-      .insert({ user_id: data.user.id, ...MINIMAL_PROFILE });
+      .insert({ user_id: createdUser.id, ...MINIMAL_PROFILE });
     if (profileError) throw new Error(`Failed to seed test profile: ${profileError.message}`);
   }
 
-  return { id: data.user.id, email };
+  return { id: createdUser.id, email };
 }
 
 export async function deleteTestUser(admin: SupabaseClient, userId: string): Promise<void> {
@@ -90,19 +119,52 @@ export async function completeTodayCheckIn(admin: SupabaseClient, userId: string
   if (error) throw new Error(`Failed to seed a Playwright test check-in: ${error.message}`);
 }
 
-/** Navigates a fresh browser context through a real magic-link action link
- * for `user`, landing wherever the app's own auth callback sends it
- * (/onboarding for a profile-less user, /today for a completed one). */
+/** Gives a fresh browser context a real Supabase session scoped to the local
+ * Playwright server, then enters through /today. Profile-less users are
+ * redirected by the application to /onboarding. */
 export async function signInAsTestUser(
-  admin: SupabaseClient,
+  _admin: SupabaseClient,
   page: import("@playwright/test").Page,
   email: string
 ): Promise<void> {
-  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-  if (error || !data.properties?.action_link) {
-    throw new Error(`Failed to mint a magic link for the test user: ${error?.message}`);
+  const password = testPasswords.get(email);
+  if (!password) throw new Error(`No disposable password found for Playwright user ${email}.`);
+
+  const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const authClient = createClient(supabaseUrl, requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  let session: Awaited<ReturnType<typeof authClient.auth.signInWithPassword>>["data"]["session"] = null;
+  let signInError: string | undefined;
+  for (let attempt = 0; attempt <= TRANSIENT_RETRY_DELAYS_MS.length; attempt += 1) {
+    const { data, error } = await authClient.auth.signInWithPassword({ email, password });
+    if (data.session) {
+      session = data.session;
+      break;
+    }
+    signInError = error?.message;
+    if (!isTransientNetworkError(signInError) || attempt === TRANSIENT_RETRY_DELAYS_MS.length) break;
+    await wait(TRANSIENT_RETRY_DELAYS_MS[attempt]);
   }
-  await page.goto(data.properties.action_link);
+  if (!session) {
+    throw new Error(`Failed to create a Playwright test session: ${signInError}`);
+  }
+
+  const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+  const cookieName = `sb-${projectRef}-auth-token`;
+  const cookieValue = `base64-${Buffer.from(JSON.stringify(session), "utf8").toString("base64url")}`;
+  const chunks = cookieValue.length <= 3180 ? [cookieValue] : cookieValue.match(/.{1,3180}/g) ?? [];
+  const origin = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3100"}`;
+
+  await page.context().addCookies(
+    chunks.map((value, index) => ({
+      name: chunks.length === 1 ? cookieName : `${cookieName}.${index}`,
+      value,
+      url: origin,
+      sameSite: "Lax" as const,
+    }))
+  );
+  await page.goto("/today");
 }
 
 interface Fixtures {

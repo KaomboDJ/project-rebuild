@@ -89,10 +89,10 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
 
       <div className="space-y-2">
         {pending.length === 0 && purchased.length === 0 && (
-          <p className="surface-card p-4 text-sm text-neutral-500">Lista vazia. Adiciona o primeiro item acima.</p>
+          <p className="surface-card p-4 text-sm text-neutral-400">Lista vazia. Adiciona o primeiro item acima.</p>
         )}
         {pending.length === 0 && purchased.length > 0 && (
-          <p className="surface-card p-4 text-sm text-neutral-500">
+          <p className="surface-card p-4 text-sm text-neutral-400">
             Nada por comprar — tudo o que estava na lista já foi marcado como comprado.
           </p>
         )}
@@ -100,7 +100,7 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
           <div key={item.id} className="surface-card flex items-center justify-between gap-3 p-3.5">
             <div className="min-w-0">
               <p className="truncate font-medium text-neutral-100">{item.name}</p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-400">
                 {item.quantity} {item.unit}
               </p>
             </div>
@@ -123,14 +123,14 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
 
       {purchased.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-neutral-500">Já comprados</p>
+          <p className="text-xs uppercase tracking-wide text-neutral-400">Já comprados</p>
           {purchased.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] px-3.5 py-2.5 opacity-60">
               <p className="truncate text-sm text-neutral-400 line-through">{item.name}</p>
               <button
                 aria-label="Remover item"
                 onClick={() => removeItem(item.id)}
-                className="btn-ghost h-7 w-7 p-0 text-neutral-500"
+                className="btn-ghost h-7 w-7 p-0 text-neutral-400"
               >
                 <Trash2 size={13} />
               </button>

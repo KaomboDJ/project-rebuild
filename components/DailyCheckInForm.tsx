@@ -87,7 +87,7 @@ export function DailyCheckInForm({
         {SLIDERS.map(({ key, label, icon: Icon }) => (
           <label key={key} className="block">
             <span className="flex items-center gap-2 text-sm text-neutral-300">
-              <Icon size={15} className="text-neutral-500" />
+              <Icon size={15} className="text-neutral-400" />
               {label}
               <span className="ml-auto font-medium text-neutral-100">{values[key]}</span>
             </span>

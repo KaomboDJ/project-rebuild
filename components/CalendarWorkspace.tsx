@@ -199,14 +199,15 @@ export function CalendarWorkspace({
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col md:h-[calc(100vh-3.25rem)]">
-      {/* Mobile tab switcher - the desktop 3-column layout collapses to one
-          panel at a time on small screens rather than a true bottom sheet,
-          a deliberate slice-1 simplification flagged for founder review. */}
-      <div className="flex gap-1 border-b border-white/[0.06] p-2 md:hidden">
+      {/* Phone/tablet switcher: once the fixed navigation sidebar consumes
+          part of a tablet viewport there is not enough space for a useful
+          calendar and decisions rail at the same time. Wide screens retain
+          both panels; narrower screens show one focused workspace at a time. */}
+      <div className="flex gap-1 border-b border-white/[0.06] p-2 xl:hidden">
         <button
           onClick={() => setMobileTab("calendar")}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition ${
-            mobileTab === "calendar" ? "bg-emerald-600 text-white" : "text-neutral-400"
+            mobileTab === "calendar" ? "bg-emerald-700 text-white" : "text-neutral-400"
           }`}
         >
           <CalendarDays size={15} />
@@ -215,7 +216,7 @@ export function CalendarWorkspace({
         <button
           onClick={() => setMobileTab("decisions")}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition ${
-            mobileTab === "decisions" ? "bg-emerald-600 text-white" : "text-neutral-400"
+            mobileTab === "decisions" ? "bg-emerald-700 text-white" : "text-neutral-400"
           }`}
         >
           <ListChecks size={15} />
@@ -223,8 +224,8 @@ export function CalendarWorkspace({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 md:gap-4 md:p-4">
-        <div className={`min-h-0 flex-1 ${mobileTab === "calendar" ? "block" : "hidden"} md:block`}>
+      <div className="flex min-h-0 flex-1 md:p-4 xl:gap-4">
+        <div className={`min-h-0 min-w-0 flex-1 ${mobileTab === "calendar" ? "block" : "hidden"} xl:block`}>
           <div className="surface-card h-full overflow-hidden">
             <CalendarPanel
               initialDate={initialCalendarDate}
@@ -238,7 +239,7 @@ export function CalendarWorkspace({
         </div>
 
         <div
-          className={`w-full min-h-0 overflow-y-auto md:block md:w-80 md:shrink-0 lg:w-96 ${
+          className={`min-h-0 w-full overflow-y-auto xl:block xl:w-96 xl:shrink-0 ${
             mobileTab === "decisions" ? "block" : "hidden"
           }`}
         >
@@ -344,7 +345,7 @@ export function CalendarWorkspace({
                 {rest.length > 0 && (
                   <section className="space-y-3">
                     {dominant && (
-                      <p className="px-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                      <p className="px-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
                         Também hoje
                       </p>
                     )}

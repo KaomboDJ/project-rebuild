@@ -119,7 +119,6 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
     }
 
     router.replace("/today");
-    router.refresh();
   }
 
   return (

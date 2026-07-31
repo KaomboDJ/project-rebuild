@@ -23,7 +23,7 @@ export default async function HomePage({
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-16">
       <div className="max-w-xl space-y-6">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-700 text-sm font-bold text-white">
             R
           </span>
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">Rebuild</p>

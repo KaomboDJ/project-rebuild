@@ -66,7 +66,7 @@ export function HelpTip({ heading, children }: { heading: string; children: Reac
         aria-controls={open ? popoverId : undefined}
         aria-label={`Mais informação: ${heading}`}
         onClick={() => setOpen((current) => !current)}
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full text-neutral-500 transition hover:text-neutral-200 focus-visible:text-neutral-200"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full text-neutral-400 transition hover:text-neutral-200 focus-visible:text-neutral-200"
       >
         <Info size={13} />
       </button>

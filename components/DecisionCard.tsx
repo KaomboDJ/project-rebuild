@@ -20,7 +20,7 @@ export function DecisionCard({
           <p className="font-medium">{instance.title}</p>
           <p className="text-sm text-neutral-400">{instance.trigger}</p>
           {instance.fallback && (
-            <p className="mt-1 text-xs text-neutral-500">Plano B: {instance.fallback}</p>
+            <p className="mt-1 text-xs text-neutral-400">Plano B: {instance.fallback}</p>
           )}
         </div>
         <span className="shrink-0 text-sm text-neutral-400">+{instance.scoreValue}</span>
@@ -29,7 +29,7 @@ export function DecisionCard({
       {instance.status === "pending" && (
         <div className="mt-3 flex gap-2">
           <button
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-500"
+            className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm text-white hover:bg-emerald-800"
             onClick={() => onUpdate(instance.id, "completed")}
           >
             Feito

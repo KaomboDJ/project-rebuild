@@ -40,7 +40,7 @@ export default async function SettingsPage({
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Conta</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-400">Conta</p>
         <h1 className="text-2xl font-semibold tracking-tight">Definições</h1>
       </div>
 
@@ -81,7 +81,7 @@ export default async function SettingsPage({
             <p className="text-sm text-neutral-400">Não foi possível carregar o teu perfil.</p>
           )}
         </div>
-        <Link href="/nutrition/profile" className="mt-4 inline-flex text-sm text-emerald-400 hover:underline">
+        <Link href="/nutrition/profile" className="mt-4 inline-flex text-sm text-emerald-400 underline underline-offset-2">
           Editar perfil de alimentação (objetivo, dieta, alergias, macros) →
         </Link>
       </section>
@@ -115,7 +115,7 @@ export default async function SettingsPage({
               <>
                 <p className="text-sm text-neutral-400">
                   O motor de decisões tem em conta os compromissos de todas as contas ligadas.{" "}
-                  <Link href="/calendar" className="text-emerald-400 hover:underline">
+                  <Link href="/calendar" className="text-emerald-400 underline underline-offset-2">
                     Ver calendário
                   </Link>
                   .
@@ -197,7 +197,7 @@ export default async function SettingsPage({
           histórico de decisões, as conversas com o Coach, a despensa e listas de compras, o plano de
           refeições e as notas de personalização que crias em Memória. Nada disto é partilhado com terceiros
           nem usado para publicidade. Podes rever e corrigir o que o motor de decisões aprendeu em{" "}
-          <Link href="/settings/memory" className="text-emerald-400 hover:underline">
+          <Link href="/settings/memory" className="text-emerald-400 underline underline-offset-2">
             Memória
           </Link>
           , desligar o Google Calendar acima, ou eliminar a conta por completo abaixo.

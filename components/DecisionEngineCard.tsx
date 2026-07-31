@@ -136,18 +136,18 @@ export function DecisionEngineCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">
               {DOMAIN_LABEL[decision.domain]}
               {start && ` · ${start}${end ? `–${end}` : ""}`}
             </span>
-            <span className="text-xs font-medium text-neutral-500">+{IMPACT_XP[decision.impact]} XP</span>
+            <span className="text-xs font-medium text-neutral-400">+{IMPACT_XP[decision.impact]} XP</span>
           </div>
           <p className="mt-0.5 font-medium leading-snug text-neutral-50">{decision.title}</p>
           <p className="mt-1 text-sm text-neutral-400">{decision.reason}</p>
           <p className="mt-2 text-sm text-neutral-200">{decision.recommended_action}</p>
 
-          <details className="mt-2 text-xs text-neutral-500">
-            <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-neutral-500 hover:text-neutral-300">
+          <details className="mt-2 text-xs text-neutral-400">
+            <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-neutral-400 hover:text-neutral-300">
               <ChevronDown size={12} />
               Porquê esta sugestão?
             </summary>
@@ -225,7 +225,7 @@ export function DecisionEngineCard({
       )}
 
       {decision.calendar_event_id && (
-        <p className="mt-2 pl-12 text-xs text-neutral-500">No teu Google Calendar.</p>
+        <p className="mt-2 pl-12 text-xs text-neutral-400">No teu Google Calendar.</p>
       )}
       {calendarError && <p className="mt-2 pl-12 text-xs text-red-400">{calendarError}</p>}
 
@@ -239,13 +239,13 @@ export function DecisionEngineCard({
               </>
             ) : (
               <>
-                <XCircle size={15} className="text-neutral-500" />
+                <XCircle size={15} className="text-neutral-400" />
                 Não feito{decision.skipped_reason ? `: ${decision.skipped_reason}` : ""}
               </>
             )}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Foi útil?</span>
+            <span className="text-xs text-neutral-400">Foi útil?</span>
             <button
               disabled={feedbackBusy}
               aria-pressed={feedback === true}
