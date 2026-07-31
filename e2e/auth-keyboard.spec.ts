@@ -6,7 +6,9 @@ import { test, expect } from "./fixtures";
 // buttons, email field, code field, resend, change email) without a mouse.
 
 test.describe("Keyboard navigation on the sign-in screen (@functional-only)", () => {
-  test("Tab reaches Google, then the email field, then Enviar código in order", async ({ page }) => {
+  test("Tab reaches Google, then the email field, then Enviar código in order", async ({
+    page,
+  }) => {
     await page.goto("/");
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
@@ -34,12 +36,17 @@ test.describe("Keyboard navigation on the OTP verify screen (@functional-only)",
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(
       ([key, value]) => window.sessionStorage.setItem(key, value),
-      ["rebuild_otp_pending", JSON.stringify({ email: "pw-otp-keyboard@example.com", next: "/today" })]
+      [
+        "rebuild_otp_pending",
+        JSON.stringify({ email: "pw-otp-keyboard@example.com", next: "/today" }),
+      ]
     );
     await page.goto("/auth/verify");
   });
 
-  test("the code field is focused automatically so typing can start immediately", async ({ page }) => {
+  test("the code field is focused automatically so typing can start immediately", async ({
+    page,
+  }) => {
     await expect(page.getByLabel("Código de 6 dígitos")).toBeFocused();
   });
 
@@ -53,11 +60,15 @@ test.describe("Keyboard navigation on the OTP verify screen (@functional-only)",
     await expect(page.getByRole("alert")).toBeVisible({ timeout: 10_000 });
   });
 
-  test("Reenviar código and Alterar email are both keyboard-reachable", async ({ page }) => {
-    await page.keyboard.press("Tab"); // code input -> Confirmar e continuar
-    await page.keyboard.press("Tab"); // -> Reenviar código
-    await expect(page.getByRole("button", { name: /Reenviar código/ })).toBeFocused();
-    await page.keyboard.press("Tab"); // -> Alterar email
+  test("the disabled resend cooldown is skipped and Alterar email remains reachable", async ({
+    page,
+  }) => {
+    const resend = page.getByRole("button", { name: /Reenviar código/ });
+    await expect(resend).toBeDisabled();
+
+    // With an empty code, both submit and resend are disabled and therefore
+    // correctly absent from the tab order.
+    await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Alterar email" })).toBeFocused();
   });
 });
