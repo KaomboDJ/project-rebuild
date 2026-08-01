@@ -8,6 +8,8 @@ import { inferDayType } from "@/lib/coach/day-type";
 import { appendMessage, createConversation, getConversationMessages } from "@/lib/coach/conversations";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { listGeneralFounderNotes } from "@/lib/decision-engine/queries";
+import { instantToLocalWallClockIso } from "@/lib/date/timezone";
+import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const HISTORY_TURNS = 16;
@@ -46,14 +48,15 @@ export async function POST(request: NextRequest) {
   }
   const { message, conversationId: requestedConversationId } = parsed.data;
 
-  const [{ data: profile }, { date }] = await Promise.all([
-    supabase.from("profiles").select("desired_identity, current_constraints").eq("user_id", user.id).maybeSingle(),
+  const [{ data: profile }, { date, timezone }] = await Promise.all([
+    supabase.from("profiles").select("desired_identity, current_constraints, timezone").eq("user_id", user.id).maybeSingle(),
     getFounderNow(supabase, user.id),
   ]);
+  const effectiveTimezone = profile?.timezone || timezone || DEFAULT_PROFILE.timezone;
 
   const [{ data: checkIn }, { data: decisions }, pantry, dayType, founderNotes] = await Promise.all([
     supabase.from("daily_check_ins").select("sleep_quality, energy_level, stress_level").eq("user_id", user.id).eq("date", date).maybeSingle(),
-    supabase.from("decisions").select("title, status").eq("user_id", user.id).eq("date", date),
+    supabase.from("decisions").select("title, status, recommended_start, recommended_end, timing_type, trigger_label").eq("user_id", user.id).eq("date", date),
     buildPantrySummary(supabase, user.id),
     inferDayType(supabase, user.id, date),
     listGeneralFounderNotes(supabase, user.id).catch(() => []),
@@ -65,7 +68,18 @@ export async function POST(request: NextRequest) {
     checkIn: checkIn
       ? { sleepQuality: checkIn.sleep_quality ?? 3, energyLevel: checkIn.energy_level ?? 3, stressLevel: checkIn.stress_level ?? 3 }
       : null,
-    decisions: (decisions ?? []).map((d) => ({ title: d.title, status: d.status })),
+    decisions: (decisions ?? []).map((decision) => ({
+      title: decision.title,
+      status: decision.status,
+      timingType: decision.timing_type,
+      timeLabel: decision.recommended_start
+        ? `${instantToLocalWallClockIso(new Date(decision.recommended_start), effectiveTimezone).slice(11, 16)}${
+            decision.recommended_end
+              ? `–${instantToLocalWallClockIso(new Date(decision.recommended_end), effectiveTimezone).slice(11, 16)}`
+              : ""
+          }`
+        : decision.trigger_label ?? null,
+    })),
     pantry,
     dayType,
     founderNotes,

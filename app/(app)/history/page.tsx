@@ -1,6 +1,7 @@
 import { CheckCircle2, Circle, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
+import { instantToLocalWallClockIso } from "@/lib/date/timezone";
 import { DOMAIN_LABEL, STATUS_LABEL } from "@/lib/decision-engine/labels";
 import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
 import type { Database } from "@/lib/supabase/database.types";
@@ -19,9 +20,9 @@ const STATUS_ICON: Record<DecisionRow["status"], typeof CheckCircle2> = {
   skipped: XCircle,
 };
 
-function formatTime(iso: string | null): string | null {
+function formatTime(iso: string | null, timezone: string): string | null {
   if (!iso) return null;
-  return iso.slice(11, 16);
+  return instantToLocalWallClockIso(new Date(iso), timezone).slice(11, 16);
 }
 
 function formatDateHeading(dateKey: string): string {
@@ -68,7 +69,7 @@ export default async function HistoryPage() {
   } = await supabase.auth.getUser();
   if (!user) return <EmptyState message="Sessão expirada." />;
 
-  const { date: today } = await getFounderNow(supabase, user.id);
+  const { date: today, timezone } = await getFounderNow(supabase, user.id);
 
   const { data: decisions } = await supabase
     .from("decisions")
@@ -124,8 +125,8 @@ export default async function HistoryPage() {
             </h2>
             <div className="space-y-2">
               {dayDecisions.map((decision) => {
-                const start = formatTime(decision.recommended_start);
-                const end = formatTime(decision.recommended_end);
+                const start = formatTime(decision.recommended_start, timezone);
+                const end = formatTime(decision.recommended_end, timezone);
                 const feedback = feedbackByDecisionId.get(decision.id);
                 const useful = usefulByDecisionId.get(decision.id);
                 const DomainIcon = DOMAIN_ICON[decision.domain];

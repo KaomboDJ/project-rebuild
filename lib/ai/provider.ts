@@ -22,7 +22,7 @@ export interface CoachContext {
   /** Today's daily_check_ins row, if the founder has checked in yet. */
   checkIn: { sleepQuality: number; energyLevel: number; stressLevel: number } | null;
   /** Today's decisions (title + current status), most-recent engine run. */
-  decisions: { title: string; status: string }[];
+  decisions: { title: string; status: string; timingType?: string; timeLabel?: string | null }[];
   /** Current pantry snapshot (Part 3) - omitted/empty for founders who
    * haven't used the pantry feature, which keeps the prompt unchanged for
    * them. */
@@ -93,7 +93,7 @@ function buildSystemPrompt(context: CoachContext): string {
   );
   lines.push(
     decisions.length > 0
-      ? `Decisões de hoje: ${decisions.map((d) => `${d.title} (${d.status})`).join("; ")}.`
+      ? `Decisões de hoje: ${decisions.map((d) => `${d.title}${d.timeLabel ? ` [${d.timeLabel}]` : ""} (${d.status})`).join("; ")}. Estes horários foram definidos pelo motor determinístico. Não proponhas outro horário para a mesma decisão; orienta o utilizador para Alterar horário.`
       : "Ainda sem decisões geradas hoje."
   );
 

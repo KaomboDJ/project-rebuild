@@ -38,13 +38,24 @@ test.describe("Responsive layout across breakpoints", () => {
     expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 2);
   });
 
-  test("planner controls (Regenerar / Programar o meu dia) stay reachable", async ({ page }) => {
+  test("the Home plan and Decisions execution controls stay reachable", async ({ page }) => {
+    await page.goto("/home");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver calendário completo" })).toBeVisible();
+
+    await page.goto("/today");
     const decisionsTab = page.getByRole("button", { name: "Decisões", exact: true });
     if (await decisionsTab.isVisible()) {
       // Phone and tablet widths collapse to a tab switcher between calendar
       // and decisions; wide desktop displays both panels side by side.
       await decisionsTab.click();
     }
-    await expect(page.getByRole("button", { name: "Regenerar" }).or(page.getByRole("button", { name: "Gerar as decisões de hoje" }))).toBeVisible();
+    await expect(
+      page
+        .getByRole("button", { name: "Regenerar" })
+        .or(page.getByRole("button", { name: "Gerar as decisões de hoje" }))
+        .or(page.getByRole("link", { name: /plano/i }))
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Programar o meu dia" })).toHaveCount(0);
   });
 });

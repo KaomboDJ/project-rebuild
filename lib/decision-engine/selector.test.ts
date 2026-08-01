@@ -14,6 +14,7 @@ function candidate(overrides: Partial<ScoredCandidate>): ScoredCandidate {
     baseImpact: "medium",
     score: 10,
     confidence: 0.7,
+    timingType: "flexible",
     ...overrides,
   };
 }

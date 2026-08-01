@@ -27,7 +27,7 @@ test.describe("Fresh onboarding (@functional-only)", () => {
       await page.getByRole("checkbox").check();
 
       await page.getByRole("button", { name: "Começar" }).click();
-      await expect(page).toHaveURL(/\/today/);
+      await expect(page).toHaveURL(/\/home/);
     } finally {
       await deleteTestUser(admin, user.id);
     }
@@ -38,7 +38,7 @@ test.describe("Fresh onboarding (@functional-only)", () => {
     try {
       await signInAsTestUser(admin, page, user.email);
       await page.goto("/onboarding");
-      await expect(page).toHaveURL(/\/today/);
+      await expect(page).toHaveURL(/\/home/);
     } finally {
       await deleteTestUser(admin, user.id);
     }

@@ -67,8 +67,7 @@ export function OtpVerifyForm() {
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(PENDING_OTP_KEY);
     }
-    router.push("/");
-  }, [router]);
+  }, []);
 
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -213,9 +212,9 @@ export function OtpVerifyForm() {
         >
           {resendCooldown > 0 ? `Reenviar código (${resendCooldown}s)` : "Não recebeste? Reenviar código"}
         </button>
-        <button type="button" onClick={handleChangeEmail} className="btn-ghost px-0">
+        <Link href="/" onClick={handleChangeEmail} className="btn-ghost px-0">
           Alterar email
-        </button>
+        </Link>
       </div>
     </div>
   );

@@ -28,7 +28,7 @@ test.describe("Sign-in screen across breakpoints", () => {
     await expect(page.getByLabel("Código de 6 dígitos")).toBeVisible();
     await expect(page.getByRole("button", { name: "Confirmar e continuar" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Reenviar código/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Alterar email" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Alterar email" })).toBeVisible();
 
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     const viewportWidth = await page.evaluate(() => window.innerWidth);

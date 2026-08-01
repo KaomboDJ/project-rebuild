@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
   // Already onboarded — don't show the form again if the user navigates
   // here directly; send them to the app.
   if (profile?.onboarding_completed) {
-    redirect("/today");
+    redirect("/home");
   }
 
   return (

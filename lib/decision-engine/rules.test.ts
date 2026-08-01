@@ -24,6 +24,9 @@ describe("lunchTraining", () => {
     expect(candidates).toHaveLength(1);
     expect(candidates[0].domain).toBe("training");
     expect(candidates[0].baseImpact).toBe("high");
+    expect(candidates[0].timingType).toBe("calendar_slot");
+    expect(candidates[0].recommendedStart).toMatch(/^2026-07-29T\d{2}:\d{2}:00$/);
+    expect(candidates[0].recommendedEnd).toMatch(/^2026-07-29T\d{2}:\d{2}:00$/);
   });
 
   it("never fires on a non-training day", () => {
@@ -56,9 +59,19 @@ describe("lunchTraining", () => {
 
 describe("reducedTraining", () => {
   it("fires after poor sleep", () => {
-    const candidates = reducedTraining(baseContext({ userCheckIn: { sleepQuality: 2 } }));
+    const candidates = reducedTraining(
+      baseContext({
+        userCheckIn: { sleepQuality: 2 },
+        freeWindows: [
+          { start: "2026-07-29T11:30:00", end: "2026-07-29T12:15:00", durationMinutes: 45 },
+        ],
+      })
+    );
     expect(candidates).toHaveLength(1);
     expect(candidates[0].baseImpact).toBe("medium");
+    expect(candidates[0].timingType).toBe("calendar_slot");
+    expect(candidates[0].recommendedStart).toBeTruthy();
+    expect(candidates[0].recommendedEnd).toBeTruthy();
   });
 
   it("fires after low energy", () => {
@@ -301,7 +314,18 @@ describe("prepareNextDay", () => {
 
 describe("shortWalk", () => {
   it("fires under high stress", () => {
-    expect(shortWalk(baseContext({ userCheckIn: { stressLevel: 4 } }))).toHaveLength(1);
+    const candidates = shortWalk(
+      baseContext({
+        userCheckIn: { stressLevel: 4 },
+        freeWindows: [
+          { start: "2026-07-29T15:00:00", end: "2026-07-29T15:30:00", durationMinutes: 30 },
+        ],
+      })
+    );
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].timingType).toBe("calendar_slot");
+    expect(candidates[0].recommendedStart).toBeTruthy();
+    expect(candidates[0].recommendedEnd).toBeTruthy();
   });
 
   it("does not fire under normal stress", () => {

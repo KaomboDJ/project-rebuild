@@ -11,6 +11,7 @@ export type DecisionDomain = "training" | "nutrition" | "sleep" | "recovery" | "
 export type DecisionImpact = "low" | "medium" | "high";
 export type DecisionSource = "rule" | "ai" | "hybrid";
 export type DecisionStatus = "proposed" | "accepted" | "edited" | "completed" | "skipped";
+export type DecisionTimingType = "calendar_slot" | "trigger_based" | "flexible";
 
 export interface CalendarEvent {
   id: string;
@@ -145,6 +146,8 @@ export interface DecisionCandidate {
    * founder re-entering it manually. Undefined when no pantry item was named.
    */
   relatedPantryItem?: string;
+  timingType: DecisionTimingType;
+  triggerLabel?: string;
 }
 
 export interface ScoredCandidate extends DecisionCandidate {
@@ -168,4 +171,6 @@ export interface GeneratedDecision {
    * (status/feedback) can be attributed back to the rule that produced
    * them — see lib/decision-engine/patterns.ts. */
   ruleId?: string;
+  timingType: DecisionTimingType;
+  triggerLabel?: string;
 }

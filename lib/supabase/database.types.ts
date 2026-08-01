@@ -7,6 +7,7 @@ type DecisionDomain = "training" | "nutrition" | "sleep" | "recovery" | "plannin
 type DecisionImpact = "low" | "medium" | "high";
 type DecisionSource = "rule" | "ai" | "hybrid";
 type DecisionStatus = "proposed" | "accepted" | "edited" | "completed" | "skipped";
+type DecisionTimingType = "calendar_slot" | "trigger_based" | "flexible";
 
 type CoachMessageRole = "user" | "assistant";
 type PantryCategory =
@@ -156,6 +157,7 @@ export interface Database {
           context_snapshot: Json;
           engine_version: string;
           generated_at: string;
+          plan_confirmed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -164,6 +166,7 @@ export interface Database {
           context_snapshot?: Json;
           engine_version?: string;
           generated_at?: string;
+          plan_confirmed_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["decision_runs"]["Insert"]>;
         Relationships: [];
@@ -185,10 +188,13 @@ export interface Database {
           source: DecisionSource;
           status: DecisionStatus;
           calendar_event_id: string | null;
+          calendar_connection_id: string | null;
           completed_at: string | null;
           skipped_reason: string | null;
           related_pantry_item: string | null;
           rule_id: string | null;
+          timing_type: DecisionTimingType;
+          trigger_label: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -208,7 +214,10 @@ export interface Database {
           source?: DecisionSource;
           status?: DecisionStatus;
           rule_id?: string | null;
+          timing_type?: DecisionTimingType;
+          trigger_label?: string | null;
           calendar_event_id?: string | null;
+          calendar_connection_id?: string | null;
           completed_at?: string | null;
           skipped_reason?: string | null;
           related_pantry_item?: string | null;

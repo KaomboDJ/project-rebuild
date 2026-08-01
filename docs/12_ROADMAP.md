@@ -55,6 +55,14 @@ The founder explicitly authorized Milestones 10-14 below, overriding the Founder
 
 This table is the live tracker referenced above; update it as each milestone starts/finishes rather than duplicating status prose in multiple places.
 
+## Daily Home + Decisions UX recovery — 2026-08-01
+
+**Status: release gates green on `codex/daily-home-recovery`; production migration applied and verified; tracked in PR #5.**
+
+This founder-requested UX slice introduces `/home` as the impactful authenticated entry point and gives Home sole ownership of day planning/confirmation. `/today` remains the Decisions execution and feedback workspace. Structured timing (`calendar_slot`, `trigger_based`, `flexible`), deterministic free-slot selection, conflict revalidation and explicit confirmation fix the root cause of the previously disabled “Programar o meu dia” action. Full specification and validation evidence: `docs/18_HOME_AND_DECISIONS.md`.
+
+Release evidence: migration `202608010001_daily_home_timing.sql` is present in Production; CI run #29 passed lint, type-check, 317/317 unit tests, production build and the real browser suite (84 passed, 6 correctly skipped live-email cases, 0 failed), including Axe with zero detected WCAG A/AA violations and all 24 cross-account isolation checks.
+
 ## Explicitly not on any near-term roadmap
 
 Food photo recognition, barcode scanning, wearable integrations (Apple Health, Garmin, Xiaomi, Fitbit), location tracking, social/community features, large achievement systems, a full calendar replacement, native mobile apps, identity progression levels. (Calorie/macro tracking, food databases/recipes, and advanced predictive ML were on this list before the 2026-07-30 full roadmap authorization above moved them into Milestones 12 and 14 specifically — they are authorized only in the scoped form described there, not as a general invitation to build adjacent features.)

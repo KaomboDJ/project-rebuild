@@ -13,6 +13,7 @@ const ORIGINAL: GeneratedDecision[] = [
     impact: "high",
     confidence: 0.8,
     source: "rule",
+    timingType: "calendar_slot",
   },
   {
     domain: "nutrition",
@@ -22,6 +23,7 @@ const ORIGINAL: GeneratedDecision[] = [
     impact: "high",
     confidence: 0.7,
     source: "rule",
+    timingType: "flexible",
   },
   {
     domain: "recovery",
@@ -31,6 +33,7 @@ const ORIGINAL: GeneratedDecision[] = [
     impact: "medium",
     confidence: 0.6,
     source: "rule",
+    timingType: "calendar_slot",
   },
 ];
 

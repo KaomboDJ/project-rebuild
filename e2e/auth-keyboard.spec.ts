@@ -69,6 +69,6 @@ test.describe("Keyboard navigation on the OTP verify screen (@functional-only)",
     // With an empty code, both submit and resend are disabled and therefore
     // correctly absent from the tab order.
     await page.keyboard.press("Tab");
-    await expect(page.getByRole("button", { name: "Alterar email" })).toBeFocused();
+    await expect(page.getByRole("link", { name: "Alterar email" })).toBeFocused();
   });
 });

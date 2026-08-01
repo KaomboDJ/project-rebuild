@@ -457,3 +457,29 @@ export async function createInterventionEvent(
   const created: { id: string } = await response.json();
   return created.id;
 }
+
+/** Updates a previously created intervention event after explicit user confirmation. */
+export async function updateInterventionEvent(
+  userId: string,
+  eventId: string,
+  input: Pick<CreateInterventionInput, "start" | "end" | "timeZone">,
+  connectionId?: string
+): Promise<boolean> {
+  const row = await getConnectionRow(userId, connectionId);
+  if (!row) return false;
+  const accessToken = await getValidAccessTokenForRow(row);
+  if (!accessToken) return false;
+  const calendarId = row.calendar_id || "primary";
+  const response = await fetch(
+    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        start: { dateTime: input.start, timeZone: input.timeZone },
+        end: { dateTime: input.end, timeZone: input.timeZone },
+      }),
+    }
+  );
+  return response.ok;
+}

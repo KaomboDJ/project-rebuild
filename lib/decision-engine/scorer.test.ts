@@ -11,6 +11,7 @@ const CANDIDATE: DecisionCandidate = {
   baseReason: "Porque sim.",
   requiresFreeWindow: false,
   baseImpact: "medium",
+  timingType: "flexible",
 };
 
 describe("scoreCandidate", () => {

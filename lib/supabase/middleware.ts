@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPublicEnvironment } from "@/lib/env/public";
 import type { Database } from "./database.types";
 
-const PROTECTED_PATH_PREFIXES = ["/today", "/history", "/settings", "/onboarding"];
+const PROTECTED_PATH_PREFIXES = ["/home", "/today", "/history", "/settings", "/onboarding"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATH_PREFIXES.some(

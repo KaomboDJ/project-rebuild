@@ -81,7 +81,7 @@ test.describe("OTP verify screen UI (@functional-only)", () => {
   test("Alterar email clears the pending request and returns to the sign-in screen", async ({ page }) => {
     await seedPendingOtp(page, "pw-otp-change@example.com");
     await page.goto("/auth/verify");
-    await page.getByRole("button", { name: "Alterar email" }).click();
+    await page.getByRole("link", { name: "Alterar email" }).click();
     await expect(page).toHaveURL("/");
     const stored = await page.evaluate((key) => window.sessionStorage.getItem(key), PENDING_KEY);
     expect(stored).toBeNull();
