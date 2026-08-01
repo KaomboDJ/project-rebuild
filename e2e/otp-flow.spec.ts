@@ -36,7 +36,15 @@ test.describe("OTP verify screen UI (@functional-only)", () => {
     await seedPendingOtp(page, "pw-otp-ui@example.com");
     await page.goto("/auth/verify");
     const codeInput = page.getByLabel("Código de 6 dígitos");
-    await codeInput.fill("ab12cd34");
+    // pressSequentially (real per-keystroke typing), not fill(): fill() sets
+    // the raw string in one shot, which the input's native maxLength={6}
+    // truncates to "ab12cd" *before* React's onChange ever runs its
+    // digit-only filter - "cd" then gets stripped, leaving just "12" and
+    // making it look like filtering is broken when it isn't. Real typing
+    // re-renders the (already-filtered) value after every keystroke, so
+    // maxLength only ever sees already-digits-only input, exactly like an
+    // actual user typing this on a keyboard.
+    await codeInput.pressSequentially("ab12cd34");
     await expect(codeInput).toHaveValue("1234");
   });
 
