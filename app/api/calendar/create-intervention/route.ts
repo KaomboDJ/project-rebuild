@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createInterventionEvent } from "@/lib/google/calendar";
+import { createInterventionEvent, listConnections } from "@/lib/google/calendar";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 
 const bodySchema = z.object({
@@ -62,6 +62,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
 
+  const connections = await listConnections(user.id);
+  const resolvedConnectionId =
+    parsed.data.connectionId ?? connections.find((connection) => connection.isPrimary)?.id ?? connections[0]?.id;
+
   const eventId = await createInterventionEvent(
     user.id,
     {
@@ -72,7 +76,7 @@ export async function POST(request: NextRequest) {
       timeZone: timezone,
       reminderMinutes: REMINDER_MINUTES,
     },
-    parsed.data.connectionId
+    resolvedConnectionId
   );
 
   if (!eventId) {
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
 
   const { error: updateError } = await supabase
     .from("decisions")
-    .update({ calendar_event_id: eventId })
+    .update({ calendar_event_id: eventId, calendar_connection_id: resolvedConnectionId ?? null })
     .eq("id", decision.id)
     .eq("user_id", user.id);
 

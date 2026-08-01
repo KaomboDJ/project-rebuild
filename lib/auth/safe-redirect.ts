@@ -14,8 +14,8 @@
 // rather than throwing, since a malformed/forged `next` must never break
 // sign-in itself.
 
-const ALLOWED_PREFIXES = ["/today", "/history", "/settings", "/onboarding"];
-export const DEFAULT_AUTHENTICATED_PATH = "/today";
+const ALLOWED_PREFIXES = ["/home", "/today", "/history", "/settings", "/onboarding"];
+export const DEFAULT_AUTHENTICATED_PATH = "/home";
 
 export function isSafeRedirectPath(value: string | null | undefined): value is string {
   if (!value) return false;

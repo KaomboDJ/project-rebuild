@@ -31,7 +31,7 @@ export function AppShell({
           on desktop. Bottom padding on <main> reserves space for the fixed
           mobile tab bar so the last card is never hidden behind it. */}
       <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 md:hidden">
-        <Link href="/today" className="flex items-center gap-2">
+        <Link href="/home" className="flex items-center gap-2">
           <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-700 text-[10px] font-bold text-white">
             R
           </span>

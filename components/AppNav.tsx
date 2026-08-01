@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Circle, History, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
+import { Circle, History, Home, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
 import type { ComponentType } from "react";
 import { MiniCalendar } from "@/components/MiniCalendar";
 
@@ -17,6 +17,7 @@ import { MiniCalendar } from "@/components/MiniCalendar";
 // inside /today, with no way to reach the full conversation-history page,
 // and pantry/shopping had no route at all.
 const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }[] = [
+  { href: "/home", label: "Início", icon: Home },
   { href: "/today", label: "Hoje", icon: ListChecks },
   { href: "/coach", label: "Coach", icon: MessageCircleHeart },
   { href: "/nutrition", label: "Alimentação", icon: ShoppingBasket },
@@ -44,7 +45,7 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
         aria-label="Navegação principal"
         className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-white/[0.06] bg-white/[0.015] px-3 py-5 md:flex"
       >
-        <Link href="/today" className="mb-6 flex items-center gap-2 px-2">
+        <Link href="/home" className="mb-6 flex items-center gap-2 px-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-700 text-xs font-bold text-white">
             R
           </span>

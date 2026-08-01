@@ -89,6 +89,12 @@ export default async function TodayPage({
   // fetched once here and handed down rather than each DecisionEngineCard
   // fetching its own copy.
   const connections = await listConnections(user.id);
+  const { data: run } = await supabase
+    .from("decision_runs")
+    .select("plan_confirmed_at")
+    .eq("user_id", user.id)
+    .eq("date", date)
+    .maybeSingle();
 
   return (
     <CalendarWorkspace
@@ -102,6 +108,8 @@ export default async function TodayPage({
       connections={connections}
       briefingSummary={briefing?.summary ?? null}
       decisionsStale={briefing?.decisions_stale ?? false}
+      timezone={timezone}
+      planConfirmedAt={run?.plan_confirmed_at ?? null}
     />
   );
 }

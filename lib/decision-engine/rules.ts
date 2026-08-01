@@ -12,6 +12,7 @@
 // keep working with whatever context is actually available today.
 
 import type { DailyContext, DecisionCandidate, DecisionDomain, PantryItemSummary } from "./types";
+import { findCandidateSlots } from "@/lib/day-plan/slot-finder";
 
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -25,9 +26,18 @@ function toMinutes(hhmm: string): number {
   return h * 60 + (m || 0);
 }
 
+function toHHMM(minutes: number): string {
+  const clamped = ((minutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+}
+
 function nowMinutes(context: DailyContext): number {
   const time = context.now.slice(11, 16); // "HH:MM" out of "...T13:15:00"
   return toMinutes(time || "00:00");
+}
+
+function nowHHMM(context: DailyContext): string {
+  return context.now.slice(11, 16) || "00:00";
 }
 
 function hasRecentDomainStatus(
@@ -92,6 +102,23 @@ function findWindowOverlapping(
   });
 }
 
+function assignSlot(
+  context: DailyContext,
+  params: { durationMinutes: number; preferredStartTime: string; earliestStartTime?: string; latestEndTime?: string }
+): { start: string; end: string } | null {
+  const [best] = findCandidateSlots({
+    date: context.date,
+    freeWindows: context.freeWindows,
+    durationMinutes: params.durationMinutes,
+    preferredStartTime: params.preferredStartTime,
+    now: context.now,
+    earliestStartTime: params.earliestStartTime,
+    latestEndTime: params.latestEndTime,
+    maxResults: 1,
+  });
+  return best ? { start: best.start, end: best.end } : null;
+}
+
 // ---------------------------------------------------------------------------
 // Training (domain: training)
 // ---------------------------------------------------------------------------
@@ -106,30 +133,42 @@ export function lunchTraining(context: DailyContext): DecisionCandidate[] {
     return []; // reducedTraining takes over instead
   }
 
-  // Without a calendar connection there's no free-window data yet — proceed
-  // optimistically on the profile's preferred time rather than blocking.
+  const DURATION_MINUTES = 40;
   const hasCalendarData = context.freeWindows.length > 0 || context.calendarEvents.length > 0;
+  let slot: { start: string; end: string } | null = null;
   if (hasCalendarData) {
+    const preferredStart = toMinutes(profile.preferredTrainingTime);
+    slot = assignSlot(context, {
+      durationMinutes: DURATION_MINUTES,
+      preferredStartTime: profile.preferredTrainingTime,
+      earliestStartTime: toHHMM(preferredStart - 15),
+      latestEndTime: toHHMM(preferredStart + 60 + DURATION_MINUTES),
+    });
+    if (!slot) return [];
+  } else {
     const start = toMinutes(profile.preferredTrainingTime);
-    const available = findWindowOverlapping(context, start - 15, start + 60, 35);
-    if (!available) return [];
+    slot = {
+      start: `${context.date}T${profile.preferredTrainingTime}:00`,
+      end: `${context.date}T${toHHMM(start + DURATION_MINUTES)}:00`,
+    };
   }
 
-  const start = profile.preferredTrainingTime;
-  const [h, m] = start.split(":").map(Number);
-  const endMinutes = h * 60 + m + 40;
-  const end = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+  const startHHMM = slot.start.slice(11, 16);
+  const endHHMM = slot.end.slice(11, 16);
 
   return [
     {
       ruleId: "lunch-training",
       domain: "training",
-      recommendedAction: `Treina entre as ${start} e as ${end}.`,
+      recommendedAction: `Treina entre as ${startHHMM} e as ${endHHMM}.`,
+      recommendedStart: slot.start,
+      recommendedEnd: slot.end,
       baseTitle: "Treino ao almoço",
       baseReason: "Hoje é um dos teus dias de treino planeados e esta é a melhor janela disponível.",
       requiresFreeWindow: true,
       minWindowMinutes: 35,
       baseImpact: "high",
+      timingType: "calendar_slot",
     },
   ];
 }
@@ -143,15 +182,25 @@ export function reducedTraining(context: DailyContext): DecisionCandidate[] {
   if (!poorSleep && !lowEnergy) return [];
   if (userCheckIn.physicalLimitation) return []; // mobility rule takes over instead
 
+  const slot = assignSlot(context, {
+    durationMinutes: 20,
+    preferredStartTime: profile.preferredTrainingTime,
+  });
+
   return [
     {
       ruleId: "reduced-training",
       domain: "training",
-      recommendedAction: `Faz 20 minutos de treino, por volta das ${profile.preferredTrainingTime}.`,
+      recommendedAction: slot
+        ? `Faz 20 minutos de treino entre as ${slot.start.slice(11, 16)} e as ${slot.end.slice(11, 16)}.`
+        : `Faz 20 minutos de treino, por volta das ${profile.preferredTrainingTime} — ainda sem janela livre confirmada hoje.`,
+      recommendedStart: slot?.start,
+      recommendedEnd: slot?.end,
       baseTitle: "Treino reduzido",
       baseReason: "O sono ou a energia de hoje não dão para o treino completo. O objetivo é consistência, não performance máxima.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "calendar_slot",
     },
   ];
 }
@@ -160,15 +209,25 @@ export function reducedTraining(context: DailyContext): DecisionCandidate[] {
 export function mobilityInsteadOfCancellation(context: DailyContext): DecisionCandidate[] {
   if (!context.userCheckIn?.physicalLimitation) return [];
 
+  const slot = assignSlot(context, {
+    durationMinutes: 15,
+    preferredStartTime: context.profile.preferredTrainingTime,
+  });
+
   return [
     {
       ruleId: "mobility-instead-of-cancellation",
       domain: "training",
-      recommendedAction: "Substitui a sessão completa por 15 minutos de mobilidade.",
+      recommendedAction: slot
+        ? `Substitui a sessão completa por 15 minutos de mobilidade, entre as ${slot.start.slice(11, 16)} e as ${slot.end.slice(11, 16)}.`
+        : "Substitui a sessão completa por 15 minutos de mobilidade — ainda sem janela livre confirmada hoje.",
+      recommendedStart: slot?.start,
+      recommendedEnd: slot?.end,
       baseTitle: "Mobilidade em vez de cancelar",
       baseReason: `Reportaste uma limitação física hoje (${context.userCheckIn.physicalLimitation}). Mobilidade mantém a identidade sem arriscar a recuperação.`,
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "calendar_slot",
     },
   ];
 }
@@ -193,6 +252,8 @@ export function prepareTrainingEquipment(context: DailyContext): DecisionCandida
       baseReason: "Remover esta fricção agora reduz a hipótese de cancelares mais tarde.",
       requiresFreeWindow: false,
       baseImpact: "low",
+      timingType: "trigger_based",
+      triggerLabel: "Antes do treino",
     },
   ];
 }
@@ -224,6 +285,7 @@ export function decideDinnerEarly(context: DailyContext): DecisionCandidate[] {
       requiresFreeWindow: false,
       baseImpact: "high",
       relatedPantryItem: dinner?.relatedPantryItem,
+      timingType: "flexible",
     },
   ];
 }
@@ -246,6 +308,8 @@ export function defrostIngredients(context: DailyContext): DecisionCandidate[] {
       baseReason: "Ainda vais a tempo de descongelar e evitar decidir por cansaço mais tarde.",
       requiresFreeWindow: false,
       baseImpact: "low",
+      timingType: "trigger_based",
+      triggerLabel: "Depois do almoço",
     },
   ];
 }
@@ -268,6 +332,8 @@ export function prepareTomorrowsLunch(context: DailyContext): DecisionCandidate[
       baseReason: "Amanhã está cheio — preparar agora remove uma decisão de última hora.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "trigger_based",
+      triggerLabel: "Depois do jantar",
     },
   ];
 }
@@ -296,6 +362,8 @@ export function avoidTakeawayCommitment(context: DailyContext): DecisionCandidat
       requiresFreeWindow: false,
       baseImpact: "high",
       relatedPantryItem: dinner?.relatedPantryItem,
+      timingType: "trigger_based",
+      triggerLabel: "Antes do jantar",
     },
   ];
 }
@@ -323,6 +391,8 @@ export function shutdownRoutine(context: DailyContext): DecisionCandidate[] {
       baseReason: "Proteger o horário de sono hoje ajuda a consistência da semana.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "trigger_based",
+      triggerLabel: `${shutdownTime} (30 min antes de dormir)`,
     },
   ];
 }
@@ -341,6 +411,7 @@ export function earlierSleepForTomorrow(context: DailyContext): DecisionCandidat
       baseReason: "O sono de hoje já foi curto. Recuperar esta noite é a decisão de maior alavancagem.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "flexible",
     },
   ];
 }
@@ -365,6 +436,8 @@ export function prepareNextDay(context: DailyContext): DecisionCandidate[] {
       baseReason: "Tens um compromisso cedo amanhã — preparar agora reduz fricção da manhã.",
       requiresFreeWindow: false,
       baseImpact: "low",
+      timingType: "trigger_based",
+      triggerLabel: "Antes de dormir",
     },
   ];
 }
@@ -378,15 +451,25 @@ export function shortWalk(context: DailyContext): DecisionCandidate[] {
   const highStress = (context.userCheckIn?.stressLevel ?? 0) >= 4;
   if (!highStress) return [];
 
+  const slot = assignSlot(context, {
+    durationMinutes: 15,
+    preferredStartTime: nowHHMM(context),
+  });
+
   return [
     {
       ruleId: "short-walk",
       domain: "recovery",
-      recommendedAction: "Faz uma caminhada de 15 minutos entre compromissos.",
+      recommendedAction: slot
+        ? `Faz uma caminhada de 15 minutos entre as ${slot.start.slice(11, 16)} e as ${slot.end.slice(11, 16)}.`
+        : "Faz uma caminhada de 15 minutos entre compromissos — ainda sem janela livre confirmada hoje.",
+      recommendedStart: slot?.start,
+      recommendedEnd: slot?.end,
       baseTitle: "Caminhada curta",
       baseReason: "O stress de hoje está elevado — uma pausa curta ajuda mais do que continuar sentado.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "calendar_slot",
     },
   ];
 }
@@ -410,6 +493,7 @@ export function protectFreeWindow(context: DailyContext): DecisionCandidate[] {
       baseReason: "É a melhor oportunidade de recuperação ou treino que resta hoje.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "flexible",
     },
   ];
 }
@@ -428,6 +512,7 @@ export function moveLowPriorityWork(context: DailyContext): DecisionCandidate[] 
       baseReason: "O dia está sobrecarregado e não sobra tempo para nenhuma decisão de saúde.",
       requiresFreeWindow: false,
       baseImpact: "medium",
+      timingType: "flexible",
     },
   ];
 }

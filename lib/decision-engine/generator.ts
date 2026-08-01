@@ -33,6 +33,8 @@ function toGeneratedDecision(candidate: ScoredCandidate): GeneratedDecision {
     source: "rule",
     relatedPantryItem: candidate.relatedPantryItem,
     ruleId: candidate.ruleId,
+    timingType: candidate.timingType,
+    triggerLabel: candidate.triggerLabel,
   };
 }
 

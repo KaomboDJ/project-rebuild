@@ -38,7 +38,7 @@ test.describe("Keyboard navigation on /today (@functional-only)", () => {
   test("primary navigation is reachable within the first few Tab presses", async ({ page }) => {
     await page.locator("body").click({ position: { x: 5, y: 5 } });
 
-    const navLabels = ["Hoje", "Coach", "Alimentação", "Histórico", "Definições"];
+    const navLabels = ["Início", "Hoje", "Coach", "Alimentação", "Histórico", "Definições"];
     let sawNavLink = false;
 
     // Skip link (1) + logo (2) + up to 5 nav links (3-7) - a generous 10-tab

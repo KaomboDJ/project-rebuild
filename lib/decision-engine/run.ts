@@ -5,6 +5,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { buildDailyContext } from "./context-builder";
 import { generateDecisions } from "./generator";
 import { getFounderNow } from "@/lib/date/founder-now";
+import { zonedWallTimeToUtc } from "@/lib/date/timezone";
 import { getCalendarEventsForDate } from "@/lib/google/calendar";
 import { buildPantrySummary } from "@/lib/coach/pantry-context";
 import { getTodaysDinnerPlanName } from "@/lib/nutrition/queries";
@@ -98,6 +99,12 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
     return { decisions: [], engineVersion };
   }
 
+  const toUtcInstant = (naiveLocalIso: string | undefined): string | null => {
+    if (!naiveLocalIso) return null;
+    const [dateKey, timePart] = naiveLocalIso.split("T");
+    return zonedWallTimeToUtc(dateKey, timePart, context.timezone).toISOString();
+  };
+
   const insertRow = (decision: GeneratedDecision) => ({
     user_id: userId,
     decision_run_id: run.id,
@@ -105,8 +112,8 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
     title: decision.title,
     reason: decision.reason,
     recommended_action: decision.recommendedAction,
-    recommended_start: decision.recommendedStart ?? null,
-    recommended_end: decision.recommendedEnd ?? null,
+    recommended_start: toUtcInstant(decision.recommendedStart),
+    recommended_end: toUtcInstant(decision.recommendedEnd),
     domain: decision.domain,
     impact: decision.impact,
     confidence: decision.confidence,
@@ -114,6 +121,8 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
     status: "proposed" as const,
     related_pantry_item: decision.relatedPantryItem ?? null,
     rule_id: decision.ruleId ?? null,
+    timing_type: decision.timingType,
+    trigger_label: decision.triggerLabel ?? null,
   });
 
   const { data: inserted, error: insertError } = await supabase

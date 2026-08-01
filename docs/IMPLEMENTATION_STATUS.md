@@ -2,7 +2,19 @@
 
 Living status tracker. Check this before assuming what already exists — `docs/` design files describe target architecture, not necessarily what's built yet. Update this file as milestones progress.
 
-Last updated: 2026-08-01 (Auth UX Hardening milestone — invited-alpha validation: CI Node-version incident fixed, full green pass, PR #4 merged).
+Last updated: 2026-08-01 (Daily Home + Decisions UX recovery implemented on a review branch; not merged/deployed).
+
+## Daily Home + Decisions UX recovery (branch `codex/daily-home-recovery`, 2026-08-01)
+
+Status: **implemented and locally validated; awaiting founder review. No production migration, merge or deployment has occurred.**
+
+The authenticated entry point is now `/home`, which compiles calendar commitments, free windows, meals, training/recovery and daily decisions into one chronological agenda. Home owns plan generation, review, explicit confirmation and conflict recovery. `/today` remains the Decisions execution/feedback workspace and now shows only a compact plan-status link back to Home, removing the confusing disabled batch-planning control.
+
+The root data problem is fixed with structured timing (`calendar_slot`, `trigger_based`, `flexible`), deterministic free-slot selection and current-calendar conflict checks. Calendar-slot decisions can be found/rescheduled without overlap, but no external calendar write or silent move occurs without explicit founder confirmation. The Coach receives the same compiled timing context.
+
+Additive migration: `supabase/migrations/202608010001_daily_home_timing.sql` (`decisions.timing_type`, `decisions.trigger_label`, `decision_runs.plan_confirmed_at`). Detailed behavior and non-goals: `docs/18_HOME_AND_DECISIONS.md`.
+
+Validation on the review branch: typecheck clean; lint clean; 317/317 unit tests passing; production build successful. Playwright specs were added/updated for Home, Decisions, responsiveness and Axe, but a real shared-environment run requires the additive migration to be applied to that environment first.
 
 ## Running checklist — Milestones 10-14 (full roadmap authorization, 2026-07-30)
 

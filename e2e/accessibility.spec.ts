@@ -19,9 +19,9 @@ test.describe("Authenticated accessibility smoke (@functional-only)", () => {
     if (userId) await deleteTestUser(admin, userId);
   });
 
-  test("Today, Coach, Nutrition and Settings have no detectable WCAG A/AA violations", async ({ page }) => {
+  test("Home, Today, Coach, Nutrition and Settings have no detectable WCAG A/AA violations", async ({ page }) => {
     test.setTimeout(120_000);
-    for (const path of ["/today", "/coach", "/nutrition", "/settings"]) {
+    for (const path of ["/home", "/today", "/coach", "/nutrition", "/settings"]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
 

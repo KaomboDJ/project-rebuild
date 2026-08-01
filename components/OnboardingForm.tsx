@@ -126,7 +126,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       return;
     }
 
-    router.replace("/today");
+    router.replace("/home");
   }
 
   return (

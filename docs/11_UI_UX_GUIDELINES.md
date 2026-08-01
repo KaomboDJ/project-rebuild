@@ -8,7 +8,13 @@ Calm, dark, minimal — matches the existing Tailwind setup (`bg-neutral-950`, `
 
 One next action, visible without scrolling where possible. The product should feel like it already thought ahead, not like another dashboard to manage.
 
+## `/home` layout
+
+`/home` is the authenticated landing page and the planning surface. It compiles the whole day into one chronological agenda: fixed calendar events, free windows, planned meals, training/recovery actions and the three decisions. It owns “Planear o meu dia”, review, confirmation and conflict recovery. Show one next action near the top; do not make the founder reconstruct the day across modules.
+
 ## `/today` layout
+
+`/today` is the Decisions execution/evaluation surface, not a second planner. It may show calendar context and the same three decisions, but batch plan creation and confirmation belong to `/home`. A compact plan-status banner links back to Home when review is needed.
 
 1. Header: date, name, calendar connection state (small badge/icon), "regenerate decisions" as a text/icon action, not a prominent button — this is a recovery action, not the primary flow.
 2. Calendar context: a short vertical list of today's events (time + title only). Not a grid, not a full calendar. If no events, show a one-line empty state, not an empty box.

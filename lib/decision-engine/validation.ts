@@ -18,6 +18,8 @@ const generatedDecisionSchema = z.object({
   impact: z.enum(["low", "medium", "high"]),
   confidence: z.number().min(0).max(1),
   source: z.enum(["rule", "ai", "hybrid"]),
+  timingType: z.enum(["calendar_slot", "trigger_based", "flexible"]).optional(),
+  triggerLabel: z.string().optional(),
 });
 
 const generatedDecisionsSchema = z.array(generatedDecisionSchema).length(3);
@@ -50,6 +52,7 @@ export function validateGeneratedDecisions(
     if (decision.impact !== source.impact) return null;
     if ((decision.recommendedStart ?? null) !== (source.recommendedStart ?? null)) return null;
     if ((decision.recommendedEnd ?? null) !== (source.recommendedEnd ?? null)) return null;
+    if ((decision.timingType ?? source.timingType) !== source.timingType) return null;
   }
 
   // relatedPantryItem (Milestone 11D) and ruleId (Milestone 14) aren't part
@@ -64,5 +67,7 @@ export function validateGeneratedDecisions(
     source: "ai" as const,
     relatedPantryItem: byDomain.get(d.domain)?.relatedPantryItem,
     ruleId: byDomain.get(d.domain)?.ruleId,
+    timingType: byDomain.get(d.domain)!.timingType,
+    triggerLabel: byDomain.get(d.domain)?.triggerLabel,
   }));
 }

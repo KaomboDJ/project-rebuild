@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Check, CheckCircle2, ChevronDown, Pencil, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
+import { CalendarPlus, Check, CheckCircle2, ChevronDown, Clock, Pencil, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import type { ConnectionSummary } from "@/lib/google/calendar";
 import { DOMAIN_LABEL } from "@/lib/decision-engine/labels";
 import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
+import { instantToLocalWallClockIso } from "@/lib/date/timezone";
 
 // UX Hardening release (docs/17_UX_AUDIT.md, section 4 - recommendation
 // transparency / "Why this?"). Every string below is derived directly from
@@ -27,11 +28,18 @@ function confidenceLabel(confidence: number): string {
 
 export type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
+interface SlotCandidate {
+  start: string;
+  end: string;
+  durationMinutes: number;
+  distanceFromPreferredMinutes: number;
+}
+
 const IMPACT_XP: Record<DecisionRow["impact"], number> = { high: 15, medium: 10, low: 5 };
 
-function formatTime(iso: string | null): string | null {
+function formatTime(iso: string | null, timezone: string): string | null {
   if (!iso) return null;
-  return iso.slice(11, 16);
+  return instantToLocalWallClockIso(new Date(iso), timezone).slice(11, 16);
 }
 
 export function DecisionEngineCard({
@@ -39,6 +47,7 @@ export function DecisionEngineCard({
   onUpdate,
   initialFeedback = null,
   connections = [],
+  timezone = "UTC",
 }: {
   decision: DecisionRow;
   onUpdate: (id: string, updated: DecisionRow) => void;
@@ -50,6 +59,7 @@ export function DecisionEngineCard({
    * asked to choose per event which connected account gets the new
    * calendar entry. */
   connections?: ConnectionSummary[];
+  timezone?: string;
 }) {
   const [showSkip, setShowSkip] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -60,6 +70,8 @@ export function DecisionEngineCard({
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<boolean | null>(initialFeedback);
   const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [slotCandidates, setSlotCandidates] = useState<SlotCandidate[] | null>(null);
+  const [slotError, setSlotError] = useState<string | null>(null);
 
   async function sendFeedback(useful: boolean) {
     setFeedbackBusy(true);
@@ -123,8 +135,48 @@ export function DecisionEngineCard({
     addToCalendar();
   }
 
-  const start = formatTime(decision.recommended_start);
-  const end = formatTime(decision.recommended_end);
+  async function loadSlotCandidates() {
+    setBusy(true);
+    setSlotError(null);
+    try {
+      const response = await fetch(`/api/decisions/${decision.id}/find-slot`);
+      if (response.ok) {
+        const { candidates } = await response.json();
+        setSlotCandidates(candidates);
+        if (candidates.length === 0) setSlotError("Sem janelas livres disponíveis hoje.");
+      } else {
+        setSlotError("Não foi possível procurar horários.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmSlot(candidate: SlotCandidate) {
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/decisions/${decision.id}/reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start: candidate.start, end: candidate.end }),
+      });
+      if (response.ok) {
+        const { decision: updated } = await response.json();
+        onUpdate(decision.id, updated);
+        setSlotCandidates(null);
+      } else if (response.status === 409) {
+        setSlotError("Esse horário deixou de estar livre — procura novamente.");
+        await loadSlotCandidates();
+      } else {
+        setSlotError("Não foi possível confirmar o novo horário.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const start = formatTime(decision.recommended_start, timezone);
+  const end = formatTime(decision.recommended_end, timezone);
   const isPending = decision.status === "proposed" || decision.status === "accepted" || decision.status === "edited";
   const Icon = DOMAIN_ICON[decision.domain];
 
@@ -139,6 +191,8 @@ export function DecisionEngineCard({
             <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">
               {DOMAIN_LABEL[decision.domain]}
               {start && ` · ${start}${end ? `–${end}` : ""}`}
+              {!start && decision.timing_type === "calendar_slot" && " · Ainda sem horário"}
+              {!start && decision.timing_type === "trigger_based" && decision.trigger_label && ` · ${decision.trigger_label}`}
             </span>
             <span className="text-xs font-medium text-neutral-400">+{IMPACT_XP[decision.impact]} XP</span>
           </div>
@@ -199,6 +253,33 @@ export function DecisionEngineCard({
                 Adicionar ao calendário
               </button>
             )}
+          {decision.timing_type === "calendar_slot" && !start && (
+            <button disabled={busy} className="btn-ghost" onClick={loadSlotCandidates}>
+              <Clock size={14} /> Encontrar horário
+            </button>
+          )}
+          {decision.timing_type === "calendar_slot" && start && (
+            <button disabled={busy} className="btn-ghost" onClick={loadSlotCandidates}>
+              <Clock size={14} /> Alterar horário
+            </button>
+          )}
+        </div>
+      )}
+
+      {slotCandidates !== null && (
+        <div className="mt-4 space-y-2 pl-12">
+          <p className="text-sm text-neutral-400">Horários disponíveis:</p>
+          {slotCandidates.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {slotCandidates.map((candidate, index) => (
+                <button key={candidate.start} disabled={busy} className="btn-secondary" onClick={() => confirmSlot(candidate)}>
+                  {candidate.start.slice(11, 16)}–{candidate.end.slice(11, 16)}{index === 0 && " (melhor opção)"}
+                </button>
+              ))}
+            </div>
+          ) : slotError ? <p className="text-xs text-red-400">{slotError}</p> : null}
+          {slotError && slotCandidates.length > 0 && <p className="text-xs text-red-400">{slotError}</p>}
+          <button className="btn-ghost" onClick={() => setSlotCandidates(null)}>Cancelar</button>
         </div>
       )}
 
