@@ -57,9 +57,11 @@ This table is the live tracker referenced above; update it as each milestone sta
 
 ## Daily Home + Decisions UX recovery — 2026-08-01
 
-**Status: implemented on `codex/daily-home-recovery`, awaiting founder review; not merged, migrated or deployed.**
+**Status: release gates green on `codex/daily-home-recovery`; production migration applied and verified; tracked in PR #5.**
 
 This founder-requested UX slice introduces `/home` as the impactful authenticated entry point and gives Home sole ownership of day planning/confirmation. `/today` remains the Decisions execution and feedback workspace. Structured timing (`calendar_slot`, `trigger_based`, `flexible`), deterministic free-slot selection, conflict revalidation and explicit confirmation fix the root cause of the previously disabled “Programar o meu dia” action. Full specification and validation evidence: `docs/18_HOME_AND_DECISIONS.md`.
+
+Release evidence: migration `202608010001_daily_home_timing.sql` is present in Production; CI run #29 passed lint, type-check, 317/317 unit tests, production build and the real browser suite (84 passed, 6 correctly skipped live-email cases, 0 failed), including Axe with zero detected WCAG A/AA violations and all 24 cross-account isolation checks.
 
 ## Explicitly not on any near-term roadmap
 

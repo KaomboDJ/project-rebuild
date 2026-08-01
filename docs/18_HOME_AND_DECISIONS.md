@@ -1,6 +1,6 @@
 # 18 — Home and Decisions workspace
 
-Status: implemented on a review branch; not yet merged or deployed.
+Status: implemented and release-validated on PR #5; production migration applied and verified.
 
 ## Product decision
 
@@ -43,7 +43,7 @@ Migration `202608010001_daily_home_timing.sql` adds only:
 - `decisions.calendar_connection_id` (nullable owner of the external event, required for safe multi-account updates);
 - `decision_runs.plan_confirmed_at` (nullable).
 
-The migration is additive and preserves all existing rows. It must be applied before the review branch can be exercised against a shared Supabase project.
+The migration is additive and preserves all existing rows. It was applied to the production Supabase project and verified through `information_schema.columns` before the release validation.
 
 ## UX rules
 
@@ -60,7 +60,10 @@ The migration is additive and preserves all existing rows. It must be applied be
 - ESLint: clean.
 - Unit tests: 317 passing after this slice’s timing/conflict coverage.
 - Production build: successful when Google Fonts network access is available.
-- Playwright coverage was updated for Home, Decisions, responsiveness and Axe; execution still depends on the configured disposable Supabase test environment and the new additive migration.
+- Real GitHub Actions browser run #29: 90 tests total, 84 passed, 6 correctly skipped `@live-email` cases, 0 failed.
+- Axe: zero detected WCAG A/AA violations on the covered authenticated and unauthenticated screens.
+- Cross-account isolation: all 24 security checks passed.
+- Disposable test-account cleanup was verified after the run; one account left by an earlier cancelled run was removed by exact id/email and the final `pw-%` count is zero.
 
 ## Explicitly deferred
 
