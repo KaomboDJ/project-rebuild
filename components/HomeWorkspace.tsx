@@ -55,8 +55,8 @@ function timeLabel(item: DayPlanItem): string | null {
 function itemClasses(item: DayPlanItem): string {
   if (item.isStale) return "border-red-600/40 bg-red-500/[0.04]";
   if (item.kind === "calendar_event") return "border-white/[0.06]";
-  if (item.kind === "free_window") return "border-dashed border-white/[0.05] opacity-70";
-  if (item.status === "completed") return "border-emerald-600/20 opacity-60";
+  if (item.kind === "free_window") return "border-dashed border-white/[0.05]";
+  if (item.status === "completed") return "border-emerald-600/20 bg-emerald-500/[0.02]";
   if (item.status === "accepted") return "border-emerald-600/40";
   return "border-amber-600/30 border-dashed";
 }
@@ -206,10 +206,10 @@ export function HomeWorkspace({
             : null;
           const isNext = plan.nextAction?.id === item.id;
           return (
-            <div key={item.id} className={`surface-card flex items-start gap-3 border p-3 ${itemClasses(item)} ${isNext ? "ring-1 ring-emerald-500/40" : ""} ${minutes !== null && minutes < nowMinutes ? "opacity-70" : ""}`}>
+            <div key={item.id} className={`surface-card flex items-start gap-3 border p-3 ${itemClasses(item)} ${isNext ? "ring-1 ring-emerald-500/40" : ""} ${minutes !== null && minutes < nowMinutes ? "border-white/[0.04]" : ""}`}>
               <div className="w-16 shrink-0 pt-0.5 text-xs text-neutral-400">{timeLabel(item) ?? "—"}</div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-wide text-neutral-500">
+                <p className="text-[11px] uppercase tracking-wide text-neutral-400">
                   {KIND_LABEL[item.kind]}{item.isStale && " · agenda mudou"}
                 </p>
                 <p className="text-sm font-medium text-neutral-100">{item.title}</p>

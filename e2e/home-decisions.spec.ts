@@ -16,9 +16,7 @@ test.describe("Home planning and Decisions execution (@functional-only)", () => 
 
   test("Home is the first navigation destination and owns day planning", async ({ page }) => {
     const navigation = page.getByRole("navigation", { name: "Navegação principal" });
-    const links = navigation.getByRole("link");
-
-    await expect(links.first()).toHaveText("Início");
+    await expect(navigation.getByRole("link", { name: "Início", exact: true })).toHaveAttribute("href", "/home");
     await expect(page.getByRole("link", { name: "Ver calendário completo" })).toBeVisible();
     await expect(
       page

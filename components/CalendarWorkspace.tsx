@@ -132,7 +132,8 @@ export function CalendarWorkspace({
 
   if (!checkInDone) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-8">
+      <div className="mx-auto max-w-xl space-y-4 px-4 py-8">
+        <PlanStatusBanner state="not_planned" />
         <DailyCheckInForm
           date={date}
           onSubmitted={async () => {
