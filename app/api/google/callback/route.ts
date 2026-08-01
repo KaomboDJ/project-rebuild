@@ -39,7 +39,12 @@ export async function GET(request: NextRequest) {
     await saveCalendarConnection(user.id, tokens);
     response = NextResponse.redirect(settingsUrl("?calendar=connected"));
   } catch (err) {
-    console.error("google_oauth_callback_error", err);
+    // Invited-alpha security review: the underlying error can embed Google's
+    // raw token-endpoint response body (lib/google/oauth.ts's
+    // exchangeCodeForTokens), which must never be written verbatim to
+    // server logs even though Vercel's function logs are private - log only
+    // a bounded marker, never the error object or its message.
+    console.error("google_oauth_callback_error", err instanceof Error ? err.name : "unknown_error");
     response = NextResponse.redirect(settingsUrl("?calendar=error"));
   }
 

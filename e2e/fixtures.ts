@@ -32,7 +32,30 @@ function requireEnv(name: string): string {
   return value;
 }
 
+// Invited-alpha CI incident (2026-08-01): every authenticated test in this
+// suite failed within ~300ms on GitHub Actions runners pinned to Node 20,
+// with the real cause buried at the bottom of a five-frame @supabase
+// stack trace ("Error: Node.js detected but native WebSocket not found.").
+// @supabase/supabase-js's SupabaseClient constructor unconditionally builds
+// a RealtimeClient, which throws synchronously if no native `WebSocket`
+// global exists and no transport was supplied - Node 22+ has one built in,
+// Node 20 does not. This project's CI now pins Node 22 (see
+// .github/workflows/ci.yml) specifically so this never recurs, but this
+// guard turns any future regression (a local run on an old Node, or CI
+// drifting back down) into one clear, immediate error instead of dozens of
+// cascading, confusing per-test failures.
+function assertWebSocketCapableRuntime(): void {
+  if (typeof globalThis.WebSocket === "undefined") {
+    throw new Error(
+      "This Playwright suite requires Node.js 22+ (native WebSocket global) because " +
+        "@supabase/supabase-js's admin client initializes a RealtimeClient on construction. " +
+        `Detected ${process.version}. Upgrade Node, or see e2e/fixtures.ts's adminClient() comment.`
+    );
+  }
+}
+
 export function adminClient(): SupabaseClient {
+  assertWebSocketCapableRuntime();
   return createClient(requireEnv("NEXT_PUBLIC_SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -122,11 +145,17 @@ export async function completeTodayCheckIn(admin: SupabaseClient, userId: string
 /** Gives a fresh browser context a real Supabase session scoped to the local
  * Playwright server, then enters through /today. Profile-less users are
  * redirected by the application to /onboarding. */
-export async function signInAsTestUser(
-  _admin: SupabaseClient,
-  page: import("@playwright/test").Page,
+/**
+ * Signs in as a disposable test user and returns the raw Supabase session
+ * plus the exact `sb-<project-ref>-auth-token[.N]` cookie chunks the app's
+ * own `@supabase/ssr` server client expects - the single source of truth
+ * both `signInAsTestUser` (browser cookie injection) and
+ * `sessionCookieHeader` (plain-fetch API testing, no browser needed) build
+ * on, so the two never drift apart.
+ */
+async function establishTestSession(
   email: string
-): Promise<void> {
+): Promise<{ cookieName: string; chunks: string[] }> {
   const password = testPasswords.get(email);
   if (!password) throw new Error(`No disposable password found for Playwright user ${email}.`);
 
@@ -154,6 +183,15 @@ export async function signInAsTestUser(
   const cookieName = `sb-${projectRef}-auth-token`;
   const cookieValue = `base64-${Buffer.from(JSON.stringify(session), "utf8").toString("base64url")}`;
   const chunks = cookieValue.length <= 3180 ? [cookieValue] : cookieValue.match(/.{1,3180}/g) ?? [];
+  return { cookieName, chunks };
+}
+
+export async function signInAsTestUser(
+  _admin: SupabaseClient,
+  page: import("@playwright/test").Page,
+  email: string
+): Promise<void> {
+  const { cookieName, chunks } = await establishTestSession(email);
   const origin = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3100"}`;
 
   await page.context().addCookies(
@@ -165,6 +203,38 @@ export async function signInAsTestUser(
     }))
   );
   await page.goto("/today");
+}
+
+/**
+ * The raw `Cookie:` header value for a disposable test user's session -
+ * lets cross-account-isolation tests call the app's own API routes with
+ * plain `fetch()` (no browser, no `page` fixture) while still presenting a
+ * real, valid Supabase SSR session, exactly as a signed-in browser would.
+ */
+export async function sessionCookieHeader(email: string): Promise<string> {
+  const { cookieName, chunks } = await establishTestSession(email);
+  return chunks
+    .map((value, index) => `${chunks.length === 1 ? cookieName : `${cookieName}.${index}`}=${value}`)
+    .join("; ");
+}
+
+/**
+ * A real, RLS-scoped Supabase client authenticated as a disposable test
+ * user - for asserting what Postgres itself allows/denies directly (no HTTP
+ * server, no browser), independent of whatever any given API route happens
+ * to additionally check.
+ */
+export async function testUserClient(email: string): Promise<SupabaseClient> {
+  const password = testPasswords.get(email);
+  if (!password) throw new Error(`No disposable password found for Playwright user ${email}.`);
+
+  const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const client = createClient(supabaseUrl, requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(`Failed to authenticate test user client for ${email}: ${error.message}`);
+  return client;
 }
 
 interface Fixtures {

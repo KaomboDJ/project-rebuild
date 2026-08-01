@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
@@ -18,7 +19,8 @@ function workingHoursFromRow(value: ProfileRow["working_hours"]): { start: strin
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const record = value as { start?: unknown; end?: unknown };
     return {
-      start: typeof record.start === "string" ? record.start : ONBOARDING_DEFAULTS.workingHoursStart,
+      start:
+        typeof record.start === "string" ? record.start : ONBOARDING_DEFAULTS.workingHoursStart,
       end: typeof record.end === "string" ? record.end : ONBOARDING_DEFAULTS.workingHoursEnd,
     };
   }
@@ -54,6 +56,9 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
   const [showErrors, setShowErrors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(
+    Boolean(initialProfile?.privacy_consent_at && initialProfile?.terms_accepted_at)
+  );
 
   const errors = validateOnboardingDraft(draft);
 
@@ -68,7 +73,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (Object.keys(errors).length > 0) {
+    if (Object.keys(errors).length > 0 || !consentAccepted) {
       setShowErrors(true);
       return;
     }
@@ -92,6 +97,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       return;
     }
 
+    const acceptedAt = new Date().toISOString();
     const { error } = await supabase.from("profiles").upsert(
       {
         user_id: user.id,
@@ -108,6 +114,8 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
         current_constraints: draft.currentConstraints.trim(),
         intervention_tone: draft.interventionTone.trim(),
         onboarding_completed: true,
+        privacy_consent_at: initialProfile?.privacy_consent_at ?? acceptedAt,
+        terms_accepted_at: initialProfile?.terms_accepted_at ?? acceptedAt,
       },
       { onConflict: "user_id" }
     );
@@ -288,6 +296,41 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       </label>
 
       {submitError && <p className="text-sm text-red-400">{submitError}</p>}
+
+      <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm">
+        <input
+          type="checkbox"
+          checked={consentAccepted}
+          onChange={(event) => setConsentAccepted(event.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-emerald-600"
+          required
+        />
+        <span className="text-neutral-300">
+          Li os{" "}
+          <Link
+            href="/terms"
+            target="_blank"
+            className="text-emerald-400 underline underline-offset-2"
+          >
+            Termos da alpha
+          </Link>{" "}
+          e a{" "}
+          <Link
+            href="/privacy"
+            target="_blank"
+            className="text-emerald-400 underline underline-offset-2"
+          >
+            Política de privacidade
+          </Link>
+          . Autorizo o tratamento dos dados de rotina, bem-estar e alimentação que decidir fornecer
+          para personalizar o Rebuild.
+        </span>
+      </label>
+      {showErrors && !consentAccepted && (
+        <p role="alert" className="text-sm text-rose-400">
+          É necessário aceitar os termos e o tratamento destes dados para usar a alpha.
+        </p>
+      )}
 
       <button type="submit" disabled={submitting} className="btn-primary w-full py-2.5">
         {submitting ? "A guardar..." : "Começar"}

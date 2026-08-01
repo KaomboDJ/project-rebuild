@@ -33,3 +33,30 @@ test.describe("Authenticated accessibility smoke (@functional-only)", () => {
     }
   });
 });
+
+// Auth UX Hardening milestone. The sign-in and OTP verify screens are the
+// very first thing an unauthenticated (and possibly first-time) user
+// meets, so they get the same Axe smoke coverage as the authenticated
+// pages above - no fixture user needed since neither page requires a
+// session.
+test.describe("Unauthenticated auth screens accessibility smoke (@functional-only)", () => {
+  test("the sign-in screen has no detectable WCAG A/AA violations", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  });
+
+  test("the OTP verify screen has no detectable WCAG A/AA violations", async ({ page }) => {
+    await page.addInitScript(
+      ([key, value]) => window.sessionStorage.setItem(key, value),
+      ["rebuild_otp_pending", JSON.stringify({ email: "pw-otp-axe@example.com", next: "/today" })]
+    );
+    await page.goto("/auth/verify");
+    await page.waitForLoadState("networkidle");
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  });
+});

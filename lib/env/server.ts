@@ -16,6 +16,20 @@ const serverEnvironmentSchema = z.object({
   ANTHROPIC_API_KEY: optionalSecret,
   ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-5"),
   CRON_SECRET: optionalSecret,
+  // Auth UX Hardening milestone. Gates the "Continuar com Microsoft"
+  // identity sign-in button (Supabase's "azure" OAuth provider) - separate
+  // from both (a) the read-only Outlook Calendar adapter being built on
+  // feature/unified-calendar-intelligence (which reads MICROSOFT_CLIENT_ID/
+  // SECRET/TENANT_ID/REDIRECT_URI directly for its own Graph API calls) and
+  // (b) Supabase's own Azure OAuth app credentials, which live in the
+  // Supabase dashboard (Authentication > Providers > Azure), not in this
+  // app's process.env at all. This flag exists purely so the server can
+  // decide whether to render the button - flipping it to "true" before the
+  // Supabase-side provider is actually configured would show a button that
+  // fails on click, which the milestone explicitly forbids ("do not show a
+  // non-functional Microsoft button").
+  AUTH_MICROSOFT_ENABLED: z.enum(["true", "false"]).default("false"),
+  AUTH_EMAIL_OTP_ENABLED: z.enum(["true", "false"]).default("false"),
 });
 
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
@@ -32,6 +46,8 @@ export function getServerEnvironment(): ServerEnvironment {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
+    AUTH_MICROSOFT_ENABLED: process.env.AUTH_MICROSOFT_ENABLED || undefined,
+    AUTH_EMAIL_OTP_ENABLED: process.env.AUTH_EMAIL_OTP_ENABLED || undefined,
   });
 
   if (!result.success) {

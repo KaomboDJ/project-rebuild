@@ -73,6 +73,7 @@ export default defineConfig({
   webServer: {
     command: `npm run dev -- --port ${PORT}`,
     url: BASE_URL,
+    env: { ...process.env, AUTH_EMAIL_OTP_ENABLED: "true" },
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

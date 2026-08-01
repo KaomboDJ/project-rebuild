@@ -9,3 +9,4 @@ next-env.d.ts
 .pnpm-store/
 playwright-report/
 test-results/
+.git-ref-quarantine/
