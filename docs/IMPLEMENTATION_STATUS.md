@@ -289,8 +289,14 @@ spec was expanded to cover journey order, listbox appearance/keyboard behavior,
 and the post-save next action. Its first local run was invalid because port 3100
 was already serving another checkout; a second isolated-port run still did not
 recognize the disposable Supabase session and therefore only reached the public
-landing page. No browser pass is claimed locally; the real GitHub CI run remains
-the release gate for those assertions.
+landing page. No browser pass is claimed locally. GitHub Actions run
+`https://github.com/KaomboDJ/project-rebuild/actions/runs/30770105219` independently
+confirmed lint, typecheck, unit tests, and the production build. Its Playwright/Axe
+job reported success only because the workflow deliberately skipped the browser
+steps when the three Supabase test secrets were absent; that green job is therefore
+not a browser-test result. The Draft PR remains gated on an authenticated Preview
+walkthrough or a disposable, non-production Supabase E2E environment. The
+production service-role key must not be reintroduced merely to make this UI test run.
 
 Validated in an isolated sandbox copy: typecheck clean, lint clean (`✔ No ESLint warnings or errors`), full suite 247/247 passing. Production build hits only the same pre-existing, sandbox-network-only Google Fonts restriction seen in Milestones 11B–11D (`Failed to fetch font 'Inter' from Google Fonts`) — not caused by this milestone's code.
 
