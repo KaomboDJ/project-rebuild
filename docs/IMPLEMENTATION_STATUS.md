@@ -270,6 +270,45 @@ Per the founder's 2026-07-30 full-roadmap authorization and its update lifting t
 
 Tests added: `lib/nutrition/planner.test.ts` (17), `macros.test.ts` (8), `shopping.test.ts` (11), plus 4 new `lib/decision-engine/rules.test.ts` cases (meal-plan-priority dinner naming) and 4 new `lib/coach/tools.test.ts` cases (new tool names/summaries) — bringing the suite from 204 to 247, all passing.
 
+### Nutrition journey UX refinement (2026-08-02)
+
+The founder identified two abandonment risks in the shipped Nutrition Toolkit:
+the native profile dropdown opened as a white Windows popup inside the dark
+app, and saving the profile led to a dead end that required navigating back to
+Alimentação manually. The primary `/nutrition` experience is now a single
+scrolling journey — Profile → Pantry → Weekly plan → Shopping — with a compact
+progress navigator, anchored steps, clear next actions, and restrained positive
+completion feedback. The four individual routes remain available and now link
+back to the full journey. A shared custom `Select` implements the app's dark
+surface plus keyboard/Escape interaction instead of relying on the unthemeable
+native popup.
+
+Validation on branch `codex/nutrition-journey`: typecheck clean, lint clean,
+320/320 unit tests passing, production build successful. The focused Playwright
+spec was expanded to cover journey order, listbox appearance/keyboard behavior,
+and the post-save next action. Its first local run was invalid because port 3100
+was already serving another checkout; a second isolated-port run still did not
+recognize the disposable Supabase session and therefore only reached the public
+landing page. No browser pass is claimed locally. GitHub Actions run
+`https://github.com/KaomboDJ/project-rebuild/actions/runs/30770105219` independently
+confirmed lint, typecheck, unit tests, and the production build. Its Playwright/Axe
+job reported success only because the workflow deliberately skipped the browser
+steps when the three Supabase test secrets were absent; that green job is therefore
+not a browser-test result. The Draft PR remains gated on an authenticated Preview
+walkthrough or a disposable, non-production Supabase E2E environment. The
+production service-role key must not be reintroduced merely to make this UI test run.
+
+The authenticated Preview walkthrough was subsequently completed manually on
+2026-08-02 with the founder account, without saving or changing profile, pantry,
+plan, or shopping data. Desktop and a real 390x844 viewport both rendered the
+continuous four-step journey correctly; the progress links reached `#profile`,
+`#pantry`, `#plan`, and `#shopping`; the custom objective listbox remained inside
+the dark visual system and closed with Escape; and the mobile bottom navigation
+did not obscure the journey entry point. This closes the release's visual gate.
+The CI Playwright/Axe skip remains documented accurately and should later be
+replaced with a dedicated non-production Supabase E2E environment, not a
+production service-role secret.
+
 Validated in an isolated sandbox copy: typecheck clean, lint clean (`✔ No ESLint warnings or errors`), full suite 247/247 passing. Production build hits only the same pre-existing, sandbox-network-only Google Fonts restriction seen in Milestones 11B–11D (`Failed to fetch font 'Inter' from Google Fonts`) — not caused by this milestone's code.
 
 ## Milestone 13 — Automation and continuous synchronization

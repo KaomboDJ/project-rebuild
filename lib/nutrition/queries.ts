@@ -4,7 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { estimateDailyMacros, averageDailyMacros } from "./macros";
 import { aggregateIngredients, subtractPantryStock } from "./shopping";
-import type { NutritionProfile, PlannedMealSlot, Recipe, ShoppingLine, WeekPlanResult } from "./types";
+import type {
+  NutritionProfile,
+  PlannedMealSlot,
+  Recipe,
+  ShoppingLine,
+  WeekPlanResult,
+} from "./types";
 
 type Supabase = SupabaseClient<Database>;
 type NutritionProfileRow = Database["public"]["Tables"]["nutrition_profiles"]["Row"];
@@ -55,9 +61,28 @@ function mapNutritionProfileRow(userId: string, row: NutritionProfileRow | null)
   };
 }
 
-export async function getNutritionProfile(supabase: Supabase, userId: string): Promise<NutritionProfile> {
-  const { data } = await supabase.from("nutrition_profiles").select("*").eq("user_id", userId).maybeSingle();
+export async function getNutritionProfile(
+  supabase: Supabase,
+  userId: string
+): Promise<NutritionProfile> {
+  const { data } = await supabase
+    .from("nutrition_profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
   return mapNutritionProfileRow(userId, data);
+}
+
+/** Distinguishes a deliberately saved profile from the in-memory defaults
+ * returned by getNutritionProfile for a first-time user. */
+export async function hasNutritionProfile(supabase: Supabase, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("nutrition_profiles")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data !== null;
 }
 
 export async function upsertNutritionProfile(
@@ -95,7 +120,8 @@ export async function upsertNutritionProfile(
     .select("*")
     .single();
 
-  if (error || !data) throw new Error(error?.message ?? "Falha ao guardar o perfil de alimentação.");
+  if (error || !data)
+    throw new Error(error?.message ?? "Falha ao guardar o perfil de alimentação.");
   return mapNutritionProfileRow(userId, data);
 }
 
@@ -135,7 +161,10 @@ function mapRecipe(row: RecipeRow, ingredientRows: RecipeIngredientRow[]): Recip
  * in-memory anyway.
  */
 export async function listRecipesWithIngredients(supabase: Supabase): Promise<Recipe[]> {
-  const [{ data: recipeRows, error: recipeError }, { data: ingredientRows, error: ingredientError }] = await Promise.all([
+  const [
+    { data: recipeRows, error: recipeError },
+    { data: ingredientRows, error: ingredientError },
+  ] = await Promise.all([
     supabase.from("recipes").select("*").order("meal_type").order("name"),
     supabase.from("recipe_ingredients").select("*"),
   ]);
@@ -145,10 +174,16 @@ export async function listRecipesWithIngredients(supabase: Supabase): Promise<Re
   return (recipeRows ?? []).map((row) => mapRecipe(row, ingredientRows ?? []));
 }
 
-export async function getRecipesById(supabase: Supabase, ids: string[]): Promise<Map<string, Recipe>> {
+export async function getRecipesById(
+  supabase: Supabase,
+  ids: string[]
+): Promise<Map<string, Recipe>> {
   if (ids.length === 0) return new Map();
   const unique = [...new Set(ids)];
-  const [{ data: recipeRows, error: recipeError }, { data: ingredientRows, error: ingredientError }] = await Promise.all([
+  const [
+    { data: recipeRows, error: recipeError },
+    { data: ingredientRows, error: ingredientError },
+  ] = await Promise.all([
     supabase.from("recipes").select("*").in("id", unique),
     supabase.from("recipe_ingredients").select("*").in("recipe_id", unique),
   ]);
@@ -165,7 +200,11 @@ export interface MealPlanWithItems {
   items: MealPlanItemRow[];
 }
 
-export async function getWeekPlan(supabase: Supabase, userId: string, weekStart: string): Promise<MealPlanWithItems | null> {
+export async function getWeekPlan(
+  supabase: Supabase,
+  userId: string,
+  weekStart: string
+): Promise<MealPlanWithItems | null> {
   const { data: plan } = await supabase
     .from("meal_plans")
     .select("*")
@@ -192,13 +231,21 @@ export async function getWeekPlan(supabase: Supabase, userId: string, weekStart:
  * regenerating a day's decisions is (app/api/decisions/generate/route.ts):
  * the latest run replaces the previous one, no accumulation.
  */
-export async function saveWeekPlan(supabase: Supabase, userId: string, result: WeekPlanResult): Promise<MealPlanWithItems> {
+export async function saveWeekPlan(
+  supabase: Supabase,
+  userId: string,
+  result: WeekPlanResult
+): Promise<MealPlanWithItems> {
   const { data: plan, error: planError } = await supabase
     .from("meal_plans")
-    .upsert({ user_id: userId, week_start: result.weekStart, mode: "decide-for-me", status: "active" }, { onConflict: "user_id,week_start" })
+    .upsert(
+      { user_id: userId, week_start: result.weekStart, mode: "decide-for-me", status: "active" },
+      { onConflict: "user_id,week_start" }
+    )
     .select("*")
     .single();
-  if (planError || !plan) throw new Error(planError?.message ?? "Falha ao criar o plano da semana.");
+  if (planError || !plan)
+    throw new Error(planError?.message ?? "Falha ao criar o plano da semana.");
 
   await supabase.from("meal_plan_items").delete().eq("meal_plan_id", plan.id);
 
@@ -314,7 +361,11 @@ export async function completeMealPlanItem(
  * "Decision Engine integration — before dinner risk: use the meal already
  * assigned and available".
  */
-export async function getTodaysDinnerPlanName(supabase: Supabase, userId: string, date: string): Promise<string | null> {
+export async function getTodaysDinnerPlanName(
+  supabase: Supabase,
+  userId: string,
+  date: string
+): Promise<string | null> {
   const { data } = await supabase
     .from("meal_plan_items")
     .select("recipe_id")
@@ -325,7 +376,11 @@ export async function getTodaysDinnerPlanName(supabase: Supabase, userId: string
     .maybeSingle();
   if (!data) return null;
 
-  const { data: recipe } = await supabase.from("recipes").select("name").eq("id", data.recipe_id).maybeSingle();
+  const { data: recipe } = await supabase
+    .from("recipes")
+    .select("name")
+    .eq("id", data.recipe_id)
+    .maybeSingle();
   return recipe?.name ?? null;
 }
 
@@ -359,7 +414,10 @@ export interface PlanResponse {
  * estimates — shared by both the GET (read current week) and POST (after
  * generating a new one) handlers in app/api/nutrition/plan/route.ts so the
  * response shape never drifts between the two. */
-export async function toPlanResponse(supabase: Supabase, planWithItems: MealPlanWithItems | null): Promise<PlanResponse> {
+export async function toPlanResponse(
+  supabase: Supabase,
+  planWithItems: MealPlanWithItems | null
+): Promise<PlanResponse> {
   if (!planWithItems) return { plan: null, items: [], dailyMacros: [], weekAverage: null };
 
   const recipesById = await getRecipesById(
@@ -393,7 +451,12 @@ export async function toPlanResponse(supabase: Supabase, planWithItems: MealPlan
 
   const eatenOrPlanned: PlannedMealSlot[] = planWithItems.items
     .filter((i) => i.status !== "skipped")
-    .map((i) => ({ dayDate: i.day_date, mealSlot: i.meal_slot, recipeId: i.recipe_id, servings: Number(i.servings) }));
+    .map((i) => ({
+      dayDate: i.day_date,
+      mealSlot: i.meal_slot,
+      recipeId: i.recipe_id,
+      servings: Number(i.servings),
+    }));
   const dailyMacros = estimateDailyMacros(eatenOrPlanned, recipesById);
   const weekAverage = averageDailyMacros(dailyMacros);
 
@@ -445,10 +508,14 @@ export async function generateShoppingListForPlan(
 
   const { data: list, error: listError } = await supabase
     .from("shopping_lists")
-    .insert({ user_id: userId, name: `Lista de compras — semana de ${planWithItems.plan.week_start}` })
+    .insert({
+      user_id: userId,
+      name: `Lista de compras — semana de ${planWithItems.plan.week_start}`,
+    })
     .select("id")
     .single();
-  if (listError || !list) throw new Error(listError?.message ?? "Falha ao criar a lista de compras.");
+  if (listError || !list)
+    throw new Error(listError?.message ?? "Falha ao criar a lista de compras.");
 
   if (lines.length > 0) {
     const { error: itemsError } = await supabase.from("shopping_list_items").insert(

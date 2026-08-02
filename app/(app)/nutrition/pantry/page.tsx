@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listPantryItems } from "@/lib/pantry/queries";
 import { PantryList } from "@/components/nutrition/PantryList";
 import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
+import { NutritionBackLink } from "@/components/nutrition/NutritionJourney";
 
 export default async function PantryPage() {
   const supabase = await createSupabaseServerClient();
@@ -28,6 +29,7 @@ export default async function PantryPage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <NutritionBackLink />
       <div>
         <p className="text-sm uppercase tracking-wide text-neutral-400">Alimentação</p>
         <h1 className="text-2xl font-semibold tracking-tight">Despensa</h1>
@@ -36,8 +38,9 @@ export default async function PantryPage() {
         </p>
       </div>
       <FirstUseCallout id="pantry">
-        Regista o que tens e as quantidades aproximadas. Usa +/− para ajustar rápido, ou &quot;Terminou&quot; quando
-        acabar. O Coach só sugere refeições com itens que aqui aparecem como disponíveis.
+        Regista o que tens e as quantidades aproximadas. Usa +/− para ajustar rápido, ou
+        &quot;Terminou&quot; quando acabar. O Coach só sugere refeições com itens que aqui aparecem
+        como disponíveis.
       </FirstUseCallout>
       <PantryList initialItems={items} />
     </main>
