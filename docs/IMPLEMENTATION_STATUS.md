@@ -298,6 +298,17 @@ not a browser-test result. The Draft PR remains gated on an authenticated Previe
 walkthrough or a disposable, non-production Supabase E2E environment. The
 production service-role key must not be reintroduced merely to make this UI test run.
 
+The authenticated Preview walkthrough was subsequently completed manually on
+2026-08-02 with the founder account, without saving or changing profile, pantry,
+plan, or shopping data. Desktop and a real 390x844 viewport both rendered the
+continuous four-step journey correctly; the progress links reached `#profile`,
+`#pantry`, `#plan`, and `#shopping`; the custom objective listbox remained inside
+the dark visual system and closed with Escape; and the mobile bottom navigation
+did not obscure the journey entry point. This closes the release's visual gate.
+The CI Playwright/Axe skip remains documented accurately and should later be
+replaced with a dedicated non-production Supabase E2E environment, not a
+production service-role secret.
+
 Validated in an isolated sandbox copy: typecheck clean, lint clean (`✔ No ESLint warnings or errors`), full suite 247/247 passing. Production build hits only the same pre-existing, sandbox-network-only Google Fonts restriction seen in Milestones 11B–11D (`Failed to fetch font 'Inter' from Google Fonts`) — not caused by this milestone's code.
 
 ## Milestone 13 — Automation and continuous synchronization
