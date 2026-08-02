@@ -63,6 +63,28 @@ Milestone 10/11 pantry+shopping foundation without changing it.
     Coach mutation). System prompt updated to tell the model never to
     invent recipes/macros — always call `get_week_plan` first.
 
+## Continuous nutrition journey UX
+
+The toolkit's capabilities are presented as one continuous, dependency-aware
+journey at `/nutrition`, in this order:
+
+1. **Profile** — establishes goals, constraints, budget, variety, and optional
+   macro targets.
+2. **Pantry** — records what is already available so recommendations and
+   purchases are grounded in reality.
+3. **Weekly plan** — generates the seven-day plan from the profile and pantry
+   context.
+4. **Shopping** — derives only what is missing after pantry stock is
+   subtracted.
+
+All four tools remain available at their individual routes for direct access,
+but the primary experience no longer requires returning to the Alimentação
+menu between steps. A compact progress navigator, in-context next actions, and
+short completion acknowledgements keep one clear action visible without
+turning the flow into a points/achievement system. Profile dropdowns use the
+shared dark, keyboard-accessible listbox component rather than the Windows
+native white popup, whose surface cannot be reliably themed with CSS.
+
 ## Explicitly not built (documented, not silently dropped)
 
 - **Simple rotation / Flexible week planning modes** — `meal_plans.mode` is

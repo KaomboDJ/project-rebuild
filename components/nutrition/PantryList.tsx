@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
+import { JourneySuccess } from "@/components/nutrition/NutritionJourney";
 
 type PantryItem = Database["public"]["Tables"]["pantry_items"]["Row"];
 
@@ -23,7 +24,10 @@ const CATEGORY_LABEL: Record<PantryItem["category"], string> = {
   other: "Outro",
 };
 
-async function patchItem(id: string, body: { eventType: string; quantityDelta: number; note?: string }) {
+async function patchItem(
+  id: string,
+  body: { eventType: string; quantityDelta: number; note?: string }
+) {
   const response = await fetch(`/api/pantry/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -38,11 +42,17 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function adjustQuantity(item: PantryItem, delta: number, eventType: "consume" | "purchase" = delta < 0 ? "consume" : "purchase") {
+  async function adjustQuantity(
+    item: PantryItem,
+    delta: number,
+    eventType: "consume" | "purchase" = delta < 0 ? "consume" : "purchase"
+  ) {
     setBusyId(item.id);
     setError(null);
     const nextQuantity = Math.max(0, Number(item.quantity) + delta);
-    setItems((current) => current.map((i) => (i.id === item.id ? { ...i, quantity: nextQuantity } : i)));
+    setItems((current) =>
+      current.map((i) => (i.id === item.id ? { ...i, quantity: nextQuantity } : i))
+    );
     try {
       await patchItem(item.id, { eventType, quantityDelta: delta });
     } catch {
@@ -112,7 +122,11 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       <div className="space-y-2">
-        {items.length === 0 && <p className="surface-card p-4 text-sm text-neutral-400">Despensa vazia. Adiciona o primeiro item acima.</p>}
+        {items.length === 0 && (
+          <p className="surface-card p-4 text-sm text-neutral-400">
+            Despensa vazia. Adiciona o primeiro item acima.
+          </p>
+        )}
         {items.map((item) => (
           <div key={item.id} className="surface-card flex items-center justify-between gap-3 p-3.5">
             <div className="min-w-0">
@@ -132,7 +146,9 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
               >
                 <Minus size={14} />
               </button>
-              <span className="w-10 text-center text-sm tabular-nums text-neutral-300">{item.quantity}</span>
+              <span className="w-10 text-center text-sm tabular-nums text-neutral-300">
+                {item.quantity}
+              </span>
               <button
                 aria-label="Adicionar uma unidade"
                 disabled={busyId === item.id}
@@ -160,6 +176,12 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
           </div>
         ))}
       </div>
+
+      {items.some((item) => Number(item.quantity) > 0) && (
+        <JourneySuccess href="/nutrition#plan" action="Continuar para o plano semanal">
+          Boa — a despensa já está a ajudar o Coach a escolher refeições com o que tens em casa.
+        </JourneySuccess>
+      )}
     </div>
   );
 }

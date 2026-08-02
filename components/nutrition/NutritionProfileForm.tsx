@@ -19,6 +19,8 @@ import {
   VARIETY_PREFERENCES,
 } from "@/lib/nutrition/options";
 import { HelpTip } from "@/components/ui/HelpTip";
+import { Select } from "@/components/ui/Select";
+import { JourneySuccess } from "@/components/nutrition/NutritionJourney";
 
 function toggleInList(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -78,35 +80,21 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
 
   return (
     <form className="surface-card space-y-5 p-5" onSubmit={handleSubmit}>
-      <label className="block text-sm">
-        Objetivo
-        <select
-          className="field-input mt-1"
-          value={draft.goal}
-          onChange={(e) => setDraft({ ...draft, goal: e.target.value as NutritionProfile["goal"] })}
-        >
-          {NUTRITION_GOALS.map((g) => (
-            <option key={g.value} value={g.value}>
-              {g.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        label="Objetivo"
+        value={draft.goal}
+        options={NUTRITION_GOALS}
+        onChange={(value) => setDraft({ ...draft, goal: value as NutritionProfile["goal"] })}
+      />
 
-      <label className="block text-sm">
-        Estilo alimentar
-        <select
-          className="field-input mt-1"
-          value={draft.dietStyle}
-          onChange={(e) => setDraft({ ...draft, dietStyle: e.target.value as NutritionProfile["dietStyle"] })}
-        >
-          {DIET_STYLES.map((d) => (
-            <option key={d.value} value={d.value}>
-              {d.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        label="Estilo alimentar"
+        value={draft.dietStyle}
+        options={DIET_STYLES}
+        onChange={(value) =>
+          setDraft({ ...draft, dietStyle: value as NutritionProfile["dietStyle"] })
+        }
+      />
 
       <div className="text-sm">
         <p className="mb-1.5">Alergias / intolerâncias</p>
@@ -115,7 +103,9 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
             <button
               type="button"
               key={allergen}
-              onClick={() => setDraft({ ...draft, allergies: toggleInList(draft.allergies, allergen) })}
+              onClick={() =>
+                setDraft({ ...draft, allergies: toggleInList(draft.allergies, allergen) })
+              }
               className={`rounded-full px-3 py-1 text-xs transition ${
                 draft.allergies.includes(allergen)
                   ? "bg-rose-500/20 text-rose-300"
@@ -181,44 +171,36 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
         Incluir um lanche por dia
       </label>
 
-      <div className="grid grid-cols-2 gap-4">
-        <label className="block text-sm">
-          Orçamento
-          <select
-            className="field-input mt-1"
-            value={draft.budgetPreference}
-            onChange={(e) => setDraft({ ...draft, budgetPreference: e.target.value as NutritionProfile["budgetPreference"] })}
-          >
-            {BUDGET_PREFERENCES.map((b) => (
-              <option key={b.value} value={b.value}>
-                {b.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          Variedade desejada
-          <select
-            className="field-input mt-1"
-            value={draft.varietyPreference}
-            onChange={(e) => setDraft({ ...draft, varietyPreference: e.target.value as NutritionProfile["varietyPreference"] })}
-          >
-            {VARIETY_PREFERENCES.map((v) => (
-              <option key={v.value} value={v.value}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Select
+          label="Orçamento"
+          value={draft.budgetPreference}
+          options={BUDGET_PREFERENCES}
+          onChange={(value) =>
+            setDraft({ ...draft, budgetPreference: value as NutritionProfile["budgetPreference"] })
+          }
+        />
+        <Select
+          label="Variedade desejada"
+          value={draft.varietyPreference}
+          options={VARIETY_PREFERENCES}
+          onChange={(value) =>
+            setDraft({
+              ...draft,
+              varietyPreference: value as NutritionProfile["varietyPreference"],
+            })
+          }
+        />
       </div>
 
       <div className="border-t border-white/[0.06] pt-4">
         <p className="mb-2 flex items-center gap-1.5 text-sm text-neutral-400">
           Alvos de macros (opcional — deixa em branco para uma estimativa do sistema)
           <HelpTip heading="Estimativa de macros">
-            Se deixares em branco, o Rebuild calcula uma estimativa aproximada de calorias/proteína/hidratos/
-            gordura com base no teu objetivo e nas receitas planeadas. Não substitui indicação de um
-            profissional de saúde — preenche os campos se já tiveres valores indicados por um.
+            Se deixares em branco, o Rebuild calcula uma estimativa aproximada de
+            calorias/proteína/hidratos/ gordura com base no teu objetivo e nas receitas planeadas.
+            Não substitui indicação de um profissional de saúde — preenche os campos se já tiveres
+            valores indicados por um.
           </HelpTip>
         </p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -237,7 +219,12 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
                 min={0}
                 className="field-input mt-1"
                 value={draft[field] ?? ""}
-                onChange={(e) => setDraft({ ...draft, [field]: e.target.value === "" ? null : Number(e.target.value) })}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    [field]: e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
               />
             </label>
           ))}
@@ -245,11 +232,17 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
-      {saved && <p className="text-sm text-emerald-400">Perfil guardado.</p>}
 
       <button type="submit" className="btn-primary w-full" disabled={saving}>
         {saving ? "A guardar..." : "Guardar perfil"}
       </button>
+
+      {saved && (
+        <JourneySuccess href="/nutrition#pantry" action="Continuar para a despensa">
+          Boa — o perfil está preparado. O Rebuild já consegue adaptar as refeições aos teus
+          objetivos.
+        </JourneySuccess>
+      )}
     </form>
   );
 }

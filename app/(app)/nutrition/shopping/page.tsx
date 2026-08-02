@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrCreateOpenShoppingList, listShoppingItems } from "@/lib/pantry/queries";
 import { ShoppingList } from "@/components/nutrition/ShoppingList";
 import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
+import { NutritionBackLink } from "@/components/nutrition/NutritionJourney";
 
 export default async function ShoppingPage() {
   const supabase = await createSupabaseServerClient();
@@ -29,14 +30,17 @@ export default async function ShoppingPage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <NutritionBackLink />
       <div>
         <p className="text-sm uppercase tracking-wide text-neutral-400">Alimentação</p>
         <h1 className="text-2xl font-semibold tracking-tight">Lista de compras</h1>
-        <p className="mt-1 text-sm text-neutral-400">Marcar como comprado adiciona automaticamente à despensa.</p>
+        <p className="mt-1 text-sm text-neutral-400">
+          Marcar como comprado adiciona automaticamente à despensa.
+        </p>
       </div>
       <FirstUseCallout id="shopping-list">
-        Adiciona itens à mão, ou deixa o Coach adicionar quando sugerir algo que falta. Marcar &quot;Comprado&quot;
-        soma automaticamente o item à despensa.
+        Adiciona itens à mão, ou deixa o Coach adicionar quando sugerir algo que falta. Marcar
+        &quot;Comprado&quot; soma automaticamente o item à despensa.
       </FirstUseCallout>
       <ShoppingList initialItems={items} />
     </main>

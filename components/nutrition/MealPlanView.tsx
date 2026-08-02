@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, RefreshCw, ShoppingCart, SkipForward } from "lucide-react";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition/options";
+import { JourneySuccess } from "@/components/nutrition/NutritionJourney";
 
 interface PlanItemView {
   id: string;
@@ -64,6 +65,7 @@ export function MealPlanView({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [shoppingReady, setShoppingReady] = useState(false);
 
   const byDate = new Map<string, PlanItemView[]>();
   for (const item of items) {
@@ -82,7 +84,9 @@ export function MealPlanView({
       const data = await response.json();
       if (!response.ok) throw new Error();
       if (data.limitedVariety) {
-        setNotice("A biblioteca de receitas é pequena para todas as tuas preferências — algumas refeições repetem-se.");
+        setNotice(
+          "A biblioteca de receitas é pequena para todas as tuas preferências — algumas refeições repetem-se."
+        );
       }
       router.refresh();
     } catch {
@@ -139,7 +143,9 @@ export function MealPlanView({
     try {
       const response = await fetch("/api/nutrition/plan/shopping-list", { method: "POST" });
       if (!response.ok) throw new Error();
-      setNotice("Lista de compras gerada — vê em Alimentação > Lista de compras.");
+      setNotice("Lista de compras gerada com o que falta para o plano.");
+      setShoppingReady(true);
+      router.refresh();
     } catch {
       setError("Não foi possível gerar a lista de compras.");
     } finally {
@@ -151,16 +157,22 @@ export function MealPlanView({
     <div className="space-y-5">
       <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="text-sm font-medium text-neutral-100">{hasPlan ? "Plano desta semana" : "Ainda sem plano esta semana"}</p>
+          <p className="text-sm font-medium text-neutral-100">
+            {hasPlan ? "Plano desta semana" : "Ainda sem plano esta semana"}
+          </p>
           {weekAverage && (
             <p className="text-xs text-neutral-400">
-              Média diária estimada: ≈{weekAverage.calories} kcal · {weekAverage.proteinG}g proteína · {weekAverage.carbsG}g
-              hidratos · {weekAverage.fatG}g gordura
+              Média diária estimada: ≈{weekAverage.calories} kcal · {weekAverage.proteinG}g proteína
+              · {weekAverage.carbsG}g hidratos · {weekAverage.fatG}g gordura
             </p>
           )}
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs" onClick={generatePlan} disabled={busy === "generate"}>
+          <button
+            className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs"
+            onClick={generatePlan}
+            disabled={busy === "generate"}
+          >
             <RefreshCw size={13} /> {hasPlan ? "Regenerar" : "Gerar plano"}
           </button>
           {hasPlan && (
@@ -180,18 +192,25 @@ export function MealPlanView({
 
       {dates.length === 0 && (
         <div className="surface-card p-5 text-sm text-neutral-400">
-          Preenche o <a href="/nutrition/profile" className="text-emerald-400 underline">perfil de alimentação</a> e gera o
-          plano da semana.
+          Preenche o{" "}
+          <a href="/nutrition/profile" className="text-emerald-400 underline">
+            perfil de alimentação
+          </a>{" "}
+          e gera o plano da semana.
         </div>
       )}
 
       {dates.map((dateKey) => {
-        const dayItems = (byDate.get(dateKey) ?? []).sort((a, b) => SLOT_ORDER.indexOf(a.mealSlot) - SLOT_ORDER.indexOf(b.mealSlot));
+        const dayItems = (byDate.get(dateKey) ?? []).sort(
+          (a, b) => SLOT_ORDER.indexOf(a.mealSlot) - SLOT_ORDER.indexOf(b.mealSlot)
+        );
         const macro = dailyMacros.find((m) => m.date === dateKey);
         return (
           <div key={dateKey} className="surface-card p-4">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium capitalize text-neutral-200">{formatDay(dateKey)}</p>
+              <p className="text-sm font-medium capitalize text-neutral-200">
+                {formatDay(dateKey)}
+              </p>
               {macro && (
                 <p className="text-xs text-neutral-400">
                   ≈{macro.calories} kcal · {macro.proteinG}g P · {macro.carbsG}g H · {macro.fatG}g G
@@ -200,10 +219,17 @@ export function MealPlanView({
             </div>
             <div className="space-y-2">
               {dayItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] p-3">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] p-3"
+                >
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-neutral-400">{MEAL_TYPE_LABELS[item.mealSlot]}</p>
-                    <p className={`truncate text-sm ${item.status === "skipped" ? "text-neutral-400 line-through" : "text-neutral-100"}`}>
+                    <p className="text-xs uppercase tracking-wide text-neutral-400">
+                      {MEAL_TYPE_LABELS[item.mealSlot]}
+                    </p>
+                    <p
+                      className={`truncate text-sm ${item.status === "skipped" ? "text-neutral-400 line-through" : "text-neutral-100"}`}
+                    >
                       {item.recipe?.name ?? "Sem sugestão disponível"}
                     </p>
                     {item.recipe && (
@@ -246,6 +272,29 @@ export function MealPlanView({
           </div>
         );
       })}
+
+      {hasPlan && !shoppingReady && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.07] p-4">
+          <p className="text-sm text-emerald-100">
+            Boa — a semana está planeada. Falta apenas transformar o plano numa lista sem compras
+            desnecessárias.
+          </p>
+          <button
+            className="btn-primary mt-3"
+            onClick={generateShoppingList}
+            disabled={busy === "shopping-list"}
+          >
+            <ShoppingCart size={15} /> Gerar lista e continuar
+          </button>
+        </div>
+      )}
+
+      {shoppingReady && (
+        <JourneySuccess href="/nutrition#shopping" action="Rever a lista de compras">
+          Perfeito — o Rebuild comparou o plano com a despensa e preparou apenas o que falta
+          comprar.
+        </JourneySuccess>
+      )}
     </div>
   );
 }

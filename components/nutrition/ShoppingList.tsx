@@ -43,7 +43,9 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
       if (!response.ok) throw new Error();
       setItems((current) => current.map((i) => (i.id === id ? data.item : i)));
     } catch {
-      setError("Não foi possível marcar como comprado. Este item passa a existir na despensa quando conseguires.");
+      setError(
+        "Não foi possível marcar como comprado. Este item passa a existir na despensa quando conseguires."
+      );
     } finally {
       setBusyId(null);
     }
@@ -89,7 +91,9 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
 
       <div className="space-y-2">
         {pending.length === 0 && purchased.length === 0 && (
-          <p className="surface-card p-4 text-sm text-neutral-400">Lista vazia. Adiciona o primeiro item acima.</p>
+          <p className="surface-card p-4 text-sm text-neutral-400">
+            Lista vazia. Adiciona o primeiro item acima.
+          </p>
         )}
         {pending.length === 0 && purchased.length > 0 && (
           <p className="surface-card p-4 text-sm text-neutral-400">
@@ -105,7 +109,11 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <button disabled={busyId === item.id} onClick={() => markPurchased(item.id)} className="btn-primary gap-1.5 px-3 py-1.5 text-xs">
+              <button
+                disabled={busyId === item.id}
+                onClick={() => markPurchased(item.id)}
+                className="btn-primary gap-1.5 px-3 py-1.5 text-xs"
+              >
                 <Check size={13} /> Comprado
               </button>
               <button
@@ -125,7 +133,10 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-neutral-400">Já comprados</p>
           {purchased.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] px-3.5 py-2.5 opacity-60">
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] px-3.5 py-2.5 opacity-60"
+            >
               <p className="truncate text-sm text-neutral-400 line-through">{item.name}</p>
               <button
                 aria-label="Remover item"
@@ -136,6 +147,13 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {items.length > 0 && pending.length === 0 && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.07] p-4 text-sm text-emerald-100">
+          Boa — compras tratadas. A despensa foi atualizada e a tua semana ficou mais simples de
+          executar.
         </div>
       )}
     </div>
