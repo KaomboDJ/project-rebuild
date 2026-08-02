@@ -309,6 +309,14 @@ The CI Playwright/Axe skip remains documented accurately and should later be
 replaced with a dedicated non-production Supabase E2E environment, not a
 production service-role secret.
 
+**Released to production**: PR #6 was marked ready after the authenticated
+Preview walkthrough and merged into `main` through a standard, non-force merge
+commit `6111eea` on 2026-08-02. Vercel deployed the merge successfully. A
+read-only authenticated smoke test at `https://project-rebuild-chi.vercel.app`
+confirmed the new continuous Nutrition journey on desktop and at 390x844, the
+dark objective listbox opening and closing with Escape, and the Pantry progress
+link resolving to `/nutrition#pantry`. No founder nutrition data was changed.
+
 Validated in an isolated sandbox copy: typecheck clean, lint clean (`✔ No ESLint warnings or errors`), full suite 247/247 passing. Production build hits only the same pre-existing, sandbox-network-only Google Fonts restriction seen in Milestones 11B–11D (`Failed to fetch font 'Inter' from Google Fonts`) — not caused by this milestone's code.
 
 ## Milestone 13 — Automation and continuous synchronization
