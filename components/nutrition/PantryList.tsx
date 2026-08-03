@@ -7,7 +7,7 @@
 // the one physically doing the action, not a proposal from the model.
 
 import { useState } from "react";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, X } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import { JourneySuccess } from "@/components/nutrition/NutritionJourney";
 
@@ -41,6 +41,8 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
   const [newName, setNewName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   async function adjustQuantity(
     item: PantryItem,
@@ -78,6 +80,21 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
       setError("Não foi possível remover. Tenta novamente.");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function clearFinished() {
+    setClearing(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/pantry/clear-finished", { method: "POST" });
+      if (!response.ok) throw new Error();
+      setItems((current) => current.filter((item) => Number(item.quantity) > 0));
+    } catch {
+      setError("Não foi possível limpar os itens esgotados.");
+    } finally {
+      setClearing(false);
+      setConfirmingClear(false);
     }
   }
 
@@ -120,6 +137,26 @@ export function PantryList({ initialItems }: { initialItems: PantryItem[] }) {
       </form>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
+
+      {items.some((item) => Number(item.quantity) === 0) && (
+        <div className="flex items-center justify-end gap-2">
+          {confirmingClear ? (
+            <>
+              <span className="text-xs text-neutral-400">Remover todos os itens esgotados?</span>
+              <button disabled={clearing} className="btn-secondary px-2.5 py-1 text-xs" onClick={clearFinished}>
+                Confirmar
+              </button>
+              <button className="btn-ghost h-7 w-7 p-0" onClick={() => setConfirmingClear(false)}>
+                <X size={13} />
+              </button>
+            </>
+          ) : (
+            <button className="btn-ghost px-2.5 py-1 text-xs text-neutral-400" onClick={() => setConfirmingClear(true)}>
+              Limpar itens esgotados
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2">
         {items.length === 0 && (

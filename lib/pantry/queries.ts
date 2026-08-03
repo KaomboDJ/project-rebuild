@@ -49,6 +49,23 @@ export async function deletePantryItem(supabase: Supabase, userId: string, id: s
   if (error) throw new Error(error.message);
 }
 
+/** Bulk "Limpar itens esgotados" — removes every pantry item currently at
+ * quantity 0 (i.e. already marked "Terminou") for this user. Previously
+ * the only way to clear these was one Trash2 click per item; a founder (or
+ * a testing session) who added a throwaway item and consumed it down to 0
+ * had no quick way to remove it, which is how a stray "bananas" row ended
+ * up sitting in a real account indefinitely. Returns the number removed. */
+export async function deleteFinishedPantryItems(supabase: Supabase, userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("pantry_items")
+    .delete()
+    .eq("user_id", userId)
+    .eq("quantity", 0)
+    .select("id");
+  if (error) throw new Error(error.message);
+  return data?.length ?? 0;
+}
+
 /** −1/+1/Consumido/Terminou/Ajustar-quantidade quick actions (Part 2). All
  * routed through the apply_inventory_event RPC so pantry_items.quantity
  * and the inventory_events ledger never drift apart. */
@@ -125,6 +142,23 @@ export async function addShoppingItem(
 export async function deleteShoppingItem(supabase: Supabase, userId: string, id: string): Promise<void> {
   const { error } = await supabase.from("shopping_list_items").delete().eq("id", id).eq("user_id", userId);
   if (error) throw new Error(error.message);
+}
+
+/** Bulk "Limpar comprados" — removes every item already marked purchased
+ * on this list. The purchased section only ever grew (one Trash2 click per
+ * item was the only way to shrink it), which is how items like "Amêndoas"
+ * can sit there indefinitely after the founder has already bought them.
+ * Returns the number removed. */
+export async function deletePurchasedShoppingItems(supabase: Supabase, userId: string, listId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("shopping_list_items")
+    .delete()
+    .eq("user_id", userId)
+    .eq("shopping_list_id", listId)
+    .eq("purchased", true)
+    .select("id");
+  if (error) throw new Error(error.message);
+  return data?.length ?? 0;
 }
 
 /** Idempotent purchase → pantry flow (Part 2). Wraps the

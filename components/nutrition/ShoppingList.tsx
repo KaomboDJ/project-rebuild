@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ShoppingListItem = Database["public"]["Tables"]["shopping_list_items"]["Row"];
@@ -11,6 +11,23 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
   const [newName, setNewName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  async function clearPurchased() {
+    setClearing(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/shopping/clear-purchased", { method: "POST" });
+      if (!response.ok) throw new Error();
+      setItems((current) => current.filter((item) => !item.purchased));
+    } catch {
+      setError("Não foi possível limpar os itens comprados.");
+    } finally {
+      setClearing(false);
+      setConfirmingClear(false);
+    }
+  }
 
   async function addItem() {
     const name = newName.trim();
@@ -131,7 +148,24 @@ export function ShoppingList({ initialItems }: { initialItems: ShoppingListItem[
 
       {purchased.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-neutral-400">Já comprados</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-wide text-neutral-400">Já comprados</p>
+            {confirmingClear ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-400">Remover todos?</span>
+                <button disabled={clearing} className="btn-secondary px-2.5 py-1 text-xs" onClick={clearPurchased}>
+                  Confirmar
+                </button>
+                <button className="btn-ghost h-7 w-7 p-0" onClick={() => setConfirmingClear(false)}>
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <button className="btn-ghost px-2.5 py-1 text-xs text-neutral-400" onClick={() => setConfirmingClear(true)}>
+                Limpar comprados
+              </button>
+            )}
+          </div>
           {purchased.map((item) => (
             <div
               key={item.id}
