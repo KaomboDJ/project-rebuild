@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { estimateDailyMacros, averageDailyMacros } from "./macros";
 import { aggregateIngredients, subtractPantryStock } from "./shopping";
+import { explainMealChoice } from "./reasoning";
 import type {
   NutritionProfile,
   PlannedMealSlot,
@@ -85,6 +86,23 @@ export async function hasNutritionProfile(supabase: Supabase, userId: string): P
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data !== null;
+}
+
+/** Founder's weekly training days, sourced from the decision-engine's
+ * `profiles.preferred_training_days` (the same signal
+ * lib/decision-engine/context-builder.ts reads for the daily decision
+ * engine) rather than duplicating the field onto `nutrition_profiles` -
+ * lowercase day names ("monday", ...). Falls back to the same default as
+ * lib/decision-engine/context-builder.ts's DEFAULT_PROFILE for a founder
+ * who hasn't completed onboarding yet, so the nutrition planner's
+ * training-day preference has a sensible answer from day one. */
+export async function getPreferredTrainingDays(supabase: Supabase, userId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("preferred_training_days")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.preferred_training_days ?? ["monday", "wednesday", "friday"];
 }
 
 export async function upsertNutritionProfile(
@@ -427,6 +445,11 @@ export interface PlanItemView {
     glycemicNote: string;
     instructions: string;
   } | null;
+  /** "Porquê esta refeição?" plain-language sentences (lib/nutrition/
+   * reasoning.ts's explainMealChoice) — empty when the caller didn't
+   * supply a reasoningContext to toPlanResponse (e.g. Coach tool calls
+   * that don't render this UI), never a placeholder/invented explanation. */
+  reason: string[];
 }
 
 export interface PlanResponse {
@@ -442,7 +465,13 @@ export interface PlanResponse {
  * response shape never drifts between the two. */
 export async function toPlanResponse(
   supabase: Supabase,
-  planWithItems: MealPlanWithItems | null
+  planWithItems: MealPlanWithItems | null,
+  /** When supplied, each item's `reason` is computed via
+   * lib/nutrition/reasoning.ts's explainMealChoice against this profile and
+   * the founder's weekly training days (see getPreferredTrainingDays
+   * above). Optional so existing callers (Coach tool calls, the nutrition
+   * dashboard summary) keep working unchanged with an empty `reason`. */
+  reasoningContext?: { profile: NutritionProfile; trainingDaysOfWeek: string[] }
 ): Promise<PlanResponse> {
   if (!planWithItems) return { plan: null, items: [], dailyMacros: [], weekAverage: null };
 
@@ -472,6 +501,16 @@ export async function toPlanResponse(
             instructions: recipe.instructions,
           }
         : null,
+      reason:
+        recipe && reasoningContext
+          ? explainMealChoice({
+              recipe,
+              mealSlot: row.meal_slot,
+              dayDate: row.day_date,
+              profile: reasoningContext.profile,
+              trainingDaysOfWeek: reasoningContext.trainingDaysOfWeek,
+            })
+          : [],
     };
   });
 

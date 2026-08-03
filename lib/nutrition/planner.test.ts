@@ -147,6 +147,59 @@ describe("generateWeekPlan", () => {
     expect(new Set(result.items.map((item) => item.mealSlot))).toEqual(new Set(["lunch", "dinner"]));
   });
 
+  it("prefers the higher-protein candidate for dinner on a flagged training day", () => {
+    const recipes = [
+      recipe({ id: "a-low-protein", mealType: "dinner", proteinGPerServing: 10 }),
+      recipe({ id: "b-high-protein", mealType: "dinner", proteinGPerServing: 40 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    // 2026-08-03 is a Monday.
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("b-high-protein");
+  });
+
+  it("does not apply the protein preference on a day that isn't flagged as a training day", () => {
+    const recipes = [
+      recipe({ id: "a-low-protein", mealType: "dinner", proteinGPerServing: 10 }),
+      recipe({ id: "b-high-protein", mealType: "dinner", proteinGPerServing: 40 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    // 2026-08-03 is a Monday, 2026-08-04 is a Tuesday - only Monday is flagged.
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+    });
+    const tuesdayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-04");
+    expect(tuesdayDinner?.recipeId).toBe("a-low-protein");
+  });
+
+  it("does not apply the protein preference to breakfast, even on a training day", () => {
+    const recipes = [
+      recipe({ id: "a-low-protein", mealType: "breakfast", proteinGPerServing: 10 }),
+      recipe({ id: "b-high-protein", mealType: "breakfast", proteinGPerServing: 40 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      ...DINNER_RECIPES,
+    ];
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+    });
+    const mondayBreakfast = result.items.find((i) => i.mealSlot === "breakfast" && i.dayDate === "2026-08-03");
+    expect(mondayBreakfast?.recipeId).toBe("a-low-protein");
+  });
+
   it("limits simple rotation to two recipes per slot", () => {
     const recipes = [
       ...DINNER_RECIPES,

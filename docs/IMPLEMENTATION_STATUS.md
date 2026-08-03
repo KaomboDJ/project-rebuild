@@ -432,3 +432,79 @@ restriction, unrelated to these changes. The new e2e specs (one added to
 `e2e/home-decisions.spec.ts`, plus `e2e/account-reset.spec.ts`) were not
 executed here — Playwright's Chromium download is blocked by this
 sandbox's network allowlist — but will run in CI.
+
+## Shopping-list fix, workout-type catalog, and meal-choice reasoning (2026-08-03)
+
+Following another live walkthrough, the founder reported the "Lista de
+compras" button on `/nutrition/plan` failing with "Não foi possível gerar a
+lista de compras.". Root cause: `202608030003_nutrition_completion.sql`'s
+`shopping_lists_meal_plan_id_unique` was a **partial** unique index (`where
+meal_plan_id is not null`), but `lib/nutrition/queries.ts`'s
+`generateShoppingListForPlan` calls `.upsert(..., { onConflict:
+"meal_plan_id" })`, which always emits a plain `ON CONFLICT (meal_plan_id)`
+— Postgres can only infer a partial index as an `ON CONFLICT` arbiter when
+the clause repeats the same `WHERE` predicate, which supabase-js's
+`upsert()` has no way to express. Fixed via
+`202608030004_fix_shopping_list_upsert_conflict.sql`, replacing the partial
+index with a plain `UNIQUE` constraint (identical real-world semantics: a
+plain unique constraint already permits unlimited `NULL`s under standard
+SQL). **This migration is committed but not yet applied to production** —
+this sandbox cannot reach `*.supabase.co` (DNS blocked); the founder needs
+to run it via the Supabase SQL editor.
+
+The founder also asked for two things: (1) plain-language, nutritionist-style
+explanations for why each meal in the weekly plan was chosen, written for
+someone who doesn't know what "macros" means; and (2) a workout-type
+picker (Natação, Musculação, Jiu-jitsu, Yoga, Insanity, P90X, MMA,
+Parkour, ...) so the nutrition plan can differ on days with different
+training styles. Clarified with the founder: the workout choice should be
+settable both as a weekly default and as a same-day override, and macros
+should react both in advance (weekly plan) and same-day. Given the size of
+that full request, it's being built in stages:
+
+- **`lib/nutrition/workout-types.ts`** (done): a fixed catalog of 16 named
+  workout styles, each tagged with one or two training-style categories
+  (`cardio` / `forca_hipertrofia` / `calistenia` / `mental_relaxamento`),
+  paired with a plain-language, deliberately qualitative (not a numeric
+  macro multiplier) guidance paragraph per category —
+  `describeWorkoutMacroGuidance(workoutTypeId)`. Not yet wired into any
+  UI or the planner; this stage only builds the reusable catalog. 7 tests.
+- **`lib/nutrition/planner.ts`** (done): `generateWeekPlan` now accepts an
+  optional `trainingDaysOfWeek` (the founder's weekly training days,
+  already stored on `profiles.preferred_training_days` for the decision
+  engine — reused here rather than duplicated onto `nutrition_profiles`).
+  On a flagged training day, lunch and dinner softly prefer the
+  higher-protein candidate among the same safety-filtered pool (never a
+  hard filter — variety/relaxation rules still apply exactly as before).
+  This is intentionally the narrower, already-real "is today a training
+  day" signal — not yet the richer named-workout-type-per-day granularity
+  from `workout-types.ts` (that's `#115`/`#116` below).
+- **`lib/nutrition/reasoning.ts`** (done, new): `explainMealChoice` builds
+  the "Porquê esta refeição?" sentences for one planned meal, grounded
+  only in facts that are actually true of that recipe/profile/day — the
+  training-day protein sentence only appears for lunch/dinner on a day
+  actually flagged in `trainingDaysOfWeek` (matching exactly what the
+  planner's soft-sort does), plus a goal-linked sentence, diet-style/
+  allergy-safety notes when relevant, and a prep-time note when the recipe
+  fits the founder's usual cooking-time budget. Rendered as a
+  `DecisionEngineCard`-style collapsible "Porquê esta refeição?" block per
+  meal in `components/nutrition/MealPlanView.tsx`. Wired via a new
+  `getPreferredTrainingDays` query and an optional `reasoningContext`
+  param on `toPlanResponse`, threaded through both the GET/POST handlers
+  in `app/api/nutrition/plan/route.ts` and the Coach's `generate_week_plan`
+  tool in `lib/coach/tools.ts`. 10 tests (`reasoning.test.ts`) plus 3 new
+  `planner.test.ts` cases for the protein-preference sort.
+
+Still pending, tracked separately: `#115` (a full weekly training-day-by-
+day-of-week schedule on the nutrition profile, using the richer
+`workout-types.ts` catalog instead of just "training day yes/no"), `#116`
+(wiring each day's specific workout category into that day's macro
+targets/preferences, not just a protein nudge), and `#117` (a same-day
+override on the Início/Hoje training decision, so a same-day change to
+what's actually being trained updates that day's remaining nutrition
+guidance too, per the founder's "both weekly and same-day" answer).
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (413/413, +20 new vs. the previous
+393 baseline). `next build` still only fails on the same pre-existing
+Google-Fonts sandbox-network restriction, unrelated to these changes.

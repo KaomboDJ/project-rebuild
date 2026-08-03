@@ -11,6 +11,7 @@
 // refinement layer.
 
 import type { DietStyle, MealType, NutritionProfile, PlannedMealSlot, Recipe, WeekPlanResult } from "./types";
+import { dayOfWeek, isMainMeal } from "./reasoning";
 
 const BUDGET_RANK: Record<string, number> = { low: 0, medium: 1, high: 2 };
 
@@ -108,8 +109,16 @@ export function generateWeekPlan(params: {
   profile: NutritionProfile;
   recipes: Recipe[];
   carryOverRecipeIds?: Partial<Record<MealType, string[]>>;
+  /** Founder's weekly training days (e.g. from the decision-engine
+   * profile's `preferredTrainingDays` / `profiles.preferred_training_days`)
+   * — day names lowercase ("monday", ...). On these days, lunch and dinner
+   * softly prefer higher-protein candidates (never a hard filter, so
+   * variety/relaxation rules above still apply) - see the day loop below
+   * and lib/nutrition/reasoning.ts's explainMealChoice, which describes
+   * exactly this behaviour and nothing more. */
+  trainingDaysOfWeek?: string[];
 }): WeekPlanResult {
-  const { weekStart, profile, recipes, carryOverRecipeIds = {} } = params;
+  const { weekStart, profile, recipes, carryOverRecipeIds = {}, trainingDaysOfWeek = [] } = params;
   const slots = activeSlots(profile);
   const window = profile.preferredPlanMode === "simple-rotation"
     ? 1
@@ -145,12 +154,24 @@ export function generateWeekPlan(params: {
     for (let day = 0; day < 7; day++) {
       const dayDate = addDays(weekStart, day);
 
-      let pick = candidates.find((r) => !recentlyUsed.slice(-window).includes(r.id));
+      // Training-day protein preference (founder request, 2026-08-03): on a
+      // flagged training day, lunch/dinner sort higher-protein candidates
+      // first before applying the same variety exclusion as any other day
+      // — a soft preference, not a hard filter, so it never removes a
+      // candidate the founder would otherwise have had. explainMealChoice
+      // in lib/nutrition/reasoning.ts describes exactly this condition, so
+      // keep the two in sync if this ever changes.
+      const preferProtein = isMainMeal(mealSlot) && trainingDaysOfWeek.includes(dayOfWeek(dayDate));
+      const orderedCandidates = preferProtein
+        ? [...candidates].sort((a, b) => b.proteinGPerServing - a.proteinGPerServing)
+        : candidates;
+
+      let pick = orderedCandidates.find((r) => !recentlyUsed.slice(-window).includes(r.id));
       if (!pick) {
         // Pool smaller than the variety window — reuse is unavoidable.
         // Fall back to a stable round-robin so at least it's not the same
         // recipe two days running when 2+ candidates exist.
-        pick = candidates[cursor % candidates.length];
+        pick = orderedCandidates[cursor % orderedCandidates.length];
         limitedVariety = true;
       }
       cursor++;

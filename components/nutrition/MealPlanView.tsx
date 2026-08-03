@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ChefHat, RefreshCw, ShoppingCart, SkipForward } from "lucide-react";
+import { CheckCircle2, ChefHat, ChevronDown, RefreshCw, ShoppingCart, SkipForward } from "lucide-react";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition/options";
 import { JourneySuccess } from "@/components/nutrition/NutritionJourney";
 import { buildBatchPrepPlan } from "@/lib/nutrition/batch-prep";
@@ -30,6 +30,10 @@ interface PlanItemView {
     glycemicNote: string;
     instructions: string;
   } | null;
+  /** "Porquê esta refeição?" plain-language sentences — see
+   * lib/nutrition/reasoning.ts's explainMealChoice. Empty when the server
+   * didn't have profile/training-day context to compute it. */
+  reason: string[];
 }
 
 interface DailyMacro {
@@ -280,6 +284,19 @@ export function MealPlanView({
                         ≈{item.recipe.caloriesPerServing} kcal · {item.recipe.prepMinutes} min
                         {item.status === "eaten" ? " · feito" : ""}
                       </p>
+                    )}
+                    {item.recipe && item.reason.length > 0 && (
+                      <details className="mt-1.5 text-xs text-neutral-400">
+                        <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-neutral-400 hover:text-neutral-300">
+                          <ChevronDown size={11} />
+                          Porquê esta refeição?
+                        </summary>
+                        <div className="mt-1.5 space-y-1 rounded-lg bg-white/[0.03] p-2.5 text-neutral-400">
+                          {item.reason.map((sentence, index) => (
+                            <p key={index}>{sentence}</p>
+                          ))}
+                        </div>
+                      </details>
                     )}
                   </div>
                   {item.status === "planned" && item.recipe && (

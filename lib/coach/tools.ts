@@ -12,6 +12,7 @@ import { generateWeekPlan, suggestReplacement } from "@/lib/nutrition/planner";
 import {
   completeMealPlanItem,
   getNutritionProfile,
+  getPreferredTrainingDays,
   getWeekPlan,
   listRecipesWithIngredients,
   replaceMealPlanItem,
@@ -452,11 +453,14 @@ export async function executeMutatingTool(
   if (name === "generate_week_plan") {
     const { date } = await getFounderNow(supabase, userId);
     const weekStart = getWeekRange(date).start;
-    const profile = await getNutritionProfile(supabase, userId);
-    const recipes = await listRecipesWithIngredients(supabase);
-    const result = generateWeekPlan({ weekStart, profile, recipes });
+    const [profile, recipes, trainingDaysOfWeek] = await Promise.all([
+      getNutritionProfile(supabase, userId),
+      listRecipesWithIngredients(supabase),
+      getPreferredTrainingDays(supabase, userId),
+    ]);
+    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek });
     const planWithItems = await saveWeekPlan(supabase, userId, result);
-    const response = await toPlanResponse(supabase, planWithItems);
+    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek });
     return { weekStart, limitedVariety: result.limitedVariety, ...response };
   }
 
