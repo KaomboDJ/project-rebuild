@@ -31,4 +31,22 @@ test.describe("Home planning and Decisions execution (@functional-only)", () => 
     await expect(page.getByRole("button", { name: "Programar o meu dia" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /planear no início|rever e confirmar|ver plano completo/i })).toBeVisible();
   });
+
+  test("Hoje shows an already-generated plan without the check-in gate", async ({ page }) => {
+    // Regression for the live bug found in a founder walkthrough: Início
+    // and Hoje disagreed about whether today was planned because Hoje
+    // gated its *entire* workspace behind hasCheckIn, ignoring decisions
+    // that already existed (e.g. from the overnight cron). Generating
+    // decisions first (as the cron would) and visiting /today with no
+    // check-in yet must show the real plan, not the blocking check-in
+    // screen - and submitting a check-in afterwards must never be forced
+    // just to see today's plan.
+    const generateResponse = await page.request.post("/api/decisions/generate");
+    expect(generateResponse.ok()).toBeTruthy();
+
+    await page.goto("/today");
+
+    await expect(page.getByText("O teu dia ainda não foi planeado.")).toHaveCount(0);
+    await expect(page.getByText("Ainda sem check-in hoje.")).toBeVisible();
+  });
 });
