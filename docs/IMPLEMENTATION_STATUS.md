@@ -383,3 +383,52 @@ Per the founder's standing full-roadmap authorization. Full design rationale: `d
 Explicitly not built (see `docs/15_LEARNING_PERSONALIZATION.md`'s closing section): any trained/learned model, persisted insight cache, cross-founder learning, or automatic muting — every adjustment is a plain capped formula over the founder's own rows, and muting is always an explicit founder action.
 
 Validated in an isolated sandbox copy: typecheck clean, lint clean, full suite passing (256 + 14 new `patterns.test.ts` + 5 new scorer/rules cases = 275). Production build hits the same pre-existing sandbox-network-only Google Fonts restriction, not caused by this milestone's code. Migration applied to production Supabase; committed on `milestone-14-learning-personalization`; push to `main` pending the same GitHub 2FA blocker as Milestones 12/13 (see the open item below).
+
+## Post-audit fixes and "Reiniciar conta de teste" (2026-08-03)
+
+Following a live, hands-on UX walkthrough of production (not just a code
+read), five findings were fixed on `fix/ux-audit-findings` and merged to
+`main`: free windows were never clipped to the founder's own wake/sleep
+hours (`lib/sleep/schedule.ts`'s new `clipFreeWindowsToWakingHours`, wired
+into every `computeFreeWindows` call site); an overdue or skipped decision
+rendered identically to an upcoming one on Início; a self-contradicting
+"Reportaste uma limitação física hoje (nenhuma)" sentence (`normalizePhysicalLimitation`
+in `lib/decision-engine/types.ts`); a nutrition step-tracker contradiction
+(`MealPlanView`'s empty state now takes `hasProfile`); and Início/Hoje
+disagreeing about whether today was planned, plus a silent regeneration
+drift on check-in resubmission — both traced to `CalendarWorkspace.tsx`
+gating its entire workspace behind `hasCheckIn` regardless of whether
+decisions already existed, and always calling `regenerate()` on check-in
+submit. Per the founder's explicit call, check-in submission now only ever
+records state; regeneration stays a separate, explicit action.
+
+Also added: bulk "Limpar itens esgotados" / "Limpar comprados" actions on
+the pantry and shopping list (`lib/pantry/queries.ts`'s
+`deleteFinishedPantryItems`/`deletePurchasedShoppingItems`), since a
+per-item Trash2 click was previously the only way to shrink either list.
+
+**"Reiniciar conta de teste"** (`app/api/account/reset/route.ts`,
+`lib/account/reset.ts`, `components/settings/ResetAccountSection.tsx`,
+shipped on `feat/reset-test-account`): a Settings danger-zone action the
+founder can use to walk through onboarding again as a first-time user
+without losing their login. Same security model as the existing account
+deletion route (session-scoped only, retype-the-account-email
+confirmation, checked server-side) but narrower in effect — it deletes
+every user-owned table (profiles, check-ins, decisions/decision_runs/
+decision_feedback, coach conversations/messages, pantry/shopping/nutrition/
+meal-plan data, `muted_rules`/`founder_notes`, push subscriptions and
+notification preferences/deliveries, and disconnects Google Calendar with
+best-effort token revocation) but leaves the `auth.users` row itself alone,
+so the founder stays signed in and lands on `/onboarding` once `profiles`
+is gone. `recipes`/`recipe_ingredients` are deliberately untouched (shared,
+non-user-owned catalog). Tested only against disposable Playwright-created
+accounts (`e2e/account-reset.spec.ts`), never the founder's own — the
+founder triggers it themselves from their real account when ready.
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (393/393, +16 new). `next build` still
+only fails on the same pre-existing Google-Fonts sandbox-network
+restriction, unrelated to these changes. The new e2e specs (one added to
+`e2e/home-decisions.spec.ts`, plus `e2e/account-reset.spec.ts`) were not
+executed here — Playwright's Chromium download is blocked by this
+sandbox's network allowlist — but will run in CI.

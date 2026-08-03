@@ -15,6 +15,7 @@ import { listMicrosoftConnections } from "@/lib/microsoft/calendar";
 import { isMicrosoftCalendarConfigured } from "@/lib/microsoft/oauth";
 import { ProfileEditForm } from "@/components/settings/ProfileEditForm";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
+import { ResetAccountSection } from "@/components/settings/ResetAccountSection";
 import { HelpTip } from "@/components/ui/HelpTip";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { listCalendarSources } from "@/lib/calendar-intelligence/sources";
@@ -361,7 +362,12 @@ export default async function SettingsPage({
         <a href="/api/account/export" className="btn-secondary inline-flex" download>
           Descarregar os meus dados
         </a>
-        {user?.email && <DeleteAccountSection email={user.email} />}
+        {user?.email && (
+          <div className="space-y-3">
+            <ResetAccountSection email={user.email} />
+            <DeleteAccountSection email={user.email} />
+          </div>
+        )}
       </section>
     </main>
   );
