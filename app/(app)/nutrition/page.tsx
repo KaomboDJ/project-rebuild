@@ -138,6 +138,7 @@ export default async function NutritionDashboardPage() {
           initialDailyMacros={planResponse.dailyMacros}
           initialWeekAverage={planResponse.weekAverage}
           hasPlan={weekPlan !== null}
+          hasProfile={journey.statuses.profile === "complete"}
         />
       </section>
 

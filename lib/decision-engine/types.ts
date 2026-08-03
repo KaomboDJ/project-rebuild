@@ -61,6 +61,41 @@ export interface DailyCheckIn {
   notes?: string;
 }
 
+/** Free-text "no limitation" answers the founder (or a testing session)
+ * might type into the optional physical-limitation field instead of
+ * leaving it blank. Every reader of `physicalLimitation` should go through
+ * `normalizePhysicalLimitation` below rather than testing truthiness
+ * directly, otherwise a literal "nenhuma" reads as a reported limitation
+ * and produces a self-contradicting sentence like "Reportaste uma
+ * limitação física hoje (nenhuma)" (seen live in Histórico) plus an
+ * incorrectly triggered "mobility instead of training" decision. */
+const NO_LIMITATION_PHRASES = new Set([
+  "nenhuma",
+  "nenhum",
+  "nao",
+  "não",
+  "n/a",
+  "na",
+  "sem",
+  "sem limitação",
+  "sem limitacao",
+  "none",
+  "no",
+  "-",
+]);
+
+/** Returns the reported limitation text, or `undefined` if it's empty or
+ * one of the common ways of saying "no limitation" (see
+ * NO_LIMITATION_PHRASES). Use this instead of a raw truthiness check
+ * anywhere `physicalLimitation` gates a rule or the operating-state
+ * derivation. */
+export function normalizePhysicalLimitation(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (NO_LIMITATION_PHRASES.has(trimmed.toLowerCase())) return undefined;
+  return trimmed;
+}
+
 export interface DecisionRecord {
   date: string; // "YYYY-MM-DD"
   domain: DecisionDomain;

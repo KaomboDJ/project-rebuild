@@ -3,14 +3,16 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { instantToLocalWallClockIso, zonedWallTimeToUtc } from "@/lib/date/timezone";
-import type {
-  CalendarEvent,
-  DailyCheckIn,
-  DailyContext,
-  DecisionRecord,
-  FreeWindow,
-  PantryItemSummary,
-  UserProfile,
+import { clipFreeWindowsToWakingHours, resolveSleepSchedule } from "@/lib/sleep/schedule";
+import {
+  normalizePhysicalLimitation,
+  type CalendarEvent,
+  type DailyCheckIn,
+  type DailyContext,
+  type DecisionRecord,
+  type FreeWindow,
+  type PantryItemSummary,
+  type UserProfile,
 } from "./types";
 
 /**
@@ -216,7 +218,7 @@ export async function buildDailyContext({
         sleepQuality: checkInRow.sleep_quality ?? undefined,
         energyLevel: checkInRow.energy_level ?? undefined,
         stressLevel: checkInRow.stress_level ?? undefined,
-        physicalLimitation: checkInRow.physical_limitation ?? undefined,
+        physicalLimitation: normalizePhysicalLimitation(checkInRow.physical_limitation),
         notes: checkInRow.notes ?? undefined,
       }
     : undefined;
@@ -227,7 +229,21 @@ export async function buildDailyContext({
     status: row.status,
   }));
 
-  const freeWindows = computeFreeWindows(calendarEvents, date, profile.timezone, 15);
+  const rawFreeWindows = computeFreeWindows(calendarEvents, date, profile.timezone, 15);
+  // Clip to waking hours before anything downstream (rules.ts's free-window
+  // rule, the scorer, generator, and the persisted decision_runs snapshot)
+  // sees these — otherwise an empty calendar day reads as one 1439-minute
+  // "free window" spanning midnight to midnight, and the free-window rule
+  // literally recommends "Mantém livre a janela das 00:00 às 23:59."
+  const sleepSchedule = resolveSleepSchedule(date, {
+    targetSleepTime: profile.targetSleepTime,
+    targetWakeTime: profile.targetWakeTime,
+    weekendSleepTime: profile.weekendSleepTime,
+    weekendWakeTime: profile.weekendWakeTime,
+    windDownMinutes: profile.windDownMinutes,
+    sleepScheduleType: profile.sleepScheduleType,
+  });
+  const freeWindows = clipFreeWindowsToWakingHours(rawFreeWindows, date, sleepSchedule);
 
   return {
     date,

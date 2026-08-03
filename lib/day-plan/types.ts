@@ -10,7 +10,7 @@ export type DayPlanItemKind =
   | "preparation"
   | "free_window";
 
-export type DayPlanItemStatus = "fixed" | "proposed" | "accepted" | "completed" | "stale";
+export type DayPlanItemStatus = "fixed" | "proposed" | "accepted" | "completed" | "skipped" | "stale";
 
 export interface DayPlanItem {
   id: string;

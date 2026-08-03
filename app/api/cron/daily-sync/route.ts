@@ -8,6 +8,7 @@ import { runDecisionGeneration } from "@/lib/decision-engine/run";
 import { detectFreeWindowDrift, buildBriefingSummary } from "@/lib/decision-engine/drift";
 import type { FreeWindow } from "@/lib/decision-engine/types";
 import { sendPushToUser } from "@/lib/notifications/push";
+import { clipFreeWindowsToWakingHours, resolveSleepSchedule } from "@/lib/sleep/schedule";
 
 function clockDistanceMinutes(left: string, right: string): number {
   const toMinutes = (value: string) => {
@@ -56,7 +57,9 @@ export async function GET(request: NextRequest) {
 
   const { data: profiles, error: profilesError } = await admin
     .from("profiles")
-    .select("user_id, timezone")
+    .select(
+      "user_id, timezone, target_sleep_time, target_wake_time, weekend_sleep_time, weekend_wake_time, wind_down_minutes, sleep_schedule_type"
+    )
     .eq("onboarding_completed", true);
 
   if (profilesError) {
@@ -76,7 +79,23 @@ export async function GET(request: NextRequest) {
     try {
       const { date, now, timezone } = await getFounderNow(admin, userId);
       const events = await getUnifiedCalendarEventsForDate(userId, date, timezone || DEFAULT_PROFILE.timezone);
-      const freeWindows = computeFreeWindows(events, date, timezone || DEFAULT_PROFILE.timezone, 15);
+      const sleepSchedule = resolveSleepSchedule(date, {
+        targetSleepTime: profile.target_sleep_time || DEFAULT_PROFILE.targetSleepTime,
+        targetWakeTime: profile.target_wake_time || DEFAULT_PROFILE.targetWakeTime,
+        weekendSleepTime: profile.weekend_sleep_time ?? DEFAULT_PROFILE.weekendSleepTime,
+        weekendWakeTime: profile.weekend_wake_time ?? DEFAULT_PROFILE.weekendWakeTime,
+        windDownMinutes: profile.wind_down_minutes || DEFAULT_PROFILE.windDownMinutes,
+        sleepScheduleType: profile.sleep_schedule_type || DEFAULT_PROFILE.sleepScheduleType,
+      });
+      // Same fix as lib/day-plan/build-day-plan.ts and context-builder.ts:
+      // clip to waking hours before this feeds the persisted daily_briefings
+      // summary ("Hoje: N livres em M janela(s)") or the drift comparison
+      // below, otherwise both quietly reintroduce the 00:00-23:59 bug.
+      const freeWindows = clipFreeWindowsToWakingHours(
+        computeFreeWindows(events, date, timezone || DEFAULT_PROFILE.timezone, 15),
+        date,
+        sleepSchedule
+      );
 
       const { data: existingRun } = await admin
         .from("decision_runs")

@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getWeekRange } from "@/lib/date/ranges";
-import { getWeekPlan, toPlanResponse } from "@/lib/nutrition/queries";
+import { getWeekPlan, hasNutritionProfile, toPlanResponse } from "@/lib/nutrition/queries";
 import { MealPlanView } from "@/components/nutrition/MealPlanView";
 import { NutritionBackLink } from "@/components/nutrition/NutritionJourney";
 
@@ -28,7 +28,10 @@ export default async function NutritionPlanPage() {
 
   const { date } = await getFounderNow(supabase, user.id);
   const weekStart = getWeekRange(date).start;
-  const planWithItems = await getWeekPlan(supabase, user.id, weekStart).catch(() => null);
+  const [planWithItems, hasProfile] = await Promise.all([
+    getWeekPlan(supabase, user.id, weekStart).catch(() => null),
+    hasNutritionProfile(supabase, user.id).catch(() => false),
+  ]);
   const { items, dailyMacros, weekAverage } = await toPlanResponse(supabase, planWithItems);
 
   return (
@@ -46,6 +49,7 @@ export default async function NutritionPlanPage() {
         initialDailyMacros={dailyMacros}
         initialWeekAverage={weekAverage}
         hasPlan={!!planWithItems}
+        hasProfile={hasProfile}
       />
     </main>
   );

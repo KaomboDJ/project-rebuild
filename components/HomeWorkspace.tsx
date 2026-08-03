@@ -59,8 +59,21 @@ function itemClasses(item: DayPlanItem): string {
   if (item.kind === "calendar_event") return "border-white/[0.06]";
   if (item.kind === "free_window") return "border-dashed border-white/[0.05]";
   if (item.status === "completed") return "border-emerald-600/20 bg-emerald-500/[0.02]";
+  if (item.status === "skipped") return "border-white/[0.06] bg-white/[0.01] opacity-70";
   if (item.status === "accepted") return "border-emerald-600/40";
   return "border-amber-600/30 border-dashed";
+}
+
+/** True once a decision's own window has fully elapsed and it's still
+ * sitting in "proposed"/"accepted" limbo — previously such an item kept
+ * rendering identically to an upcoming one (full Aceitar/Feito/Não deu
+ * controls, no indication anything had passed), confirmed live on
+ * Início during a same-day walkthrough. */
+function isOverdue(item: DayPlanItem, nowMinutes: number): boolean {
+  if (item.status !== "proposed" && item.status !== "accepted") return false;
+  if (!item.endsAt) return false;
+  const endMinutes = Number(item.endsAt.slice(11, 13)) * 60 + Number(item.endsAt.slice(14, 16));
+  return endMinutes < nowMinutes;
 }
 
 export function HomeWorkspace({
@@ -211,16 +224,28 @@ export function HomeWorkspace({
             ? Number(item.startsAt.slice(11, 13)) * 60 + Number(item.startsAt.slice(14, 16))
             : null;
           const isNext = plan.nextAction?.id === item.id;
+          const overdue = isOverdue(item, nowMinutes);
+          const isTerminal = item.status === "completed" || item.status === "skipped";
           return (
             <div key={item.id} className={`surface-card flex items-start gap-3 border p-3 ${itemClasses(item)} ${isNext ? "ring-1 ring-emerald-500/40" : ""} ${minutes !== null && minutes < nowMinutes ? "border-white/[0.04]" : ""}`}>
               <div className="w-16 shrink-0 pt-0.5 text-xs text-neutral-400">{timeLabel(item) ?? "—"}</div>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-wide text-neutral-400">
                   {KIND_LABEL[item.kind]}{item.isStale && " · agenda mudou"}
+                  {overdue && <span className="ml-2 text-amber-400">· atrasada</span>}
                 </p>
                 <p className="text-sm font-medium text-neutral-100">{item.title}</p>
                 {item.explanation && <p className="mt-0.5 text-xs text-neutral-400">{item.explanation}</p>}
-                {item.relatedDecisionId && item.status !== "completed" && (
+                {item.relatedDecisionId && isTerminal && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-neutral-400">
+                    {item.status === "completed" ? (
+                      <><CheckCircle2 size={13} className="text-emerald-500" /> Concluído</>
+                    ) : (
+                      <><XCircle size={13} className="text-neutral-400" /> Não feito</>
+                    )}
+                  </p>
+                )}
+                {item.relatedDecisionId && !isTerminal && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {item.status === "proposed" && (
                       <button disabled={busy} className="btn-secondary px-2.5 py-1 text-xs" onClick={() => act(item.relatedDecisionId!, "accepted")}>Aceitar</button>

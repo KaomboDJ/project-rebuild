@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clipFreeWindowsToWakingHours,
   getSleepPhase,
   isActivityInsideAwakeWindow,
   resolveSleepSchedule,
@@ -49,5 +50,58 @@ describe("sleep schedule", () => {
     expect(isActivityInsideAwakeWindow("22:30", "22:45", schedule)).toBe(false);
     expect(isActivityInsideAwakeWindow("02:00", "02:15", schedule)).toBe(false);
   });
-});
 
+  it("clips a full calendar-day free window down to waking hours (regular schedule)", () => {
+    const schedule = resolveSleepSchedule("2026-08-03", PROFILE);
+    const windows = clipFreeWindowsToWakingHours(
+      [{ start: "2026-08-03T00:00:00", end: "2026-08-03T23:59:00", durationMinutes: 1439 }],
+      "2026-08-03",
+      schedule
+    );
+    expect(windows).toEqual([
+      { start: "2026-08-03T07:00:00", end: "2026-08-03T22:15:00", durationMinutes: 915 },
+    ]);
+  });
+
+  it("splits a full calendar-day free window around a shift worker's daytime sleep", () => {
+    const schedule = resolveSleepSchedule("2026-08-03", {
+      ...PROFILE,
+      targetSleepTime: "06:00",
+      targetWakeTime: "14:00",
+      weekendSleepTime: null,
+      weekendWakeTime: null,
+      sleepScheduleType: "shift",
+    });
+    const windows = clipFreeWindowsToWakingHours(
+      [{ start: "2026-08-03T00:00:00", end: "2026-08-03T23:59:00", durationMinutes: 1439 }],
+      "2026-08-03",
+      schedule
+    );
+    expect(windows).toEqual([
+      { start: "2026-08-03T00:00:00", end: "2026-08-03T05:15:00", durationMinutes: 315 },
+      { start: "2026-08-03T14:00:00", end: "2026-08-03T23:59:00", durationMinutes: 599 },
+    ]);
+  });
+
+  it("drops a window that falls entirely inside sleep/wind-down", () => {
+    const schedule = resolveSleepSchedule("2026-08-03", PROFILE);
+    const windows = clipFreeWindowsToWakingHours(
+      [{ start: "2026-08-03T23:00:00", end: "2026-08-03T23:59:00", durationMinutes: 59 }],
+      "2026-08-03",
+      schedule
+    );
+    expect(windows).toEqual([]);
+  });
+
+  it("shrinks a window that only partially overlaps waking hours", () => {
+    const schedule = resolveSleepSchedule("2026-08-03", PROFILE);
+    const windows = clipFreeWindowsToWakingHours(
+      [{ start: "2026-08-03T21:30:00", end: "2026-08-03T23:59:00", durationMinutes: 149 }],
+      "2026-08-03",
+      schedule
+    );
+    expect(windows).toEqual([
+      { start: "2026-08-03T21:30:00", end: "2026-08-03T22:15:00", durationMinutes: 45 },
+    ]);
+  });
+});

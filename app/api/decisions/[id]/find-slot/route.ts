@@ -4,6 +4,7 @@ import { getFounderNow } from "@/lib/date/founder-now";
 import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { findCandidateSlots } from "@/lib/day-plan/slot-finder";
+import { clipFreeWindowsToWakingHours, resolveSleepSchedule } from "@/lib/sleep/schedule";
 
 const DURATION_BY_RULE: Record<string, number> = {
   "lunch-training": 40,
@@ -34,13 +35,29 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { date, now, timezone: founderTimezone } = await getFounderNow(supabase, user.id);
   const { data: profile } = await supabase
     .from("profiles")
-    .select("timezone, preferred_training_time")
+    .select(
+      "timezone, preferred_training_time, target_sleep_time, target_wake_time, weekend_sleep_time, weekend_wake_time, wind_down_minutes, sleep_schedule_type"
+    )
     .eq("user_id", user.id)
     .maybeSingle();
   const timezone = profile?.timezone || founderTimezone || DEFAULT_PROFILE.timezone;
   const preferredStartTime = profile?.preferred_training_time || DEFAULT_PROFILE.preferredTrainingTime;
   const events = await getUnifiedCalendarEventsForDate(user.id, decision.date, timezone);
-  const freeWindows = computeFreeWindows(events, decision.date, timezone, 15);
+  const sleepSchedule = resolveSleepSchedule(decision.date, {
+    targetSleepTime: profile?.target_sleep_time || DEFAULT_PROFILE.targetSleepTime,
+    targetWakeTime: profile?.target_wake_time || DEFAULT_PROFILE.targetWakeTime,
+    weekendSleepTime: profile?.weekend_sleep_time ?? DEFAULT_PROFILE.weekendSleepTime,
+    weekendWakeTime: profile?.weekend_wake_time ?? DEFAULT_PROFILE.weekendWakeTime,
+    windDownMinutes: profile?.wind_down_minutes || DEFAULT_PROFILE.windDownMinutes,
+    sleepScheduleType: profile?.sleep_schedule_type || DEFAULT_PROFILE.sleepScheduleType,
+  });
+  // "Encontrar horário" must never suggest a slot during sleep/wind-down —
+  // same clip as everywhere else free windows are computed.
+  const freeWindows = clipFreeWindowsToWakingHours(
+    computeFreeWindows(events, decision.date, timezone, 15),
+    decision.date,
+    sleepSchedule
+  );
   const durationMinutes = DURATION_BY_RULE[decision.rule_id ?? ""] ?? DURATION_BY_DOMAIN[decision.domain] ?? 20;
   const candidates = findCandidateSlots({
     date: decision.date,

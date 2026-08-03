@@ -53,11 +53,20 @@ export function MealPlanView({
   initialDailyMacros,
   initialWeekAverage,
   hasPlan,
+  hasProfile,
 }: {
   initialItems: PlanItemView[];
   initialDailyMacros: DailyMacro[];
   initialWeekAverage: Omit<DailyMacro, "date"> | null;
   hasPlan: boolean;
+  /** journey.statuses.profile === "complete" (lib/nutrition/journey.ts) —
+   * the step tracker above this section already tells the founder whether
+   * their profile is filled in. Without this, the "no plan yet" empty
+   * state always said "Preenche o perfil de alimentação..." even when the
+   * profile was already done and marked "Preparado" — a real, live
+   * contradiction between two pieces of UI on the same page saying
+   * opposite things. */
+  hasProfile: boolean;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -220,11 +229,17 @@ export function MealPlanView({
 
       {dates.length === 0 && (
         <div className="surface-card p-5 text-sm text-neutral-400">
-          Preenche o{" "}
-          <a href="/nutrition/profile" className="text-emerald-400 underline">
-            perfil de alimentação
-          </a>{" "}
-          e gera o plano da semana.
+          {hasProfile ? (
+            "Ainda sem plano gerado esta semana — usa \"Gerar plano\" acima."
+          ) : (
+            <>
+              Preenche o{" "}
+              <a href="/nutrition/profile" className="text-emerald-400 underline">
+                perfil de alimentação
+              </a>{" "}
+              e gera o plano da semana.
+            </>
+          )}
         </div>
       )}
 

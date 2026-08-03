@@ -4,7 +4,7 @@ import { CalendarWorkspace } from "@/components/CalendarWorkspace";
 import { listConnections } from "@/lib/google/calendar";
 import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
-import { getSleepPhase, resolveSleepSchedule } from "@/lib/sleep/schedule";
+import { clipFreeWindowsToWakingHours, getSleepPhase, resolveSleepSchedule } from "@/lib/sleep/schedule";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -94,7 +94,13 @@ export default async function TodayPage({
   });
   const sleepPhase = getSleepPhase(now.slice(11, 16), sleepSchedule);
   const todaysCalendarEvents = await getUnifiedCalendarEventsForDate(user.id, date, timezone);
-  const freeWindows = computeFreeWindows(todaysCalendarEvents, date, timezone, 15);
+  // Same clip as lib/day-plan/build-day-plan.ts — otherwise CalendarPanel
+  // shades the whole day green as "free" even through sleep hours.
+  const freeWindows = clipFreeWindowsToWakingHours(
+    computeFreeWindows(todaysCalendarEvents, date, timezone, 15),
+    date,
+    sleepSchedule
+  );
   // Milestone 11A: the account picker on "Adicionar ao calendário" only
   // needs to appear once the founder has more than one connected account -
   // fetched once here and handed down rather than each DecisionEngineCard

@@ -8,10 +8,10 @@ import { listConnections } from "@/lib/google/calendar";
 import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { dayPlanWouldScheduleAnything, type DecisionRow } from "@/lib/decision-engine/day-plan";
-import type { DailyCheckIn } from "@/lib/decision-engine/types";
+import { normalizePhysicalLimitation, type DailyCheckIn } from "@/lib/decision-engine/types";
 import { validatePlanConflicts } from "./validate-conflicts";
 import type { DayPlan, DayPlanItem } from "./types";
-import { getSleepPhase, resolveSleepSchedule, toClockMinutes } from "@/lib/sleep/schedule";
+import { clipFreeWindowsToWakingHours, getSleepPhase, resolveSleepSchedule, toClockMinutes } from "@/lib/sleep/schedule";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -67,14 +67,24 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
   });
   const sleepPhase = getSleepPhase(now.slice(11, 16), sleepSchedule);
   const calendarEvents = await getUnifiedCalendarEventsForDate(userId, date, timezone);
-  const freeWindows = computeFreeWindows(calendarEvents, date, timezone, 15);
+  // Clip to waking hours before this feeds either the timeline's own
+  // "free_window" items below or the `freeWindows` field returned to
+  // callers — an empty calendar day otherwise renders as a single
+  // "00:00-23:59 (1439 min)" timeline entry regardless of the founder's
+  // actual wake/sleep hours (see lib/sleep/schedule.ts's
+  // clipFreeWindowsToWakingHours for the full rationale).
+  const freeWindows = clipFreeWindowsToWakingHours(
+    computeFreeWindows(calendarEvents, date, timezone, 15),
+    date,
+    sleepSchedule
+  );
   const connections = await listConnections(userId);
   const checkIn: DailyCheckIn | undefined = checkInRow
     ? {
         sleepQuality: checkInRow.sleep_quality ?? undefined,
         energyLevel: checkInRow.energy_level ?? undefined,
         stressLevel: checkInRow.stress_level ?? undefined,
-        physicalLimitation: checkInRow.physical_limitation ?? undefined,
+        physicalLimitation: normalizePhysicalLimitation(checkInRow.physical_limitation),
         notes: checkInRow.notes ?? undefined,
       }
     : undefined;
@@ -89,9 +99,11 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
     status:
       decision.status === "completed"
         ? "completed"
-        : decision.status === "accepted" || decision.status === "edited"
-          ? "accepted"
-          : "proposed",
+        : decision.status === "skipped"
+          ? "skipped"
+          : decision.status === "accepted" || decision.status === "edited"
+            ? "accepted"
+            : "proposed",
     startsAt: decision.recommended_start
       ? instantToLocalWallClockIso(new Date(decision.recommended_start), timezone)
       : null,
