@@ -85,7 +85,16 @@ turning the flow into a points/achievement system. Profile dropdowns use the
 shared dark, keyboard-accessible listbox component rather than the Windows
 native white popup, whose surface cannot be reliably themed with CSS.
 
-## Explicitly not built (documented, not silently dropped)
+## Phase 1 completion update (2026-08-03)
+
+The earlier limitations below have now been implemented: planning supports
+Simple rotation and Flexible week in addition to Decide for me;
+`mealsPerDay` selects 2, 3 or 4 daily slots; the linked shopping list is
+recalculated after plan changes or meal execution; and the plan displays a
+deterministic batch-preparation order. Cross-week variety continuity and
+AI-written weekly summaries remain intentionally outside Phase 1.
+
+## Historical limitations before the Phase 1 completion slice
 
 - **Simple rotation / Flexible week planning modes** — `meal_plans.mode` is
   a checked column already scoped to accept future values; only

@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { instantToLocalWallClockIso } from "@/lib/date/timezone";
-import { createInterventionEvent, getCalendarEventsForDate, listConnections } from "@/lib/google/calendar";
+import { createInterventionEvent, listConnections } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import {
   decisionsNeedingAcceptance,
@@ -57,7 +58,7 @@ export async function confirmDayPlan(
     }
   }
 
-  const freshEvents = await getCalendarEventsForDate(userId, date, timezone);
+  const freshEvents = await getUnifiedCalendarEventsForDate(userId, date, timezone);
   const connections = await listConnections(userId);
   const resolvedConnectionId =
     params.connectionId ?? connections.find((connection) => connection.isPrimary)?.id ?? connections[0]?.id;

@@ -43,6 +43,11 @@ export interface UserProfile {
   preferredTrainingTime: string; // "HH:MM"
   typicalDinnerTime: string; // "HH:MM"
   targetSleepTime: string; // "HH:MM"
+  targetWakeTime: string; // "HH:MM"
+  weekendSleepTime: string | null;
+  weekendWakeTime: string | null;
+  windDownMinutes: number;
+  sleepScheduleType: "regular" | "shift";
   workingHours: { start: string; end: string };
   currentConstraints: string;
   interventionTone: string;

@@ -37,6 +37,11 @@ export const ONBOARDING_DEFAULTS: OnboardingDraft = {
   preferredTrainingTime: "12:00",
   typicalDinnerTime: "20:00",
   targetSleepTime: "23:00",
+  targetWakeTime: "07:00",
+  weekendSleepTime: "00:00",
+  weekendWakeTime: "08:00",
+  windDownMinutes: 45,
+  sleepScheduleType: "regular",
   workingHoursStart: "09:00",
   workingHoursEnd: "18:00",
   currentConstraints: "",
@@ -53,6 +58,11 @@ export interface OnboardingDraft {
   preferredTrainingTime: string;
   typicalDinnerTime: string;
   targetSleepTime: string;
+  targetWakeTime: string;
+  weekendSleepTime: string;
+  weekendWakeTime: string;
+  windDownMinutes: number;
+  sleepScheduleType: "regular" | "shift";
   /** Persisted as `profiles.working_hours` ({start,end} jsonb) - the Decision
    * Engine (context-builder.ts) has read this since Milestone 1, but until
    * the UX Hardening release (docs/17_UX_AUDIT.md, S1) no form ever exposed
@@ -72,6 +82,11 @@ export interface OnboardingErrors {
   preferredTrainingTime?: string;
   typicalDinnerTime?: string;
   targetSleepTime?: string;
+  targetWakeTime?: string;
+  weekendSleepTime?: string;
+  weekendWakeTime?: string;
+  windDownMinutes?: string;
+  sleepScheduleType?: string;
   workingHoursStart?: string;
   workingHoursEnd?: string;
   currentConstraints?: string;
@@ -100,6 +115,19 @@ export function validateOnboardingDraft(draft: OnboardingDraft): OnboardingError
   if (!TIME_RE.test(draft.preferredTrainingTime)) errors.preferredTrainingTime = "Hora inválida (HH:MM).";
   if (!TIME_RE.test(draft.typicalDinnerTime)) errors.typicalDinnerTime = "Hora inválida (HH:MM).";
   if (!TIME_RE.test(draft.targetSleepTime)) errors.targetSleepTime = "Hora inválida (HH:MM).";
+  if (!TIME_RE.test(draft.targetWakeTime)) errors.targetWakeTime = "Hora inválida (HH:MM).";
+  if (draft.weekendSleepTime && !TIME_RE.test(draft.weekendSleepTime)) {
+    errors.weekendSleepTime = "Hora inválida (HH:MM).";
+  }
+  if (draft.weekendWakeTime && !TIME_RE.test(draft.weekendWakeTime)) {
+    errors.weekendWakeTime = "Hora inválida (HH:MM).";
+  }
+  if (!Number.isInteger(draft.windDownMinutes) || draft.windDownMinutes < 15 || draft.windDownMinutes > 120) {
+    errors.windDownMinutes = "Escolhe entre 15 e 120 minutos.";
+  }
+  if (draft.sleepScheduleType !== "regular" && draft.sleepScheduleType !== "shift") {
+    errors.sleepScheduleType = "Escolhe um tipo de horário.";
+  }
   if (!TIME_RE.test(draft.workingHoursStart)) errors.workingHoursStart = "Hora inválida (HH:MM).";
   if (!TIME_RE.test(draft.workingHoursEnd)) errors.workingHoursEnd = "Hora inválida (HH:MM).";
   if (

@@ -5,6 +5,8 @@ import { instantToLocalWallClockIso } from "@/lib/date/timezone";
 import { DOMAIN_LABEL, STATUS_LABEL } from "@/lib/decision-engine/labels";
 import { DOMAIN_BADGE_CLASS, DOMAIN_ICON } from "@/lib/decision-engine/domain-style";
 import type { Database } from "@/lib/supabase/database.types";
+import { computeIdentityProgression } from "@/lib/gamification/progression";
+import { IdentityProgressCard } from "@/components/IdentityProgressCard";
 
 type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
@@ -80,6 +82,14 @@ export default async function HistoryPage() {
     .order("domain", { ascending: true })
     .limit(MAX_DECISIONS);
 
+  const { data: progressionRows } = await supabase
+    .from("decisions")
+    .select("status, impact, date")
+    .eq("user_id", user.id)
+    .order("date", { ascending: false })
+    .limit(1000);
+  const progression = computeIdentityProgression(progressionRows ?? []);
+
   const decisionIds = (decisions ?? []).map((decision) => decision.id);
   const { data: feedbackRows } = decisionIds.length
     ? await supabase
@@ -114,6 +124,8 @@ export default async function HistoryPage() {
         <p className="text-sm uppercase tracking-wide text-neutral-400">Decisões</p>
         <h1 className="text-2xl font-semibold tracking-tight">Histórico</h1>
       </div>
+
+      <IdentityProgressCard progression={progression} />
 
       <div className="space-y-8">
         {groups.map(([date, dayDecisions]) => (

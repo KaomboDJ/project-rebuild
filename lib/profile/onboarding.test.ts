@@ -58,6 +58,13 @@ describe("validateOnboardingDraft", () => {
     expect(errors.typicalDinnerTime).toBeUndefined();
   });
 
+  it("validates the habitual sleep schedule", () => {
+    expect(validateOnboardingDraft({ ...VALID, targetWakeTime: "7:00" }).targetWakeTime).toBeDefined();
+    expect(validateOnboardingDraft({ ...VALID, weekendSleepTime: "24:00" }).weekendSleepTime).toBeDefined();
+    expect(validateOnboardingDraft({ ...VALID, windDownMinutes: 10 }).windDownMinutes).toBeDefined();
+    expect(validateOnboardingDraft({ ...VALID, sleepScheduleType: "shift" })).toEqual({});
+  });
+
   it("requires currentConstraints and interventionTone", () => {
     const errors = validateOnboardingDraft({ ...VALID, currentConstraints: "", interventionTone: "  " });
     expect(errors.currentConstraints).toBeDefined();

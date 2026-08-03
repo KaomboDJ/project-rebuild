@@ -77,6 +77,7 @@ for each row execute function public.set_updated_at();
 alter table public.calendar_sources enable row level security;
 
 revoke all on table public.calendar_sources from anon, authenticated;
+grant select, insert, update, delete on table public.calendar_sources to service_role;
 
 comment on table public.calendar_sources is
   'Service-role only. Per-calendar (not per-account) selection: which calendars inside a connected Google/Microsoft account feed the availability engine, appear in the Rebuild calendar workspace, and may be offered as a write destination. Populated by server-side calendar-list discovery, never by direct client writes.';

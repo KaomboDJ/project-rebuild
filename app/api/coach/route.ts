@@ -10,6 +10,7 @@ import { getFounderNow } from "@/lib/date/founder-now";
 import { listGeneralFounderNotes } from "@/lib/decision-engine/queries";
 import { instantToLocalWallClockIso } from "@/lib/date/timezone";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
+import { getSleepPhase, resolveSleepSchedule } from "@/lib/sleep/schedule";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const HISTORY_TURNS = 16;
@@ -48,11 +49,20 @@ export async function POST(request: NextRequest) {
   }
   const { message, conversationId: requestedConversationId } = parsed.data;
 
-  const [{ data: profile }, { date, timezone }] = await Promise.all([
-    supabase.from("profiles").select("desired_identity, current_constraints, timezone").eq("user_id", user.id).maybeSingle(),
+  const [{ data: profile }, { date, timezone, now }] = await Promise.all([
+    supabase.from("profiles").select("desired_identity, current_constraints, timezone, target_sleep_time, target_wake_time, weekend_sleep_time, weekend_wake_time, wind_down_minutes, sleep_schedule_type").eq("user_id", user.id).maybeSingle(),
     getFounderNow(supabase, user.id),
   ]);
   const effectiveTimezone = profile?.timezone || timezone || DEFAULT_PROFILE.timezone;
+  const sleepSchedule = resolveSleepSchedule(date, {
+    targetSleepTime: profile?.target_sleep_time || DEFAULT_PROFILE.targetSleepTime,
+    targetWakeTime: profile?.target_wake_time || DEFAULT_PROFILE.targetWakeTime,
+    weekendSleepTime: profile?.weekend_sleep_time ?? DEFAULT_PROFILE.weekendSleepTime,
+    weekendWakeTime: profile?.weekend_wake_time ?? DEFAULT_PROFILE.weekendWakeTime,
+    windDownMinutes: profile?.wind_down_minutes || DEFAULT_PROFILE.windDownMinutes,
+    sleepScheduleType: profile?.sleep_schedule_type || DEFAULT_PROFILE.sleepScheduleType,
+  });
+  const localTime = now.slice(11, 16);
 
   const [{ data: checkIn }, { data: decisions }, pantry, dayType, founderNotes] = await Promise.all([
     supabase.from("daily_check_ins").select("sleep_quality, energy_level, stress_level").eq("user_id", user.id).eq("date", date).maybeSingle(),
@@ -83,6 +93,11 @@ export async function POST(request: NextRequest) {
     pantry,
     dayType,
     founderNotes,
+    sleepSchedule: {
+      currentTime: localTime,
+      ...sleepSchedule,
+      phase: getSleepPhase(localTime, sleepSchedule),
+    },
   };
 
   let conversationId = requestedConversationId;

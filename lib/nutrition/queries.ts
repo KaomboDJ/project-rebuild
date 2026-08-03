@@ -36,6 +36,7 @@ export const DEFAULT_NUTRITION_PROFILE: Omit<NutritionProfile, "userId"> = {
   targetCarbsG: null,
   targetFatG: null,
   macroSource: "system-estimate",
+  preferredPlanMode: "decide-for-me",
 };
 
 function mapNutritionProfileRow(userId: string, row: NutritionProfileRow | null): NutritionProfile {
@@ -58,6 +59,7 @@ function mapNutritionProfileRow(userId: string, row: NutritionProfileRow | null)
     targetCarbsG: row.target_carbs_g,
     targetFatG: row.target_fat_g,
     macroSource: row.macro_source,
+    preferredPlanMode: row.preferred_plan_mode,
   };
 }
 
@@ -114,6 +116,7 @@ export async function upsertNutritionProfile(
         target_carbs_g: merged.targetCarbsG,
         target_fat_g: merged.targetFatG,
         macro_source: merged.macroSource,
+        preferred_plan_mode: merged.preferredPlanMode,
       },
       { onConflict: "user_id" }
     )
@@ -224,6 +227,29 @@ export async function getWeekPlan(
   return { plan, items: items ?? [] };
 }
 
+export async function getMealPlanById(
+  supabase: Supabase,
+  userId: string,
+  planId: string
+): Promise<MealPlanWithItems | null> {
+  const { data: plan } = await supabase
+    .from("meal_plans")
+    .select("*")
+    .eq("id", planId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!plan) return null;
+  const { data: items, error } = await supabase
+    .from("meal_plan_items")
+    .select("*")
+    .eq("meal_plan_id", plan.id)
+    .eq("user_id", userId)
+    .order("day_date")
+    .order("meal_slot");
+  if (error) throw new Error(error.message);
+  return { plan, items: items ?? [] };
+}
+
 /**
  * Persists a freshly generated week plan: upserts the `meal_plans` row for
  * that week, then replaces its items wholesale (delete + insert) rather
@@ -239,7 +265,7 @@ export async function saveWeekPlan(
   const { data: plan, error: planError } = await supabase
     .from("meal_plans")
     .upsert(
-      { user_id: userId, week_start: result.weekStart, mode: "decide-for-me", status: "active" },
+      { user_id: userId, week_start: result.weekStart, mode: result.mode, status: "active" },
       { onConflict: "user_id,week_start" }
     )
     .select("*")
@@ -508,14 +534,22 @@ export async function generateShoppingListForPlan(
 
   const { data: list, error: listError } = await supabase
     .from("shopping_lists")
-    .insert({
+    .upsert({
       user_id: userId,
+      meal_plan_id: planWithItems.plan.id,
       name: `Lista de compras — semana de ${planWithItems.plan.week_start}`,
-    })
+      status: "open",
+    }, { onConflict: "meal_plan_id" })
     .select("id")
     .single();
   if (listError || !list)
     throw new Error(listError?.message ?? "Falha ao criar a lista de compras.");
+
+  await supabase
+    .from("shopping_list_items")
+    .delete()
+    .eq("shopping_list_id", list.id)
+    .eq("user_id", userId);
 
   if (lines.length > 0) {
     const { error: itemsError } = await supabase.from("shopping_list_items").insert(

@@ -9,7 +9,7 @@ const updateSchema = z.object({
   allergies: z.array(z.string().trim().min(1)).max(20).optional(),
   exclusions: z.array(z.string().trim().min(1)).max(40).optional(),
   medicalConstraints: z.string().max(1000).optional(),
-  mealsPerDay: z.coerce.number().int().min(2).max(5).optional(),
+  mealsPerDay: z.coerce.number().int().min(2).max(4).optional(),
   includeSnack: z.boolean().optional(),
   peopleCount: z.coerce.number().int().min(1).max(12).optional(),
   cookingTimeMinutes: z.coerce.number().int().min(5).max(180).optional(),
@@ -20,6 +20,7 @@ const updateSchema = z.object({
   targetCarbsG: z.coerce.number().int().min(0).nullable().optional(),
   targetFatG: z.coerce.number().int().min(0).nullable().optional(),
   macroSource: z.enum(["system-estimate", "user-provided", "clinician-provided"]).optional(),
+  preferredPlanMode: z.enum(["decide-for-me", "simple-rotation", "flexible-week"]).optional(),
 });
 
 export async function GET() {

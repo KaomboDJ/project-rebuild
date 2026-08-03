@@ -43,6 +43,11 @@ function draftFromProfile(profile: ProfileRow | null): OnboardingDraft {
     preferredTrainingTime: profile.preferred_training_time,
     typicalDinnerTime: profile.typical_dinner_time,
     targetSleepTime: profile.target_sleep_time,
+    targetWakeTime: profile.target_wake_time,
+    weekendSleepTime: profile.weekend_sleep_time ?? "",
+    weekendWakeTime: profile.weekend_wake_time ?? "",
+    windDownMinutes: profile.wind_down_minutes,
+    sleepScheduleType: profile.sleep_schedule_type,
     workingHoursStart: workingHours.start,
     workingHoursEnd: workingHours.end,
     currentConstraints: profile.current_constraints,
@@ -110,6 +115,11 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
         preferred_training_time: draft.preferredTrainingTime,
         typical_dinner_time: draft.typicalDinnerTime,
         target_sleep_time: draft.targetSleepTime,
+        target_wake_time: draft.targetWakeTime,
+        weekend_sleep_time: draft.weekendSleepTime || null,
+        weekend_wake_time: draft.weekendWakeTime || null,
+        wind_down_minutes: draft.windDownMinutes,
+        sleep_schedule_type: draft.sleepScheduleType,
         working_hours: { start: draft.workingHoursStart, end: draft.workingHoursEnd },
         current_constraints: draft.currentConstraints.trim(),
         intervention_tone: draft.interventionTone.trim(),
@@ -211,7 +221,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
         )}
       </fieldset>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           Hora de treino
           <input
@@ -240,6 +250,62 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
           />
         </label>
       </div>
+
+      <fieldset className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <legend className="px-1 text-sm font-medium">Janela habitual de sono</legend>
+        <p className="mb-4 text-xs text-neutral-400">
+          Usamos este horário para nunca sugerir treinos ou caminhadas quando devias estar a descansar.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block text-sm">
+            Hora de acordar
+            <input
+              type="time"
+              className="field-input mt-1"
+              value={draft.targetWakeTime}
+              onChange={(event) => setDraft({ ...draft, targetWakeTime: event.target.value })}
+            />
+            {showErrors && errors.targetWakeTime && <span className="mt-1 block text-xs text-rose-500">{errors.targetWakeTime}</span>}
+          </label>
+          <label className="block text-sm">
+            Desacelerar antes de dormir
+            <select
+              className="field-input mt-1"
+              value={draft.windDownMinutes}
+              onChange={(event) => setDraft({ ...draft, windDownMinutes: Number(event.target.value) })}
+            >
+              <option value={30}>30 minutos</option>
+              <option value={45}>45 minutos</option>
+              <option value={60}>60 minutos</option>
+              <option value={90}>90 minutos</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            Tipo de horário
+            <select
+              className="field-input mt-1"
+              value={draft.sleepScheduleType}
+              onChange={(event) => setDraft({ ...draft, sleepScheduleType: event.target.value as "regular" | "shift" })}
+            >
+              <option value="regular">Regular</option>
+              <option value="shift">Trabalho por turnos</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            Dormir ao fim de semana (opcional)
+            <input type="time" className="field-input mt-1" value={draft.weekendSleepTime} onChange={(event) => setDraft({ ...draft, weekendSleepTime: event.target.value })} />
+          </label>
+          <label className="block text-sm">
+            Acordar ao fim de semana (opcional)
+            <input type="time" className="field-input mt-1" value={draft.weekendWakeTime} onChange={(event) => setDraft({ ...draft, weekendWakeTime: event.target.value })} />
+          </label>
+        </div>
+        {draft.sleepScheduleType === "regular" && draft.targetSleepTime === "23:00" && (
+          <p className="mt-3 text-xs text-emerald-300">Meta inicial recomendada: proteger pelo menos 7 horas e manter horários consistentes.</p>
+        )}
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block text-sm">

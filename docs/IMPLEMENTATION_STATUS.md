@@ -1,5 +1,13 @@
 # Implementation Status
 
+## Phase 1 health-product completion (2026-08-03)
+
+Status: **implemented and locally validated on `codex/phase1-health-completion`; production activation pending the release gates and external secrets listed in `docs/19_PHASE_1_HEALTH_COMPLETION.md`.**
+
+This final Phase 1 slice adds sleep-aware quiet hours and shift-schedule support, unified selected Google + read-only Outlook availability, opt-in Web Push, the remaining nutrition modes and meal-count behavior, recalculating linked shopping lists, batch-preparation guidance, the global Rebuild Guide and non-punitive identity progression. The scope is now frozen to those health/decision capabilities; adjacent platform ideas remain outside Phase 1.
+
+Local evidence: TypeScript clean, lint clean, production build successful and 386/386 unit tests passing.
+
 Living status tracker. Check this before assuming what already exists — `docs/` design files describe target architecture, not necessarily what's built yet. Update this file as milestones progress.
 
 Last updated: 2026-08-01 (Daily Home + Decisions UX recovery release-validated on PR #5; production migration applied and verified).

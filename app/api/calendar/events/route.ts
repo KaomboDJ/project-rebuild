@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getCalendarEventsForRange, isCalendarConnected } from "@/lib/google/calendar";
+import { isAnyCalendarConnected } from "@/lib/calendar-intelligence/sources";
+import { getUnifiedCalendarEventsForRange } from "@/lib/calendar-intelligence/unified";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { getMonthRange, getWeekRange } from "@/lib/date/ranges";
 import { nowInTimeZone } from "@/lib/date/timezone";
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "invalid-view" }, { status: 400 });
   }
 
-  const connected = await isCalendarConnected(user.id);
+  const connected = await isAnyCalendarConnected(user.id);
   if (!connected) {
     return NextResponse.json({ error: "calendar-not-connected" }, { status: 409 });
   }
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     ({ start, end } = getMonthRange(dateKey));
   }
 
-  const events = await getCalendarEventsForRange(user.id, start, end, timezone);
+  const events = await getUnifiedCalendarEventsForRange(user.id, start, end, timezone);
 
   return NextResponse.json({ view, rangeStart: start, rangeEnd: end, events });
 }

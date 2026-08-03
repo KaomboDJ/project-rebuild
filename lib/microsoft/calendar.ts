@@ -11,6 +11,7 @@ import {
   type MicrosoftTokenResponse,
 } from "./oauth";
 import { normalizeGraphCalendar, normalizeGraphEvent, type GraphCalendar, type GraphEvent } from "./normalize";
+import { upsertCalendarSources } from "@/lib/calendar-intelligence/sources";
 
 // Server-side Microsoft Graph adapter (read-only). Mirrors lib/google/
 // calendar.ts's shape closely on purpose - same connection-row model
@@ -73,7 +74,7 @@ export async function listMicrosoftConnections(userId: string): Promise<Microsof
   }));
 }
 
-export async function saveMicrosoftConnection(userId: string, tokens: MicrosoftTokenResponse): Promise<void> {
+export async function saveMicrosoftConnection(userId: string, tokens: MicrosoftTokenResponse): Promise<string> {
   const admin = createSupabaseAdminClient();
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
   const accountEmail = await fetchMicrosoftAccountEmail(tokens.access_token);
@@ -107,8 +108,11 @@ export async function saveMicrosoftConnection(userId: string, tokens: MicrosoftT
 
   if (existing) {
     await admin.from("calendar_connections").update(row).eq("id", existing.id);
+    return existing.id;
   } else {
-    await admin.from("calendar_connections").insert(row);
+    const { data, error } = await admin.from("calendar_connections").insert(row).select("id").single();
+    if (error || !data) throw new Error("Failed to save Microsoft connection.");
+    return data.id;
   }
 }
 
@@ -173,9 +177,9 @@ export async function getValidMicrosoftAccessToken(connectionId: string): Promis
   }
 }
 
-async function graphFetch<T>(path: string, accessToken: string): Promise<T> {
+async function graphFetch<T>(path: string, accessToken: string, extraHeaders?: Record<string, string>): Promise<T> {
   const response = await fetch(`${GRAPH_API}${path}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${accessToken}`, ...extraHeaders },
   });
   if (!response.ok) {
     throw new Error(`Microsoft Graph request to ${path} failed: ${response.status} ${await response.text()}`);
@@ -194,6 +198,11 @@ export async function listMicrosoftCalendars(
   const accessToken = await getValidMicrosoftAccessToken(connectionId);
   const body = await graphFetch<{ value: GraphCalendar[] }>("/me/calendars", accessToken);
   return body.value.map((calendar) => normalizeGraphCalendar(calendar, connectionId, userId));
+}
+
+export async function syncMicrosoftCalendarSources(userId: string, connectionId: string): Promise<void> {
+  const calendars = await listMicrosoftCalendars(connectionId, userId);
+  await upsertCalendarSources(userId, calendars);
 }
 
 /**
@@ -216,7 +225,8 @@ export async function getMicrosoftEventsForRange(
   const params = new URLSearchParams({ startDateTime: timeMin, endDateTime: timeMax });
   const body = await graphFetch<{ value: GraphEvent[] }>(
     `/me/calendars/${encodeURIComponent(source.externalCalendarId)}/calendarView?${params.toString()}`,
-    accessToken
+    accessToken,
+    { Prefer: `outlook.timezone="${timeZone}"` }
   );
   return body.value.map((event) => normalizeGraphEvent(event, source.id));
 }

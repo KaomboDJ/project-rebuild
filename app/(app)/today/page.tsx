@@ -1,8 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { CalendarWorkspace } from "@/components/CalendarWorkspace";
-import { getCalendarEventsForDate, listConnections } from "@/lib/google/calendar";
+import { listConnections } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
+import { getSleepPhase, resolveSleepSchedule } from "@/lib/sleep/schedule";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -30,7 +32,7 @@ export default async function TodayPage({
   // The founder's local "today", not the server's (UTC on Vercel) - keeps
   // /today, /history, and decision generation agreeing on the same date
   // near midnight (see lib/date/founder-now.ts).
-  const { date } = await getFounderNow(supabase, user.id);
+  const { date, now } = await getFounderNow(supabase, user.id);
 
   // The calendar canvas may be navigated to a different date via the
   // sidebar's mini-calendar (?date=YYYY-MM-DD) - decisions themselves stay
@@ -52,7 +54,7 @@ export default async function TodayPage({
       .eq("user_id", user.id)
       .eq("date", date)
       .order("domain", { ascending: true }),
-    supabase.from("profiles").select("timezone").eq("user_id", user.id).maybeSingle(),
+    supabase.from("profiles").select("timezone, target_sleep_time, target_wake_time, weekend_sleep_time, weekend_wake_time, wind_down_minutes, sleep_schedule_type").eq("user_id", user.id).maybeSingle(),
     // Milestone 13: written by the daily cron sync (app/api/cron/daily-sync)
     // - null until the cron has run at least once for today, which is fine,
     // not an error (the founder can still generate decisions manually).
@@ -82,7 +84,16 @@ export default async function TodayPage({
   // CalendarPanel.tsx's `freeWindowsDate` prop for how it's only overlaid
   // when that exact day is on screen.
   const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
-  const todaysCalendarEvents = await getCalendarEventsForDate(user.id, date, timezone);
+  const sleepSchedule = resolveSleepSchedule(date, {
+    targetSleepTime: profileRow?.target_sleep_time || DEFAULT_PROFILE.targetSleepTime,
+    targetWakeTime: profileRow?.target_wake_time || DEFAULT_PROFILE.targetWakeTime,
+    weekendSleepTime: profileRow?.weekend_sleep_time ?? DEFAULT_PROFILE.weekendSleepTime,
+    weekendWakeTime: profileRow?.weekend_wake_time ?? DEFAULT_PROFILE.weekendWakeTime,
+    windDownMinutes: profileRow?.wind_down_minutes || DEFAULT_PROFILE.windDownMinutes,
+    sleepScheduleType: profileRow?.sleep_schedule_type || DEFAULT_PROFILE.sleepScheduleType,
+  });
+  const sleepPhase = getSleepPhase(now.slice(11, 16), sleepSchedule);
+  const todaysCalendarEvents = await getUnifiedCalendarEventsForDate(user.id, date, timezone);
   const freeWindows = computeFreeWindows(todaysCalendarEvents, date, timezone, 15);
   // Milestone 11A: the account picker on "Adicionar ao calendário" only
   // needs to appear once the founder has more than one connected account -
@@ -110,6 +121,11 @@ export default async function TodayPage({
       decisionsStale={briefing?.decisions_stale ?? false}
       timezone={timezone}
       planConfirmedAt={run?.plan_confirmed_at ?? null}
+      sleepProtection={sleepPhase === "awake" ? null : {
+        phase: sleepPhase,
+        sleepTime: sleepSchedule.sleepTime,
+        wakeTime: sleepSchedule.wakeTime,
+      }}
     />
   );
 }

@@ -15,6 +15,7 @@ export const RULE_LABELS: Record<string, string> = {
   "prepare-tomorrows-lunch": "Prepara o amanhã",
   "avoid-takeaway-commitment": "Evita o Uber Eats",
   "shutdown-routine": "Rotina de fecho",
+  "return-to-sleep-now": "Protege o teu sono agora",
   "earlier-sleep-for-tomorrow": "Protege o sono de hoje",
   "prepare-next-day": "Amanhã começa cedo",
   "short-walk": "Caminhada curta",

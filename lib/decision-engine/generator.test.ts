@@ -22,6 +22,15 @@ describe("generateRuleDecisions", () => {
     const nutrition = decisions.find((d) => d.domain === "nutrition");
     expect(nutrition?.relatedPantryItem).toBe("Frango");
   });
+
+  it("never generates a walk or workout inside the configured sleep window", () => {
+    const decisions = generateRuleDecisions(
+      baseContext({ now: "2026-07-29T02:15:00", userCheckIn: { stressLevel: 5, sleepQuality: 1 } })
+    );
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].domain).toBe("sleep");
+    expect(decisions[0].ruleId).toBe("return-to-sleep-now");
+  });
 });
 
 describe("generateDecisions", () => {

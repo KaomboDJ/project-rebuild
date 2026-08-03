@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import type { DayPlan, DayPlanItem } from "@/lib/day-plan/types";
 import type { ConnectionSummary } from "@/lib/google/calendar";
+import type { IdentityProgression } from "@/lib/gamification/progression";
+import { IdentityProgressCard } from "@/components/IdentityProgressCard";
 
 const STATE_LABEL: Record<DayPlan["operatingState"], string> = {
   recovery: "Recuperação",
@@ -64,9 +66,11 @@ function itemClasses(item: DayPlanItem): string {
 export function HomeWorkspace({
   plan,
   connections = [],
+  progression,
 }: {
   plan: DayPlan;
   connections?: ConnectionSummary[];
+  progression: IdentityProgression;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -127,6 +131,8 @@ export function HomeWorkspace({
           </p>
         )}
       </section>
+
+      <IdentityProgressCard progression={progression} compact />
 
       <section className="surface-card space-y-3 p-4">
         {plan.bannerState === "not_planned" && (

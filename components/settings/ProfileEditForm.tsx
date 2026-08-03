@@ -47,6 +47,11 @@ function draftFromProfile(profile: ProfileRow): OnboardingDraft {
     preferredTrainingTime: profile.preferred_training_time,
     typicalDinnerTime: profile.typical_dinner_time,
     targetSleepTime: profile.target_sleep_time,
+    targetWakeTime: profile.target_wake_time,
+    weekendSleepTime: profile.weekend_sleep_time ?? "",
+    weekendWakeTime: profile.weekend_wake_time ?? "",
+    windDownMinutes: profile.wind_down_minutes,
+    sleepScheduleType: profile.sleep_schedule_type,
     workingHoursStart: workingHours.start,
     workingHoursEnd: workingHours.end,
     currentConstraints: profile.current_constraints,
@@ -203,7 +208,7 @@ export function ProfileEditForm({ initialProfile }: { initialProfile: ProfileRow
         )}
       </fieldset>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           Hora de treino
           <input
@@ -232,6 +237,45 @@ export function ProfileEditForm({ initialProfile }: { initialProfile: ProfileRow
           />
         </label>
       </div>
+
+      <fieldset className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <legend className="px-1 text-sm font-medium">Janela habitual de sono</legend>
+        <p className="mb-4 text-xs text-neutral-400">
+          Durante esta janela o Rebuild bloqueia treino, caminhadas e outras sugestões estimulantes.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block text-sm">
+            Hora de acordar
+            <input type="time" className="field-input mt-1" value={draft.targetWakeTime} onChange={(event) => setDraft({ ...draft, targetWakeTime: event.target.value })} />
+          </label>
+          <label className="block text-sm">
+            Desacelerar antes de dormir
+            <select className="field-input mt-1" value={draft.windDownMinutes} onChange={(event) => setDraft({ ...draft, windDownMinutes: Number(event.target.value) })}>
+              <option value={30}>30 minutos</option>
+              <option value={45}>45 minutos</option>
+              <option value={60}>60 minutos</option>
+              <option value={90}>90 minutos</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            Tipo de horário
+            <select className="field-input mt-1" value={draft.sleepScheduleType} onChange={(event) => setDraft({ ...draft, sleepScheduleType: event.target.value as "regular" | "shift" })}>
+              <option value="regular">Regular</option>
+              <option value="shift">Trabalho por turnos</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            Dormir ao fim de semana (opcional)
+            <input type="time" className="field-input mt-1" value={draft.weekendSleepTime} onChange={(event) => setDraft({ ...draft, weekendSleepTime: event.target.value })} />
+          </label>
+          <label className="block text-sm">
+            Acordar ao fim de semana (opcional)
+            <input type="time" className="field-input mt-1" value={draft.weekendWakeTime} onChange={(event) => setDraft({ ...draft, weekendWakeTime: event.target.value })} />
+          </label>
+        </div>
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block text-sm">

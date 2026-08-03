@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { exchangeMicrosoftCodeForTokens, MICROSOFT_OAUTH_STATE_COOKIE } from "@/lib/microsoft/oauth";
-import { saveMicrosoftConnection } from "@/lib/microsoft/calendar";
+import { saveMicrosoftConnection, syncMicrosoftCalendarSources } from "@/lib/microsoft/calendar";
 
 /**
  * Handles Microsoft's OAuth redirect back to the app. Mirrors
@@ -38,10 +38,13 @@ export async function GET(request: NextRequest) {
   let response: NextResponse;
   try {
     const tokens = await exchangeMicrosoftCodeForTokens(code);
-    await saveMicrosoftConnection(user.id, tokens);
+    const connectionId = await saveMicrosoftConnection(user.id, tokens);
+    await syncMicrosoftCalendarSources(user.id, connectionId);
     response = NextResponse.redirect(settingsUrl("?outlook=connected"));
   } catch (err) {
-    console.error("microsoft_oauth_callback_error", err);
+    // Never log OAuth response bodies or tokens. The error class/name is
+    // enough to diagnose the bounded failure state in production.
+    console.error("microsoft_oauth_callback_error", err instanceof Error ? err.name : "unknown_error");
     response = NextResponse.redirect(settingsUrl("?outlook=error"));
   }
 

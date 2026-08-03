@@ -2,11 +2,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnvironment } from "@/lib/env/server";
 import { getFounderNow } from "@/lib/date/founder-now";
-import { getCalendarEventsForDate } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { runDecisionGeneration } from "@/lib/decision-engine/run";
 import { detectFreeWindowDrift, buildBriefingSummary } from "@/lib/decision-engine/drift";
 import type { FreeWindow } from "@/lib/decision-engine/types";
+import { sendPushToUser } from "@/lib/notifications/push";
+
+function clockDistanceMinutes(left: string, right: string): number {
+  const toMinutes = (value: string) => {
+    const [hours, minutes] = value.slice(0, 5).split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+  const difference = Math.abs(toMinutes(left) - toMinutes(right));
+  return Math.min(difference, 1440 - difference);
+}
 
 /**
  * Milestone 13 — Automation and continuous synchronization.
@@ -59,13 +69,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "failed-to-list-founders" }, { status: 500 });
   }
 
-  const results: { userId: string; decisionsGenerated: boolean; decisionsStale: boolean }[] = [];
+  const results: { userId: string; decisionsGenerated: boolean; decisionsStale: boolean; notificationsDelivered: number }[] = [];
 
   for (const profile of profiles ?? []) {
     const userId = profile.user_id;
     try {
-      const { date, timezone } = await getFounderNow(admin, userId);
-      const events = await getCalendarEventsForDate(userId, date, timezone || DEFAULT_PROFILE.timezone);
+      const { date, now, timezone } = await getFounderNow(admin, userId);
+      const events = await getUnifiedCalendarEventsForDate(userId, date, timezone || DEFAULT_PROFILE.timezone);
       const freeWindows = computeFreeWindows(events, date, timezone || DEFAULT_PROFILE.timezone, 15);
 
       const { data: existingRun } = await admin
@@ -109,7 +119,30 @@ export async function GET(request: NextRequest) {
         { onConflict: "user_id,date" }
       );
 
-      results.push({ userId, decisionsGenerated, decisionsStale: drift?.changed ?? false });
+      const { data: notificationPreferences } = await admin
+        .from("notification_preferences")
+        .select("enabled, daily_briefing, briefing_time")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const localTime = now.slice(11, 16);
+      const briefingTime = notificationPreferences?.briefing_time?.slice(0, 5) ?? "07:30";
+      let notificationsDelivered = 0;
+      if (
+        notificationPreferences?.enabled !== false &&
+        notificationPreferences?.daily_briefing !== false &&
+        clockDistanceMinutes(localTime, briefingTime) <= 45
+      ) {
+        const push = await sendPushToUser(userId, `daily-briefing:${date}`, {
+          title: "O teu dia está pronto",
+          body: `${events.length} compromissos considerados. Abre o Rebuild para veres as 3 decisões que mais importam.`,
+          url: "/home",
+          tag: `daily-briefing-${date}`,
+          category: "daily_briefing",
+        });
+        notificationsDelivered = push.delivered;
+      }
+
+      results.push({ userId, decisionsGenerated, decisionsStale: drift?.changed ?? false, notificationsDelivered });
     } catch (error) {
       // Best-effort across founders: one failure must not block the rest of
       // the batch (there is only one founder today, but this keeps the loop
@@ -120,7 +153,7 @@ export async function GET(request: NextRequest) {
         userId,
         message: error instanceof Error ? error.message : String(error),
       });
-      results.push({ userId, decisionsGenerated: false, decisionsStale: false });
+      results.push({ userId, decisionsGenerated: false, decisionsStale: false, notificationsDelivered: 0 });
     }
   }
 

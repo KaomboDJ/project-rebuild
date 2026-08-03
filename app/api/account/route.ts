@@ -43,8 +43,9 @@ async function revokeGoogleConnections(userId: string): Promise<void> {
   const admin = createSupabaseAdminClient();
   const { data: connections } = await admin
     .from("calendar_connections")
-    .select("encrypted_access_token, encrypted_refresh_token")
-    .eq("user_id", userId);
+    .select("provider, encrypted_access_token, encrypted_refresh_token")
+    .eq("user_id", userId)
+    .eq("provider", "google");
 
   for (const connection of connections ?? []) {
     for (const packed of [connection.encrypted_access_token, connection.encrypted_refresh_token]) {

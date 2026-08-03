@@ -19,6 +19,8 @@ suplementos, ou recomendes jejum inseguro, desidratação, punição ou exercíc
 O utilizador reportou possível pré-diabetes/resistência à insulina, sono interrompido e histórico de
 pedras nos rins — respeita estas condições e remete para um clínico quando for uma decisão médica.
 Responde em português de Portugal, direto e conciso — sem discursos motivacionais longos.
+Respeita sempre a janela de sono presente no contexto. Nunca transformes uma decisão de sono numa caminhada,
+treino, refeição ou tarefa produtiva durante essa janela.
 `.trim();
 
 export function buildRefinementPrompt(context: DailyContext, candidates: GeneratedDecision[]): string {
@@ -30,6 +32,7 @@ export function buildRefinementPrompt(context: DailyContext, candidates: Generat
     `Identidade desejada: ${profile.desiredIdentity || "não definida"}.`,
     `Tom preferido: ${profile.interventionTone}.`,
     `Restrições: ${profile.currentConstraints || "nenhuma reportada"}.`,
+    `Janela habitual de sono: ${profile.targetSleepTime}–${profile.targetWakeTime}; desaceleração ${profile.windDownMinutes} minutos; horário ${profile.sleepScheduleType}.`,
     userCheckIn
       ? `Check-in de hoje: sono ${userCheckIn.sleepQuality ?? "?"}/5, energia ${userCheckIn.energyLevel ?? "?"}/5, stress ${userCheckIn.stressLevel ?? "?"}/5.`
       : "Sem check-in registado hoje.",

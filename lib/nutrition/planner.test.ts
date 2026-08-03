@@ -140,6 +140,24 @@ describe("generateWeekPlan", () => {
     const result = generateWeekPlan({ weekStart: "2026-08-03", profile: profile({ includeSnack: false, peopleCount: 3 }), recipes });
     expect(result.items.every((i) => i.servings === 3)).toBe(true);
   });
+
+  it("uses lunch and dinner only for a two-meal profile", () => {
+    const recipes = [...DINNER_RECIPES, recipe({ id: "b1", mealType: "breakfast" }), recipe({ id: "l1", mealType: "lunch" }), recipe({ id: "s1", mealType: "snack" })];
+    const result = generateWeekPlan({ weekStart: "2026-08-03", profile: profile({ mealsPerDay: 2, includeSnack: true }), recipes });
+    expect(new Set(result.items.map((item) => item.mealSlot))).toEqual(new Set(["lunch", "dinner"]));
+  });
+
+  it("limits simple rotation to two recipes per slot", () => {
+    const recipes = [
+      ...DINNER_RECIPES,
+      recipe({ id: "d4", mealType: "dinner" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+      recipe({ id: "l1", mealType: "lunch" }),
+    ];
+    const result = generateWeekPlan({ weekStart: "2026-08-03", profile: profile({ includeSnack: false, preferredPlanMode: "simple-rotation" }), recipes });
+    expect(new Set(result.items.filter((item) => item.mealSlot === "dinner").map((item) => item.recipeId)).size).toBeLessThanOrEqual(2);
+    expect(result.mode).toBe("simple-rotation");
+  });
 });
 
 describe("suggestReplacement", () => {

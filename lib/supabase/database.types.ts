@@ -28,7 +28,7 @@ type VarietyPreference = "low" | "medium" | "high";
 type MacroSource = "system-estimate" | "user-provided" | "clinician-provided";
 type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 type GrocerySection = PantryCategory;
-type MealPlanMode = "decide-for-me";
+type MealPlanMode = "decide-for-me" | "simple-rotation" | "flexible-week";
 type MealPlanStatus = "active" | "archived";
 type MealPlanItemStatus = "planned" | "eaten" | "skipped";
 
@@ -48,6 +48,11 @@ export interface Database {
           preferred_training_time: string;
           typical_dinner_time: string;
           target_sleep_time: string;
+          target_wake_time: string;
+          weekend_sleep_time: string | null;
+          weekend_wake_time: string | null;
+          wind_down_minutes: number;
+          sleep_schedule_type: "regular" | "shift";
           working_hours: Json;
           current_constraints: string;
           intervention_tone: string;
@@ -70,6 +75,11 @@ export interface Database {
           preferred_training_time?: string;
           typical_dinner_time?: string;
           target_sleep_time?: string;
+          target_wake_time?: string;
+          weekend_sleep_time?: string | null;
+          weekend_wake_time?: string | null;
+          wind_down_minutes?: number;
+          sleep_schedule_type?: "regular" | "shift";
           working_hours?: Json;
           current_constraints?: string;
           intervention_tone?: string;
@@ -115,6 +125,40 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["calendar_connections"]["Insert"]>;
+        Relationships: [];
+      };
+      calendar_sources: {
+        Row: {
+          id: string;
+          user_id: string;
+          connection_id: string;
+          external_calendar_id: string;
+          name: string;
+          color: string | null;
+          is_read_only: boolean;
+          can_write: boolean;
+          selected_for_context: boolean;
+          visible_in_workspace: boolean;
+          is_default_destination: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          connection_id: string;
+          external_calendar_id: string;
+          name: string;
+          color?: string | null;
+          is_read_only?: boolean;
+          can_write?: boolean;
+          selected_for_context?: boolean;
+          visible_in_workspace?: boolean;
+          is_default_destination?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["calendar_sources"]["Insert"]>;
         Relationships: [];
       };
       daily_check_ins: {
@@ -357,6 +401,7 @@ export interface Database {
           user_id: string;
           name: string;
           status: ShoppingListStatus;
+          meal_plan_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -365,6 +410,7 @@ export interface Database {
           user_id: string;
           name?: string;
           status?: ShoppingListStatus;
+          meal_plan_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -421,6 +467,7 @@ export interface Database {
           target_carbs_g: number | null;
           target_fat_g: number | null;
           macro_source: MacroSource;
+          preferred_plan_mode: MealPlanMode;
           created_at: string;
           updated_at: string;
         };
@@ -443,6 +490,7 @@ export interface Database {
           target_carbs_g?: number | null;
           target_fat_g?: number | null;
           macro_source?: MacroSource;
+          preferred_plan_mode?: MealPlanMode;
           created_at?: string;
           updated_at?: string;
         };
@@ -595,6 +643,76 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["daily_briefings"]["Insert"]>;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          enabled: boolean;
+          failure_count: number;
+          last_success_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+          enabled?: boolean;
+          failure_count?: number;
+          last_success_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Insert"]>;
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          enabled: boolean;
+          daily_briefing: boolean;
+          decision_reminders: boolean;
+          nutrition_reminders: boolean;
+          briefing_time: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          enabled?: boolean;
+          daily_briefing?: boolean;
+          decision_reminders?: boolean;
+          nutrition_reminders?: boolean;
+          briefing_time?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notification_preferences"]["Insert"]>;
+        Relationships: [];
+      };
+      notification_deliveries: {
+        Row: {
+          id: string;
+          user_id: string;
+          notification_key: string;
+          delivered_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          notification_key: string;
+          delivered_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notification_deliveries"]["Insert"]>;
         Relationships: [];
       };
       meal_plan_items: {

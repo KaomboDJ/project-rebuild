@@ -20,6 +20,9 @@ const serverEnvironmentSchema = z.object({
   ANTHROPIC_API_KEY: optionalSecret,
   ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-5"),
   CRON_SECRET: optionalSecret,
+  VAPID_PUBLIC_KEY: optionalSecret,
+  VAPID_PRIVATE_KEY: optionalSecret,
+  VAPID_SUBJECT: z.string().min(1).default("mailto:privacy@projectrebuild.app"),
   // Auth UX Hardening milestone. Gates the "Continuar com Microsoft"
   // identity sign-in button (Supabase's "azure" OAuth provider) - separate
   // from both (a) the read-only Outlook Calendar adapter being built on
@@ -54,6 +57,9 @@ export function getServerEnvironment(): ServerEnvironment {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
+    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || undefined,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT || undefined,
     AUTH_MICROSOFT_ENABLED: process.env.AUTH_MICROSOFT_ENABLED || undefined,
     AUTH_EMAIL_OTP_ENABLED: process.env.AUTH_EMAIL_OTP_ENABLED || undefined,
   });

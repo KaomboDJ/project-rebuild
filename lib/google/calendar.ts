@@ -4,6 +4,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { decryptToken, encryptToken } from "@/lib/crypto/tokens";
 import { localRangeUtc } from "@/lib/date/timezone";
 import type { CalendarEvent } from "@/lib/decision-engine/types";
+import type { CalendarSource } from "@/lib/calendar-intelligence/types";
+import { upsertCalendarSources } from "@/lib/calendar-intelligence/sources";
 import { fetchGoogleAccountEmail, type GoogleTokenResponse, refreshAccessToken } from "./oauth";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
@@ -77,7 +79,7 @@ export async function listConnections(userId: string): Promise<ConnectionSummary
 export async function saveCalendarConnection(
   userId: string,
   tokens: GoogleTokenResponse
-): Promise<void> {
+): Promise<string> {
   const admin = createSupabaseAdminClient();
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
   const googleAccountEmail = await fetchGoogleAccountEmail(tokens.access_token);
@@ -118,12 +120,59 @@ export async function saveCalendarConnection(
     update.is_primary = true;
   }
 
-  const { error } = await admin
+  const { data, error } = await admin
     .from("calendar_connections")
-    .upsert(update, { onConflict: "user_id,provider,google_account_email" });
+    .upsert(update, { onConflict: "user_id,provider,google_account_email" })
+    .select("id")
+    .single();
 
-  if (error) {
-    throw new Error(`Failed to save calendar connection: ${error.message}`);
+  if (error || !data) {
+    throw new Error(`Failed to save calendar connection: ${error?.message ?? "missing row"}`);
+  }
+  return data.id;
+}
+
+interface GoogleCalendarListResource {
+  id: string;
+  summary?: string;
+  backgroundColor?: string;
+  accessRole?: "freeBusyReader" | "reader" | "writer" | "owner";
+  primary?: boolean;
+  deleted?: boolean;
+}
+
+export async function syncGoogleCalendarSources(userId: string, connectionId: string): Promise<void> {
+  const token = await getValidAccessToken(userId, connectionId);
+  if (!token) return;
+  try {
+    const response = await fetch(`${CALENDAR_API}/users/me/calendarList?minAccessRole=freeBusyReader`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return;
+    const body: { items?: GoogleCalendarListResource[] } = await response.json();
+    const sources: Array<Omit<CalendarSource, "id">> = (body.items ?? [])
+      .filter((calendar) => !calendar.deleted)
+      .map((calendar) => {
+        const canWrite = calendar.accessRole === "writer" || calendar.accessRole === "owner";
+        return {
+          provider: "google" as const,
+          connectionId,
+          externalCalendarId: calendar.id,
+          name: calendar.summary || calendar.id,
+          color: calendar.backgroundColor,
+          isReadOnly: !canWrite,
+          canWrite,
+          // Primary is selected immediately; additional calendars are
+          // explicit opt-in so holidays/birthdays do not silently block a day.
+          selectedForContext: Boolean(calendar.primary),
+          visibleInWorkspace: Boolean(calendar.primary),
+          isDefaultDestination: false,
+        };
+      });
+    await upsertCalendarSources(userId, sources);
+  } catch {
+    // Older grants may not include calendarList scope. Primary-calendar
+    // behavior continues until the user reconnects and selects sources.
   }
 }
 
@@ -299,13 +348,13 @@ interface GoogleCalendarEventResource {
   status?: string;
 }
 
-function mapGoogleEvent(event: GoogleCalendarEventResource): CalendarEvent | null {
+function mapGoogleEvent(event: GoogleCalendarEventResource, calendarId: string): CalendarEvent | null {
   const start = event.start?.dateTime ?? event.start?.date;
   const end = event.end?.dateTime ?? event.end?.date;
   if (!start || !end) return null;
 
   return {
-    id: event.id,
+    id: `google:${calendarId}:${event.id}`,
     title: event.summary ?? "(Sem título)",
     start,
     end,
@@ -322,7 +371,15 @@ async function getEventsForConnection(
   const accessToken = await getValidAccessTokenForRow(row);
   if (!accessToken) return [];
 
-  const calendarId = row.calendar_id || "primary";
+  const admin = createSupabaseAdminClient();
+  const { data: sourceRows } = await admin
+    .from("calendar_sources")
+    .select("external_calendar_id, selected_for_context")
+    .eq("connection_id", row.id);
+  const calendarIds = sourceRows && sourceRows.length > 0
+    ? sourceRows.filter((source) => source.selected_for_context).map((source) => source.external_calendar_id)
+    : [row.calendar_id || "primary"];
+  if (calendarIds.length === 0) return [];
   const { timeMin, timeMax } = localRangeUtc(startDateKey, endDateKey, timezone);
   const params = new URLSearchParams({
     timeMin,
@@ -332,21 +389,23 @@ async function getEventsForConnection(
     maxResults: "250",
   });
 
-  try {
-    const response = await fetch(
-      `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    if (!response.ok) return [];
-
-    const body: { items?: GoogleCalendarEventResource[] } = await response.json();
-    return (body.items ?? [])
-      .filter((event) => event.status !== "cancelled")
-      .map(mapGoogleEvent)
-      .filter((event): event is CalendarEvent => event !== null);
-  } catch {
-    return [];
-  }
+  const perCalendar = await Promise.all(calendarIds.map(async (calendarId) => {
+    try {
+      const response = await fetch(
+        `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!response.ok) return [];
+      const body: { items?: GoogleCalendarEventResource[] } = await response.json();
+      return (body.items ?? [])
+        .filter((event) => event.status !== "cancelled")
+        .map((event) => mapGoogleEvent(event, calendarId))
+        .filter((event): event is CalendarEvent => event !== null);
+    } catch {
+      return [];
+    }
+  }));
+  return perCalendar.flat();
 }
 
 /** Empty array if not connected or every read fails - the decision engine

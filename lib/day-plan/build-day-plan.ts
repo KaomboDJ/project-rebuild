@@ -4,12 +4,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { instantToLocalWallClockIso } from "@/lib/date/timezone";
-import { getCalendarEventsForDate, listConnections } from "@/lib/google/calendar";
+import { listConnections } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { dayPlanWouldScheduleAnything, type DecisionRow } from "@/lib/decision-engine/day-plan";
 import type { DailyCheckIn } from "@/lib/decision-engine/types";
 import { validatePlanConflicts } from "./validate-conflicts";
 import type { DayPlan, DayPlanItem } from "./types";
+import { getSleepPhase, resolveSleepSchedule, toClockMinutes } from "@/lib/sleep/schedule";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -55,7 +57,16 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
   const workingStart = (profile?.working_hours as { start?: string } | null)?.start || DEFAULT_PROFILE.workingHours.start;
   const dinnerTime = profile?.typical_dinner_time || DEFAULT_PROFILE.typicalDinnerTime;
   const sleepTime = profile?.target_sleep_time || DEFAULT_PROFILE.targetSleepTime;
-  const calendarEvents = await getCalendarEventsForDate(userId, date, timezone);
+  const sleepSchedule = resolveSleepSchedule(date, {
+    targetSleepTime: sleepTime,
+    targetWakeTime: profile?.target_wake_time || DEFAULT_PROFILE.targetWakeTime,
+    weekendSleepTime: profile?.weekend_sleep_time ?? DEFAULT_PROFILE.weekendSleepTime,
+    weekendWakeTime: profile?.weekend_wake_time ?? DEFAULT_PROFILE.weekendWakeTime,
+    windDownMinutes: profile?.wind_down_minutes || DEFAULT_PROFILE.windDownMinutes,
+    sleepScheduleType: profile?.sleep_schedule_type || DEFAULT_PROFILE.sleepScheduleType,
+  });
+  const sleepPhase = getSleepPhase(now.slice(11, 16), sleepSchedule);
+  const calendarEvents = await getUnifiedCalendarEventsForDate(userId, date, timezone);
   const freeWindows = computeFreeWindows(calendarEvents, date, timezone, 15);
   const connections = await listConnections(userId);
   const checkIn: DailyCheckIn | undefined = checkInRow
@@ -70,7 +81,9 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
   const decisionRows: DecisionRow[] = decisions ?? [];
   const staleIds = new Set(validatePlanConflicts(decisionRows, calendarEvents, timezone).map((item) => item.decisionId));
 
-  const decisionItems: DayPlanItem[] = decisionRows.map((decision) => ({
+  const decisionItems: DayPlanItem[] = decisionRows
+    .filter((decision) => sleepPhase === "awake" || decision.domain === "sleep")
+    .map((decision) => ({
     id: `decision:${decision.id}`,
     kind: decision.domain === "training" || decision.domain === "recovery" ? "training" : "decision",
     status:
@@ -90,7 +103,18 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
     source: "decision_engine",
     relatedDecisionId: decision.id,
     isStale: staleIds.has(decision.id),
-  }));
+    }));
+
+  const sleepProtectionItem: DayPlanItem[] = sleepPhase === "awake" ? [] : [{
+    id: "sleep:protected-window",
+    kind: "decision",
+    status: "proposed",
+    startsAt: now,
+    endsAt: null,
+    title: sleepPhase === "sleep" ? "Protege o teu sono agora" : "Começa a desacelerar",
+    explanation: `Janela habitual de sono: ${sleepSchedule.sleepTime}–${sleepSchedule.wakeTime}.`,
+    source: "decision_engine",
+  }];
 
   const calendarItems: DayPlanItem[] = calendarEvents.map((event) => ({
     id: `calendar:${event.id}`,
@@ -138,7 +162,7 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
     });
   }
 
-  const items = [...calendarItems, ...decisionItems, ...mealItems, ...freeWindowItems].sort((a, b) => {
+  const items = [...calendarItems, ...sleepProtectionItem, ...decisionItems, ...mealItems, ...freeWindowItems].sort((a, b) => {
     if (!a.startsAt) return 1;
     if (!b.startsAt) return -1;
     return a.startsAt.localeCompare(b.startsAt);
@@ -170,8 +194,14 @@ export async function buildDayPlan(supabase: Supabase, userId: string): Promise<
     planConfirmedAt,
     decisionsStale,
     briefingSummary: briefing?.summary ?? null,
-    dayStart: `${date}T${toHHMM(Math.max(toMinutes(workingStart) - 90, toMinutes("05:00")))}:00`,
-    dayEnd: `${date}T${sleepTime}:00`,
+    dayStart: sleepPhase === "awake"
+      ? `${date}T${toHHMM(Math.max(toMinutes(workingStart) - 90, toMinutes("05:00")))}:00`
+      : now,
+    dayEnd: sleepPhase === "sleep"
+      ? toClockMinutes(now.slice(11, 16)) < toClockMinutes(sleepSchedule.wakeTime)
+        ? `${date}T${sleepSchedule.wakeTime}:00`
+        : `${date}T23:59:00`
+      : `${date}T${sleepTime}:00`,
     freeWindows,
     calendarEvents,
     decisions: decisionRows,

@@ -1,7 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getNutritionProfile, completeMealPlanItem, replaceMealPlanItem, listRecipesWithIngredients } from "@/lib/nutrition/queries";
+import {
+  completeMealPlanItem,
+  generateShoppingListForPlan,
+  getMealPlanById,
+  getNutritionProfile,
+  listRecipesWithIngredients,
+  replaceMealPlanItem,
+} from "@/lib/nutrition/queries";
 import { suggestReplacement } from "@/lib/nutrition/planner";
 
 const patchSchema = z.discriminatedUnion("action", [
@@ -35,7 +42,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     if (parsed.data.action === "complete") {
       const result = await completeMealPlanItem(supabase, user.id, itemId, parsed.data.status);
-      return NextResponse.json({ item: result.item, consumedIngredients: result.consumedIngredients });
+      const plan = await getMealPlanById(supabase, user.id, result.item.meal_plan_id);
+      if (plan) await generateShoppingListForPlan(supabase, user.id, plan);
+      return NextResponse.json({ item: result.item, consumedIngredients: result.consumedIngredients, shoppingListUpdated: Boolean(plan) });
     }
 
     let recipeId = parsed.data.recipeId;
@@ -55,7 +64,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const item = await replaceMealPlanItem(supabase, user.id, itemId, recipeId);
-    return NextResponse.json({ item });
+    const plan = await getMealPlanById(supabase, user.id, item.meal_plan_id);
+    if (plan) await generateShoppingListForPlan(supabase, user.id, plan);
+    return NextResponse.json({ item, shoppingListUpdated: Boolean(plan) });
   } catch {
     return NextResponse.json({ error: "update-failed" }, { status: 500 });
   }

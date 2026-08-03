@@ -20,6 +20,9 @@ const USER_TABLES = [
   "muted_rules",
   "founder_notes",
   "daily_briefings",
+  "notification_preferences",
+  "notification_deliveries",
+  "calendar_sources",
 ] as const;
 
 /**

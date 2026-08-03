@@ -56,7 +56,7 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
           exclusions,
           medicalConstraints: draft.medicalConstraints,
           mealsPerDay: draft.mealsPerDay,
-          includeSnack: draft.includeSnack,
+          includeSnack: draft.mealsPerDay >= 4,
           peopleCount: draft.peopleCount,
           cookingTimeMinutes: draft.cookingTimeMinutes,
           budgetPreference: draft.budgetPreference,
@@ -66,6 +66,7 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
           targetCarbsG: draft.targetCarbsG,
           targetFatG: draft.targetFatG,
           macroSource: draft.targetCalories ? "user-provided" : "system-estimate",
+          preferredPlanMode: draft.preferredPlanMode,
         }),
       });
       if (!response.ok) throw new Error();
@@ -162,14 +163,31 @@ export function NutritionProfileForm({ initialProfile }: { initialProfile: Nutri
         </label>
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={draft.includeSnack}
-          onChange={(e) => setDraft({ ...draft, includeSnack: e.target.checked })}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Select
+          label="Refeições planeadas por dia"
+          value={String(draft.mealsPerDay)}
+          options={[
+            { value: "2", label: "2 — almoço e jantar" },
+            { value: "3", label: "3 — pequeno-almoço, almoço e jantar" },
+            { value: "4", label: "4 — inclui um lanche" },
+          ]}
+          onChange={(value) => setDraft({ ...draft, mealsPerDay: Number(value), includeSnack: Number(value) >= 4 })}
         />
-        Incluir um lanche por dia
-      </label>
+        <Select
+          label="Como queres planear"
+          value={draft.preferredPlanMode}
+          options={[
+            { value: "decide-for-me", label: "Decide por mim" },
+            { value: "simple-rotation", label: "Rotação simples" },
+            { value: "flexible-week", label: "Semana flexível" },
+          ]}
+          onChange={(value) => setDraft({ ...draft, preferredPlanMode: value as NutritionProfile["preferredPlanMode"] })}
+        />
+      </div>
+      <p className="-mt-3 text-xs text-neutral-500">
+        Rotação simples repete poucas opções para reduzir preparação. Semana flexível privilegia variedade e substituições fáceis.
+      </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Select

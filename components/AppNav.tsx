@@ -84,7 +84,7 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
               size={8}
               className={calendarConnected ? "fill-emerald-500 text-emerald-500" : "fill-neutral-600 text-neutral-400"}
             />
-            {calendarConnected ? "Google Calendar ligado" : "Google Calendar por ligar"}
+            {calendarConnected ? "Calendário ligado" : "Calendário por ligar"}
           </Link>
         </div>
       </nav>

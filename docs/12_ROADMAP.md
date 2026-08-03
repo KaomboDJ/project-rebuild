@@ -1,5 +1,15 @@
 # 12 — Roadmap
 
+## Phase 1 completion authorization — 2026-08-03
+
+The founder froze the first product phase around five capabilities: unified
+calendar, notifications, nutrition finish, application guide and
+identity-based gamification, plus the sleep-window safety correction required
+to prevent inappropriate overnight suggestions. The implementation and exact
+non-goals are in `docs/19_PHASE_1_HEALTH_COMPLETION.md`. Historical pilot and
+milestone notes below remain provenance; they no longer gate this explicitly
+authorized completion release.
+
 `REBUILD_MASTER_HANDOFF.md` §26 defines the authoritative milestone sequence for the current MVP — this file summarizes it and points to live status. If the two ever disagree, the handoff wins; correct this file.
 
 Last updated: 2026-07-30, after the pre-pilot stabilization sprint (see `PROJECT_REBUILD_STATE.md`). All eight original MVP milestones are done; the current phase is validating the product with real usage, not building new modules.
