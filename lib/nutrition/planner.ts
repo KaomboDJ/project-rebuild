@@ -85,15 +85,9 @@ function sortStable(recipes: Recipe[]): Recipe[] {
 }
 
 function activeSlots(profile: NutritionProfile): MealType[] {
-  // MVP simplification (documented in docs/13_NUTRITION_TOOLKIT.md): the
-  // three core meals are always planned; profile.mealsPerDay is captured
-  // for future "simple rotation" / custom slot counts but doesn't yet
-  // change which slots are filled. Only the optional snack is switched by
-  // profile.includeSnack, matching PRODUCT_BACKLOG.md's "three meals and an
-  // optional snack" minimum useful version verbatim.
-  const slots: MealType[] = ["breakfast", "lunch", "dinner"];
-  if (profile.includeSnack) slots.push("snack");
-  return slots;
+  if (profile.mealsPerDay <= 2) return ["lunch", "dinner"];
+  if (profile.mealsPerDay === 3 && !profile.includeSnack) return ["breakfast", "lunch", "dinner"];
+  return ["breakfast", "lunch", "dinner", "snack"];
 }
 
 function addDays(dateKey: string, days: number): string {
@@ -117,13 +111,21 @@ export function generateWeekPlan(params: {
 }): WeekPlanResult {
   const { weekStart, profile, recipes, carryOverRecipeIds = {} } = params;
   const slots = activeSlots(profile);
-  const window = varietyWindow(profile.varietyPreference);
+  const window = profile.preferredPlanMode === "simple-rotation"
+    ? 1
+    : profile.preferredPlanMode === "flexible-week"
+      ? 7
+      : varietyWindow(profile.varietyPreference);
 
   const items: PlannedMealSlot[] = [];
   let limitedVariety = false;
 
   for (const mealSlot of slots) {
-    const { candidates, relaxed } = candidatesForSlot(recipes, mealSlot, profile);
+    const candidateResult = candidatesForSlot(recipes, mealSlot, profile);
+    const candidates = profile.preferredPlanMode === "simple-rotation"
+      ? candidateResult.candidates.slice(0, 2)
+      : candidateResult.candidates;
+    const { relaxed } = candidateResult;
     if (relaxed) limitedVariety = true;
 
     if (candidates.length === 0) {
@@ -158,7 +160,7 @@ export function generateWeekPlan(params: {
     }
   }
 
-  return { weekStart, items, limitedVariety };
+  return { weekStart, items, limitedVariety, mode: profile.preferredPlanMode };
 }
 
 /**

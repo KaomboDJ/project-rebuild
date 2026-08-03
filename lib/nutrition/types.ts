@@ -14,6 +14,7 @@ export type MacroSource = "system-estimate" | "user-provided" | "clinician-provi
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export type GrocerySection = "produce" | "protein" | "dairy" | "grain" | "pantry" | "frozen" | "beverage" | "other";
 export type MealPlanItemStatus = "planned" | "eaten" | "skipped";
+export type MealPlanMode = "decide-for-me" | "simple-rotation" | "flexible-week";
 
 export interface NutritionProfile {
   userId: string;
@@ -33,6 +34,7 @@ export interface NutritionProfile {
   targetCarbsG: number | null;
   targetFatG: number | null;
   macroSource: MacroSource;
+  preferredPlanMode: MealPlanMode;
 }
 
 export interface RecipeIngredient {
@@ -93,6 +95,7 @@ export interface WeekPlanResult {
    * rather than the planner silently pretending it had more choice than it
    * did (small curated library, not a marketplace — PRODUCT_BACKLOG.md). */
   limitedVariety: boolean;
+  mode: MealPlanMode;
 }
 
 export interface DailyMacroEstimate {

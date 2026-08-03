@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppNav } from "@/components/AppNav";
+import { AppGuide } from "@/components/AppGuide";
 
 export function AppShell({
   children,
@@ -26,6 +27,7 @@ export function AppShell({
       </a>
 
       <AppNav calendarConnected={calendarConnected} />
+      <AppGuide />
 
       {/* Slim top bar, mobile only - the sidebar already carries the brand
           on desktop. Bottom padding on <main> reserves space for the fixed

@@ -1,5 +1,15 @@
 # Project Rebuild — Current State
 
+## Governance note — 2026-08-03 (Phase 1 scope freeze)
+
+The founder authorized completion and production release of Project Rebuild as
+a health and decision product for busy parents/former athletes, limited to five
+remaining areas: unified calendar, notifications, nutrition finish, application
+guide and identity-based gamification. Sleep-aware quiet hours are a required
+safety correction within that scope. Everything else is deferred and must not
+expand Phase 1. The executable scope and release gates are recorded in
+`docs/19_PHASE_1_HEALTH_COMPLETION.md`.
+
 ## Identity
 
 **Sou um atleta em reconstrução.**

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { exchangeCodeForTokens, GOOGLE_OAUTH_STATE_COOKIE } from "@/lib/google/oauth";
-import { saveCalendarConnection } from "@/lib/google/calendar";
+import { saveCalendarConnection, syncGoogleCalendarSources } from "@/lib/google/calendar";
 
 /**
  * Handles Google's OAuth redirect back to the app (Milestone 3). Verifies
@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
   let response: NextResponse;
   try {
     const tokens = await exchangeCodeForTokens(code);
-    await saveCalendarConnection(user.id, tokens);
+    const connectionId = await saveCalendarConnection(user.id, tokens);
+    await syncGoogleCalendarSources(user.id, connectionId);
     response = NextResponse.redirect(settingsUrl("?calendar=connected"));
   } catch (err) {
     // Invited-alpha security review: the underlying error can embed Google's

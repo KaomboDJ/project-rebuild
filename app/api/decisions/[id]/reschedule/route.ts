@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
-import { getCalendarEventsForDate, updateInterventionEvent } from "@/lib/google/calendar";
+import { updateInterventionEvent } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { overlapsFixedEvent } from "@/lib/day-plan/slot-finder";
 import { zonedWallTimeToUtc } from "@/lib/date/timezone";
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { timezone: founderTimezone } = await getFounderNow(supabase, user.id);
   const { data: profile } = await supabase.from("profiles").select("timezone").eq("user_id", user.id).maybeSingle();
   const timezone = profile?.timezone || founderTimezone || DEFAULT_PROFILE.timezone;
-  const events = await getCalendarEventsForDate(user.id, decision.date, timezone);
+  const events = await getUnifiedCalendarEventsForDate(user.id, decision.date, timezone);
   const others = decision.calendar_event_id ? events.filter((event) => event.id !== decision.calendar_event_id) : events;
   if (overlapsFixedEvent(parsed.data.start, parsed.data.end, others)) {
     return NextResponse.json({ error: "slot-no-longer-available" }, { status: 409 });

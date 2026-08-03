@@ -7,7 +7,7 @@
 // date the calendar is browsing; only the calendar canvas navigates freely.
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Loader2, ListChecks, RefreshCw } from "lucide-react";
+import { CalendarDays, Loader2, ListChecks, MoonStar, RefreshCw } from "lucide-react";
 import { DailyCheckInForm } from "@/components/DailyCheckInForm";
 import { DecisionEngineCard, type DecisionRow } from "@/components/DecisionEngineCard";
 import type { ConnectionSummary } from "@/lib/google/calendar";
@@ -65,6 +65,7 @@ export function CalendarWorkspace({
   decisionsStale = false,
   timezone = "UTC",
   planConfirmedAt = null,
+  sleepProtection = null,
 }: {
   /** Founder's real local "today" - decisions are always for this date. */
   date: string;
@@ -88,6 +89,7 @@ export function CalendarWorkspace({
   decisionsStale?: boolean;
   timezone?: string;
   planConfirmedAt?: string | null;
+  sleepProtection?: { phase: "sleep" | "wind_down"; sleepTime: string; wakeTime: string } | null;
 }) {
   const [checkInDone, setCheckInDone] = useState(hasCheckIn);
   const [decisions, setDecisions] = useState<DecisionRow[]>(initialDecisions);
@@ -97,8 +99,12 @@ export function CalendarWorkspace({
   const [selectedEvent, setSelectedEvent] = useState<CalendarClickPayload | null>(null);
   const [mobileTab, setMobileTab] = useState<"calendar" | "decisions">("calendar");
 
-  const dominant = useMemo(() => pickDominant(decisions), [decisions]);
-  const rest = useMemo(() => decisions.filter((d) => d.id !== dominant?.id), [decisions, dominant]);
+  const visibleDecisions = useMemo(
+    () => sleepProtection ? decisions.filter((decision) => decision.domain === "sleep") : decisions,
+    [decisions, sleepProtection]
+  );
+  const dominant = useMemo(() => pickDominant(visibleDecisions), [visibleDecisions]);
+  const rest = useMemo(() => visibleDecisions.filter((d) => d.id !== dominant?.id), [visibleDecisions, dominant]);
   const bannerState = useMemo(
     () => computeBannerState({ decisions, planConfirmedAt, decisionsStale }),
     [decisions, planConfirmedAt, decisionsStale]
@@ -180,7 +186,7 @@ export function CalendarWorkspace({
               todayDateKey={date}
               freeWindowsDate={freeWindowsDate}
               freeWindows={freeWindows}
-              decisions={decisions}
+              decisions={visibleDecisions}
               onEventClick={setSelectedEvent}
             />
           </div>
@@ -196,7 +202,26 @@ export function CalendarWorkspace({
               À esquerda está o teu calendário (Google + decisões do Rebuild); aqui à direita ficam as três
               decisões de hoje. O planeamento do dia inteiro vive no Início — aqui é só executar.
             </FirstUseCallout>
-            <DecisionEngineScoreView decisions={decisions} />
+            <DecisionEngineScoreView decisions={visibleDecisions} />
+
+            {sleepProtection && (
+              <div className="surface-card border-indigo-500/30 bg-indigo-500/[0.08] p-4" role="status">
+                <div className="flex items-start gap-3">
+                  <MoonStar className="mt-0.5 shrink-0 text-indigo-300" size={20} />
+                  <div className="space-y-2">
+                    <p className="font-semibold text-indigo-100">
+                      {sleepProtection.phase === "sleep" ? "Protege o teu sono agora" : "Está na hora de desacelerar"}
+                    </p>
+                    <p className="text-sm text-indigo-100/80">
+                      A tua janela habitual é {sleepProtection.sleepTime}–{sleepProtection.wakeTime}. O Rebuild ocultou caminhadas, treinos e tarefas estimulantes neste período.
+                    </p>
+                    <button className="btn-secondary px-3 py-1.5 text-xs" disabled={loading} onClick={regenerate}>
+                      Atualizar decisões para este momento
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {briefingSummary && (
               <div
@@ -217,7 +242,7 @@ export function CalendarWorkspace({
               </div>
             )}
 
-            {decisions.length > 0 && (
+            {visibleDecisions.length > 0 && (
               <PlanStatusBanner
                 state={bannerState}
                 planConfirmedAt={planConfirmedAt}
@@ -231,7 +256,7 @@ export function CalendarWorkspace({
                 <Loader2 size={16} className="animate-spin" />
                 A pensar nas tuas três decisões de hoje...
               </div>
-            ) : decisions.length === 0 ? (
+            ) : visibleDecisions.length === 0 ? (
               <div className="space-y-3">
                 {error && <p className="text-sm text-red-400">{error}</p>}
                 <button className="btn-primary w-full py-2.5" onClick={regenerate}>

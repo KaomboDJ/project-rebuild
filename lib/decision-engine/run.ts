@@ -6,7 +6,7 @@ import { buildDailyContext } from "./context-builder";
 import { generateDecisions } from "./generator";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { zonedWallTimeToUtc } from "@/lib/date/timezone";
-import { getCalendarEventsForDate } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { buildPantrySummary } from "@/lib/coach/pantry-context";
 import { getTodaysDinnerPlanName } from "@/lib/nutrition/queries";
 import { getRuleAdjustments, listMutedRuleIds } from "./queries";
@@ -37,7 +37,7 @@ export interface RunDecisionGenerationResult {
 export async function runDecisionGeneration(supabase: Supabase, userId: string): Promise<RunDecisionGenerationResult> {
   const { date, now, timezone } = await getFounderNow(supabase, userId);
 
-  const calendarEvents = await getCalendarEventsForDate(userId, date, timezone);
+  const calendarEvents = await getUnifiedCalendarEventsForDate(userId, date, timezone);
 
   const pantrySummary = await buildPantrySummary(supabase, userId);
   const pantryItems = pantrySummary.map((item) => ({

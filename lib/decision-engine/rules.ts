@@ -13,6 +13,13 @@
 
 import type { DailyContext, DecisionCandidate, DecisionDomain, PantryItemSummary } from "./types";
 import { findCandidateSlots } from "@/lib/day-plan/slot-finder";
+import {
+  getSleepPhase,
+  isActivityInsideAwakeWindow,
+  resolveSleepSchedule,
+  toClockMinutes,
+  toHHMM as sleepToHHMM,
+} from "@/lib/sleep/schedule";
 
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -106,7 +113,8 @@ function assignSlot(
   context: DailyContext,
   params: { durationMinutes: number; preferredStartTime: string; earliestStartTime?: string; latestEndTime?: string }
 ): { start: string; end: string } | null {
-  const [best] = findCandidateSlots({
+  const schedule = resolveSleepSchedule(context.date, context.profile);
+  const candidates = findCandidateSlots({
     date: context.date,
     freeWindows: context.freeWindows,
     durationMinutes: params.durationMinutes,
@@ -114,8 +122,11 @@ function assignSlot(
     now: context.now,
     earliestStartTime: params.earliestStartTime,
     latestEndTime: params.latestEndTime,
-    maxResults: 1,
+    maxResults: 10,
   });
+  const best = candidates.find((candidate) =>
+    isActivityInsideAwakeWindow(candidate.start.slice(11, 16), candidate.end.slice(11, 16), schedule)
+  );
   return best ? { start: best.start, end: best.end } : null;
 }
 
@@ -372,27 +383,53 @@ export function avoidTakeawayCommitment(context: DailyContext): DecisionCandidat
 // Sleep (domain: sleep)
 // ---------------------------------------------------------------------------
 
+/** The founder opened the app inside the configured sleep window. This is
+ * the only eligible recommendation in that state: no walk, workout, meal
+ * preparation, or productivity task may compete with sleep. */
+export function returnToSleepNow(context: DailyContext): DecisionCandidate[] {
+  const schedule = resolveSleepSchedule(context.date, context.profile);
+  if (getSleepPhase(nowHHMM(context), schedule) !== "sleep") return [];
+
+  return [
+    {
+      ruleId: "return-to-sleep-now",
+      domain: "sleep",
+      recommendedAction: "Fecha o dia e vai descansar agora. Amanhã o Rebuild reajusta o plano.",
+      baseTitle: "Protege o teu sono agora",
+      baseReason: `São ${nowHHMM(context)} e este momento está dentro da tua janela habitual de sono (${schedule.sleepTime}–${schedule.wakeTime}).`,
+      requiresFreeWindow: false,
+      baseImpact: "high",
+      timingType: "trigger_based",
+      triggerLabel: "Agora",
+    },
+  ];
+}
+
 /** Target sleep time approaching; work/screen use is likely to continue. */
 export function shutdownRoutine(context: DailyContext): DecisionCandidate[] {
-  const sleepStart = toMinutes(context.profile.targetSleepTime);
+  const schedule = resolveSleepSchedule(context.date, context.profile);
+  const sleepStart = toClockMinutes(schedule.sleepTime);
   const current = nowMinutes(context);
-  const minutesUntilSleep = sleepStart - current;
-  if (minutesUntilSleep < 30 || minutesUntilSleep > 120) return [];
+  const minutesUntilSleep = ((sleepStart - current) % 1440 + 1440) % 1440;
+  if (minutesUntilSleep > Math.max(schedule.windDownMinutes, 120)) return [];
+  if (getSleepPhase(nowHHMM(context), schedule) === "sleep") return [];
 
-  const shutdownMinutes = sleepStart - 30;
-  const shutdownTime = `${String(Math.floor(shutdownMinutes / 60) % 24).padStart(2, "0")}:${String(shutdownMinutes % 60).padStart(2, "0")}`;
+  const shutdownMinutes = sleepStart - schedule.windDownMinutes;
+  const shutdownTime = sleepToHHMM(shutdownMinutes);
 
   return [
     {
       ruleId: "shutdown-routine",
       domain: "sleep",
-      recommendedAction: `Começa a desligar às ${shutdownTime}.`,
+      recommendedAction: getSleepPhase(nowHHMM(context), schedule) === "wind_down"
+        ? "Começa agora a desacelerar e fecha o dia."
+        : `Começa a desligar às ${shutdownTime}.`,
       baseTitle: "Rotina de fecho",
       baseReason: "Proteger o horário de sono hoje ajuda a consistência da semana.",
       requiresFreeWindow: false,
       baseImpact: "medium",
       timingType: "trigger_based",
-      triggerLabel: `${shutdownTime} (30 min antes de dormir)`,
+      triggerLabel: `${shutdownTime} (${schedule.windDownMinutes} min antes de dormir)`,
     },
   ];
 }
@@ -527,6 +564,7 @@ const ALL_RULES: ((context: DailyContext) => DecisionCandidate[])[] = [
   prepareTomorrowsLunch,
   avoidTakeawayCommitment,
   shutdownRoutine,
+  returnToSleepNow,
   earlierSleepForTomorrow,
   prepareNextDay,
   shortWalk,
@@ -544,5 +582,29 @@ const ALL_RULES: ((context: DailyContext) => DecisionCandidate[])[] = [
  */
 export function generateCandidates(context: DailyContext): DecisionCandidate[] {
   const muted = new Set(context.mutedRuleIds ?? []);
-  return ALL_RULES.flatMap((rule) => rule(context)).filter((candidate) => !muted.has(candidate.ruleId));
+  const schedule = resolveSleepSchedule(context.date, context.profile);
+  const phase = getSleepPhase(nowHHMM(context), schedule);
+  const now = nowHHMM(context);
+
+  return ALL_RULES.flatMap((rule) => rule(context)).filter((candidate) => {
+    if (muted.has(candidate.ruleId)) return false;
+    if (phase === "sleep") return candidate.ruleId === "return-to-sleep-now";
+    if (phase === "wind_down" && candidate.domain !== "sleep") return false;
+    if (candidate.domain === "sleep") return true;
+
+    if (candidate.recommendedStart && candidate.recommendedEnd) {
+      return isActivityInsideAwakeWindow(
+        candidate.recommendedStart.slice(11, 16),
+        candidate.recommendedEnd.slice(11, 16),
+        schedule
+      );
+    }
+
+    if (candidate.domain === "training" || candidate.domain === "recovery") {
+      const duration = candidate.minWindowMinutes ?? (candidate.domain === "recovery" ? 15 : 30);
+      return isActivityInsideAwakeWindow(now, sleepToHHMM(toClockMinutes(now) + duration), schedule);
+    }
+
+    return true;
+  });
 }

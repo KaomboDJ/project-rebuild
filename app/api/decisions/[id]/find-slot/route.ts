@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
-import { getCalendarEventsForDate } from "@/lib/google/calendar";
+import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { computeFreeWindows, DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { findCandidateSlots } from "@/lib/day-plan/slot-finder";
 
@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .maybeSingle();
   const timezone = profile?.timezone || founderTimezone || DEFAULT_PROFILE.timezone;
   const preferredStartTime = profile?.preferred_training_time || DEFAULT_PROFILE.preferredTrainingTime;
-  const events = await getCalendarEventsForDate(user.id, decision.date, timezone);
+  const events = await getUnifiedCalendarEventsForDate(user.id, decision.date, timezone);
   const freeWindows = computeFreeWindows(events, decision.date, timezone, 15);
   const durationMinutes = DURATION_BY_RULE[decision.rule_id ?? ""] ?? DURATION_BY_DOMAIN[decision.domain] ?? 20;
   const candidates = findCandidateSlots({

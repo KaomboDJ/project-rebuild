@@ -6,11 +6,12 @@
 // imported from a client component, same reason components/nutrition/
 // PantryList.tsx types against Database rather than lib/pantry/queries.ts).
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, RefreshCw, ShoppingCart, SkipForward } from "lucide-react";
+import { CheckCircle2, ChefHat, RefreshCw, ShoppingCart, SkipForward } from "lucide-react";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition/options";
 import { JourneySuccess } from "@/components/nutrition/NutritionJourney";
+import { buildBatchPrepPlan } from "@/lib/nutrition/batch-prep";
 
 interface PlanItemView {
   id: string;
@@ -66,6 +67,12 @@ export function MealPlanView({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [shoppingReady, setShoppingReady] = useState(false);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  const batchPrep = useMemo(() => buildBatchPrepPlan(items), [items]);
 
   const byDate = new Map<string, PlanItemView[]>();
   for (const item of items) {
@@ -189,6 +196,27 @@ export function MealPlanView({
 
       {error && <p className="text-sm text-red-400">{error}</p>}
       {notice && <p className="text-sm text-emerald-400">{notice}</p>}
+
+      {batchPrep.length > 0 && (
+        <details className="surface-card group p-4">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-neutral-100">
+            <ChefHat size={16} className="text-emerald-400" />
+            Preparação em lote — por onde começar
+            <span className="ml-auto text-xs text-neutral-500 group-open:hidden">Ver plano</span>
+          </summary>
+          <ol className="mt-4 space-y-2">
+            {batchPrep.map((task, index) => (
+              <li key={task.recipeId} className="flex gap-3 rounded-lg bg-white/[0.03] p-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs text-emerald-300">{index + 1}</span>
+                <div>
+                  <p className="text-sm text-neutral-200">{task.title}</p>
+                  <p className="mt-0.5 text-xs text-neutral-500">{task.detail} · cerca de {task.estimatedMinutes} min</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
 
       {dates.length === 0 && (
         <div className="surface-card p-5 text-sm text-neutral-400">

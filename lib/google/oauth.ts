@@ -19,7 +19,7 @@ const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 // Google account a token belongs to, to tell two connections apart and to
 // display them in Settings. Connections made before this milestone won't
 // have it until reconnected (docs/10_DATABASE.md).
-export const CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events";
+export const CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 
 // Short-lived CSRF cookie shared between app/api/google/connect and
 // app/api/google/callback. Defined here (not in a route.ts) because Next.js

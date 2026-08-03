@@ -14,6 +14,7 @@ import {
   prepareTrainingEquipment,
   protectFreeWindow,
   reducedTraining,
+  returnToSleepNow,
   shortWalk,
   shutdownRoutine,
 } from "./rules";
@@ -284,6 +285,38 @@ describe("shutdownRoutine", () => {
 
   it("does not fire far from sleep time", () => {
     expect(shutdownRoutine(baseContext({ now: "2026-07-29T09:00:00" }))).toHaveLength(0);
+  });
+});
+
+describe("protected sleep window", () => {
+  it("makes sleep the only eligible action at 02:15", () => {
+    const context = baseContext({
+      now: "2026-07-29T02:15:00",
+      userCheckIn: { stressLevel: 5, energyLevel: 2, sleepQuality: 2 },
+      freeWindows: [{ start: "2026-07-29T02:15:00", end: "2026-07-29T03:00:00", durationMinutes: 45 }],
+    });
+    expect(returnToSleepNow(context)).toHaveLength(1);
+    const candidates = generateCandidates(context);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].ruleId).toBe("return-to-sleep-now");
+    expect(candidates.some((candidate) => candidate.ruleId === "short-walk")).toBe(false);
+  });
+
+  it("allows a shift worker to remain awake at 23:00", () => {
+    const context = baseContext({
+      now: "2026-07-29T23:00:00",
+      profile: {
+        ...baseContext().profile,
+        targetSleepTime: "06:00",
+        targetWakeTime: "14:00",
+        weekendSleepTime: null,
+        weekendWakeTime: null,
+        sleepScheduleType: "shift",
+      },
+      userCheckIn: { stressLevel: 4 },
+    });
+    expect(returnToSleepNow(context)).toHaveLength(0);
+    expect(generateCandidates(context).some((candidate) => candidate.ruleId === "short-walk")).toBe(true);
   });
 });
 

@@ -1,29 +1,49 @@
 import Link from "next/link";
-import { Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
+import { Bell, Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
-import { disconnectGoogleCalendar, setPrimaryGoogleAccount } from "./actions";
+import {
+  disconnectGoogleCalendar,
+  disconnectMicrosoftAccount,
+  refreshCalendarSources,
+  setPrimaryGoogleAccount,
+  updateCalendarSourceSelection,
+} from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listConnections } from "@/lib/google/calendar";
 import { isGoogleCalendarConfigured } from "@/lib/google/oauth";
+import { listMicrosoftConnections } from "@/lib/microsoft/calendar";
+import { isMicrosoftCalendarConfigured } from "@/lib/microsoft/oauth";
 import { ProfileEditForm } from "@/components/settings/ProfileEditForm";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 import { HelpTip } from "@/components/ui/HelpTip";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { listCalendarSources } from "@/lib/calendar-intelligence/sources";
 
 const CALENDAR_STATUS_MESSAGE: Record<string, string> = {
   connected: "Conta Google adicionada.",
   disconnected: "Conta Google desligada.",
   "primary-updated": "Conta principal atualizada.",
+  "sources-updated": "Calendários usados pelo Rebuild atualizados.",
+  "sources-refreshed": "Lista de calendários sincronizada.",
   denied: "Autorização cancelada — a conta não foi ligada.",
   error: "Não foi possível ligar a conta Google. Tenta novamente.",
   "not-configured": "A integração com o Google Calendar ainda não está configurada.",
 };
 
+const OUTLOOK_STATUS_MESSAGE: Record<string, string> = {
+  connected: "Conta Outlook adicionada (só leitura).",
+  disconnected: "Conta Outlook desligada.",
+  denied: "Autorização cancelada — a conta não foi ligada.",
+  error: "Não foi possível ligar a conta Outlook. Tenta novamente.",
+  "not-configured": "A integração com o Outlook ainda não está configurada.",
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string }>;
+  searchParams: Promise<{ calendar?: string; outlook?: string }>;
 }) {
-  const { calendar } = await searchParams;
+  const { calendar, outlook } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -32,6 +52,11 @@ export default async function SettingsPage({
   const calendarConfigured = isGoogleCalendarConfigured();
   const connections = user && calendarConfigured ? await listConnections(user.id) : [];
   const statusMessage = calendar ? CALENDAR_STATUS_MESSAGE[calendar] : null;
+
+  const outlookConfigured = isMicrosoftCalendarConfigured();
+  const outlookConnections = user && outlookConfigured ? await listMicrosoftConnections(user.id) : [];
+  const outlookStatusMessage = outlook ? OUTLOOK_STATUS_MESSAGE[outlook] : null;
+  const calendarSources = user ? await listCalendarSources(user.id) : [];
 
   const { data: profile } =
     supabase && user
@@ -61,6 +86,68 @@ export default async function SettingsPage({
             Terminar sessão
           </button>
         </form>
+      </section>
+
+      {(connections.length > 0 || outlookConnections.length > 0) && (
+        <section className="surface-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-medium">Calendários que contam para o teu dia</h2>
+              <p className="mt-1 text-sm text-neutral-400">
+                Escolhe exatamente os calendários que podem bloquear refeições, treinos e outras
+                decisões. Os restantes são ignorados.
+              </p>
+            </div>
+            <form action={refreshCalendarSources}>
+              <button type="submit" className="btn-secondary">Atualizar lista</button>
+            </form>
+          </div>
+
+          {calendarSources.length === 0 ? (
+            <p className="mt-4 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              Atualiza a lista — contas Google antigas poderão pedir uma autorização adicional para
+              mostrar todos os calendários disponíveis.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {calendarSources.map((source) => (
+                <li key={source.id} className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-neutral-200">{source.name}</p>
+                    <p className="truncate text-xs text-neutral-500">
+                      {source.provider === "microsoft" ? "Outlook" : "Google"}
+                      {source.accountLabel ? ` · ${source.accountLabel}` : ""}
+                      {source.isReadOnly ? " · só leitura" : ""}
+                    </p>
+                  </div>
+                  <form action={updateCalendarSourceSelection.bind(null, source.id, !source.selectedForContext)}>
+                    <button
+                      type="submit"
+                      role="switch"
+                      aria-checked={source.selectedForContext}
+                      className={source.selectedForContext ? "btn-primary" : "btn-secondary"}
+                    >
+                      {source.selectedForContext ? "Incluído" : "Ignorado"}
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300">
+            <Bell size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Notificações</h2>
+            <p className="text-sm text-neutral-400">Intervenções úteis, sem interromper o descanso.</p>
+          </div>
+        </div>
+        <div className="mt-4"><NotificationSettings /></div>
       </section>
 
       <section className="surface-card p-5">
@@ -177,6 +264,64 @@ export default async function SettingsPage({
 
       <section className="surface-card p-5">
         <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
+            <CalendarCheck2 size={16} />
+          </span>
+          <h2 className="flex items-center gap-1.5 font-medium">
+            Outlook
+            <HelpTip heading="Outlook é só de leitura">
+              O Rebuild usa os teus eventos do Outlook apenas para saber quando estás ocupado — nunca cria,
+              edita ou apaga nada no teu Outlook. Se quiseres adicionar uma decisão a um calendário, isso
+              continua a ser feito numa conta Google ligada.
+            </HelpTip>
+          </h2>
+        </div>
+
+        {outlookStatusMessage && <p className="mt-2 text-sm text-neutral-400">{outlookStatusMessage}</p>}
+
+        {!outlookConfigured ? (
+          <p className="mt-3 text-sm text-neutral-400">
+            A integração com o Outlook ainda não está configurada neste ambiente.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {outlookConnections.length > 0 && (
+              <ul className="space-y-2">
+                {outlookConnections.map((connection) => (
+                  <li
+                    key={connection.id}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-neutral-200">
+                        {connection.accountEmail || "Conta Outlook"}
+                      </p>
+                      <p className="text-xs text-neutral-500">Só leitura</p>
+                    </div>
+                    <form action={disconnectMicrosoftAccount.bind(null, connection.id)}>
+                      <button type="submit" className="btn-secondary">
+                        Desligar
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="text-sm text-neutral-400">
+              {outlookConnections.length === 0
+                ? "Liga o teu Outlook para o motor de decisões também ter em conta esses compromissos — só de leitura."
+                : "Podes ligar outra conta Outlook."}
+            </p>
+            <a href="/api/microsoft/connect" className="btn-primary inline-flex">
+              {outlookConnections.length === 0 ? "Ligar Outlook" : "Ligar outra conta"}
+            </a>
+          </div>
+        )}
+      </section>
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
             <Brain size={16} />
           </span>
@@ -198,11 +343,11 @@ export default async function SettingsPage({
           <h2 className="font-medium">Os teus dados</h2>
         </div>
         <p className="text-sm text-neutral-400">
-          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar
-          (encriptados), o histórico de decisões, as conversas com o Coach, a despensa e listas de
+          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar e Outlook
+          (encriptados; o Outlook é usado apenas para leitura), o histórico de decisões, as conversas com o Coach, a despensa e listas de
           compras, o plano de refeições e as notas de personalização que crias em Memória. Usamos
           fornecedores técnicos para operar o serviço — Supabase, Vercel e Anthropic — e Google
-          quando ligas o calendário. Não vendemos estes dados nem os usamos para publicidade.
+          ou Microsoft quando ligas calendários. Não vendemos estes dados nem os usamos para publicidade.
           Consulta a{" "}
           <Link href="/privacy" className="text-emerald-400 underline underline-offset-2">
             Política de privacidade
