@@ -200,6 +200,86 @@ describe("generateWeekPlan", () => {
     expect(mondayBreakfast?.recipeId).toBe("a-low-protein");
   });
 
+  it("prefers a recipe already fully covered by pantry stock over one that needs a full shop", () => {
+    const recipes = [
+      recipe({
+        id: "needs-shopping",
+        mealType: "dinner",
+        ingredients: [{ name: "Salmão fresco", quantity: 200, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      recipe({
+        id: "already-stocked",
+        mealType: "dinner",
+        ingredients: [{ name: "Atum enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false, peopleCount: 1 }),
+      recipes,
+      pantryStock: [{ name: "Atum enlatado", quantity: 100, unit: "g" }],
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("already-stocked");
+  });
+
+  it("pantry coverage takes priority over the training-day protein preference", () => {
+    const recipes = [
+      recipe({
+        id: "high-protein-needs-shopping",
+        mealType: "dinner",
+        proteinGPerServing: 50,
+        ingredients: [{ name: "Bife raro", quantity: 200, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      recipe({
+        id: "lower-protein-already-stocked",
+        mealType: "dinner",
+        proteinGPerServing: 20,
+        ingredients: [{ name: "Feijão enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03", // Monday - a training day below
+      profile: profile({ includeSnack: false, peopleCount: 1 }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+      pantryStock: [{ name: "Feijão enlatado", quantity: 100, unit: "g" }],
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("lower-protein-already-stocked");
+  });
+
+  it("without pantry data, behaves exactly as before (no reordering by stock)", () => {
+    const recipes = [
+      recipe({
+        id: "a-recipe",
+        mealType: "dinner",
+        ingredients: [{ name: "Salmão fresco", quantity: 200, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      recipe({
+        id: "b-recipe",
+        mealType: "dinner",
+        ingredients: [{ name: "Atum enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      // No pantryStock supplied at all.
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    // Stable id-order (candidatesForSlot sorts by id ascending) - same
+    // behaviour as every other test in this file that doesn't pass pantryStock.
+    expect(mondayDinner?.recipeId).toBe("a-recipe");
+  });
+
   it("limits simple rotation to two recipes per slot", () => {
     const recipes = [
       ...DINNER_RECIPES,

@@ -17,7 +17,8 @@
 // lib/nutrition/macros.ts's "never present as medical advice" principle and
 // CLAUDE.md's coaching-safety rules.
 
-import type { MealType, NutritionGoal, NutritionProfile, Recipe } from "./types";
+import type { MealType, NutritionGoal, NutritionProfile, PantryStockLine, Recipe } from "./types";
+import { buildPantryStockIndex, pantryCoverageScore } from "./pantry-coverage";
 
 // Re-exported so existing imports (lib/nutrition/planner.ts, this
 // module's own tests) keep working unchanged - the implementation moved
@@ -62,11 +63,24 @@ export function explainMealChoice(params: {
   recipe: Recipe;
   mealSlot: MealType;
   dayDate: string;
-  profile: Pick<NutritionProfile, "goal" | "dietStyle" | "cookingTimeMinutes" | "budgetPreference" | "allergies" | "exclusions">;
+  profile: Pick<NutritionProfile, "goal" | "dietStyle" | "cookingTimeMinutes" | "budgetPreference" | "allergies" | "exclusions" | "peopleCount">;
   trainingDaysOfWeek: string[];
+  /** Same signal generateWeekPlan's pantryStock param reacts to - see
+   * lib/nutrition/pantry-coverage.ts. Defaults to empty so callers that
+   * don't have pantry data (yet) keep getting every other sentence. */
+  pantryStock?: PantryStockLine[];
 }): string[] {
-  const { recipe, mealSlot, dayDate, profile, trainingDaysOfWeek } = params;
+  const { recipe, mealSlot, dayDate, profile, trainingDaysOfWeek, pantryStock = [] } = params;
   const sentences: string[] = [];
+
+  if (pantryStock.length > 0) {
+    const coverage = pantryCoverageScore(recipe, buildPantryStockIndex(pantryStock), profile.peopleCount);
+    if (coverage >= 1) {
+      sentences.push("Já tens todos os ingredientes principais desta receita na despensa — não precisas de comprar nada para esta refeição.");
+    } else if (coverage >= 0.5) {
+      sentences.push("Já tens grande parte dos ingredientes desta receita na despensa, por isso vais precisar de comprar menos esta semana.");
+    }
+  }
 
   if (isTrainingDay(dayDate, trainingDaysOfWeek) && isMainMeal(mealSlot)) {
     sentences.push(

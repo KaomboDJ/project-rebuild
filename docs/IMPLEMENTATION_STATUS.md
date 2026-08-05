@@ -620,3 +620,73 @@ alimentar? Queres a lista de compras?"), the `/training` UI page, nav
 entry, and adding the three new tables to `lib/account/reset.ts`'s wipe
 list so "Reiniciar conta de teste" stays truthful about deleting every
 user-owned table.
+
+## Nutrition/pantry/shopping-list connection (2026-08-05)
+
+Founder feedback: "Eu coloquei comida na lista mas a maior parte das
+sugestões não inclui a comida que pus na lista" — asked for the meal plan,
+pantry, and shopping list to actually connect: read/generate the shopping
+list from the plan, check pantry stock and use what's already at home for
+the plan, add only the real gap to the shopping list, tie macros to that
+day's workout (already shipped 2026-08-05 earlier the same day), and offer
+a specific diet-type option including Cetogénica.
+
+**Root-cause bug found and fixed**: `generateShoppingListForPlan`
+(`lib/nutrition/queries.ts`) deleted *every* `shopping_list_items` row on
+the plan's `shopping_lists` row before re-inserting freshly computed
+lines. `/nutrition/shopping` always shows whichever `shopping_lists` row
+was most recently created with `status = 'open'`, which becomes the
+plan-linked list the moment it's first generated — so anything the founder
+typed in by hand afterwards lived on that same row, and the next "Gerar
+plano"/"Lista de compras" click silently deleted it. Fixed via
+`supabase/migrations/202608050002_shopping_list_item_source.sql`: a new
+`source` column (`manual` / `meal_plan` / `coach`, backfilled correctly for
+existing plan-linked lists) so `generateShoppingListForPlan` now only ever
+deletes its own previously-generated lines. `lib/pantry/queries.ts`'s
+`addShoppingItem` and `lib/coach/tools.ts`'s `add_to_shopping_list` tag
+their inserts `manual`/`coach` accordingly. Added
+`e2e/shopping-list-source.spec.ts` reproducing the exact bug (add a manual
+item, regenerate the plan's shopping list, assert the manual item
+survives).
+
+**Pantry-aware planning** (the deeper "usa esses items para o plano
+semanal" ask): `lib/nutrition/pantry-coverage.ts` (new) scores what
+fraction of a recipe's non-optional ingredients are already covered by
+pantry stock, scaled to the founder's `peopleCount` (same name+unit
+matching convention `lib/nutrition/shopping.ts`'s `subtractPantryStock`
+already used — no unit conversion, a pantry item in an incompatible unit
+is left unmatched rather than silently guessed). `generateWeekPlan` now
+accepts an optional `pantryStock` and softly sorts each slot's candidates
+by pantry coverage first, training-day protein preference second as a
+tiebreak — never a hard filter, so a recipe needing a full shop is still
+eligible, just ranked below an equally-suitable one the founder can mostly
+already cook. `lib/nutrition/reasoning.ts`'s `explainMealChoice` uses the
+exact same scoring function to add an honest "já tens [todos/grande parte
+d]os ingredientes desta receita na despensa" sentence only when the
+condition genuinely holds. Wired via a new `getPantryStockLines` query
+(also now reused inside `generateShoppingListForPlan` itself, removing a
+small duplicated inline query) through both handlers in
+`app/api/nutrition/plan/route.ts` and the Coach's `generate_week_plan`
+tool. Tests: `pantry-coverage.test.ts` (7 cases), 3 new `planner.test.ts`
+cases (prefers a fully-stocked recipe; pantry beats training-day protein
+preference; unaffected when no pantry data is supplied), 3 new
+`reasoning.test.ts` cases.
+
+**Cetogénica (ketogenic) diet style**: added as a seventh `DietStyle`
+value (`lib/nutrition/types.ts`, `lib/nutrition/options.ts`'s label,
+`app/api/nutrition/profile/route.ts`'s Zod schema,
+`lib/supabase/database.types.ts`). `supabase/migrations/
+202608050003_ketogenic_diet_style.sql` widens the `nutrition_profiles.
+diet_style` check constraint and tags 8 already very-low-carb (4-12g
+carbs/serving), higher-fat recipes across breakfast/lunch/dinner/snack
+with `ketogenic` in `diet_tags` — reusing already-reviewed macro data
+rather than inventing new recipes, since several were already
+low-carb-tagged and genuinely keto-appropriate.
+
+Not yet applied to production — same sandbox DNS restriction as every
+other migration this session; the founder needs to run all three new
+migrations (202608050001-3) via the Supabase SQL editor.
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (444/444, +13 vs. the previous 431
+Training-Toolkit-engine baseline).

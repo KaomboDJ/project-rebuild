@@ -22,13 +22,17 @@ function recipe(overrides: Partial<Recipe> & Pick<Recipe, "id" | "mealType">): R
   };
 }
 
-const BASE_PROFILE: Pick<NutritionProfile, "goal" | "dietStyle" | "cookingTimeMinutes" | "budgetPreference" | "allergies" | "exclusions"> = {
+const BASE_PROFILE: Pick<
+  NutritionProfile,
+  "goal" | "dietStyle" | "cookingTimeMinutes" | "budgetPreference" | "allergies" | "exclusions" | "peopleCount"
+> = {
   goal: "maintain-weight",
   dietStyle: "omnivore",
   cookingTimeMinutes: 30,
   budgetPreference: "medium",
   allergies: [],
   exclusions: [],
+  peopleCount: 1,
 };
 
 describe("dayOfWeek", () => {
@@ -158,5 +162,71 @@ describe("explainMealChoice", () => {
       trainingDaysOfWeek: [],
     });
     expect(tooSlow.some((s) => s.includes("min, dentro do tempo"))).toBe(false);
+  });
+
+  it("mentions full pantry coverage only when every non-optional ingredient is on hand", () => {
+    const fullyStocked = explainMealChoice({
+      recipe: recipe({
+        id: "d1",
+        mealType: "dinner",
+        servings: 1,
+        ingredients: [{ name: "Atum enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-04",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: [],
+      pantryStock: [{ name: "Atum enlatado", quantity: 100, unit: "g" }],
+    });
+    expect(fullyStocked.some((s) => s.includes("todos os ingredientes"))).toBe(true);
+  });
+
+  it("mentions partial pantry coverage when at least half the ingredients are on hand", () => {
+    const partiallyStocked = explainMealChoice({
+      recipe: recipe({
+        id: "d1",
+        mealType: "dinner",
+        servings: 1,
+        ingredients: [
+          { name: "Atum enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" },
+          { name: "Arroz", quantity: 100, unit: "g", optional: false, grocerySection: "grain" },
+        ],
+      }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-04",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: [],
+      pantryStock: [{ name: "Atum enlatado", quantity: 100, unit: "g" }],
+    });
+    expect(partiallyStocked.some((s) => s.includes("grande parte dos ingredientes"))).toBe(true);
+  });
+
+  it("says nothing about the pantry when no pantry data is supplied or nothing matches", () => {
+    const noPantryData = explainMealChoice({
+      recipe: recipe({
+        id: "d1",
+        mealType: "dinner",
+        ingredients: [{ name: "Atum enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-04",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: [],
+    });
+    expect(noPantryData.some((s) => s.includes("ingredientes") && s.includes("despensa"))).toBe(false);
+
+    const nothingMatches = explainMealChoice({
+      recipe: recipe({
+        id: "d1",
+        mealType: "dinner",
+        ingredients: [{ name: "Atum enlatado", quantity: 100, unit: "g", optional: false, grocerySection: "protein" }],
+      }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-04",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: [],
+      pantryStock: [{ name: "Tofu", quantity: 500, unit: "g" }],
+    });
+    expect(nothingMatches.some((s) => s.includes("ingredientes") && s.includes("despensa"))).toBe(false);
   });
 });

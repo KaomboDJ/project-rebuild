@@ -22,7 +22,7 @@ type DayTypeSource = "check-in" | "profile" | "calendar-heuristic";
 
 type NutritionGoal =
   "lose-weight" | "maintain-weight" | "build-muscle" | "manage-blood-sugar" | "improve-energy";
-type DietStyle = "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "low-carb" | "mediterranean";
+type DietStyle = "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "low-carb" | "mediterranean" | "ketogenic";
 type BudgetPreference = "low" | "medium" | "high";
 type VarietyPreference = "low" | "medium" | "high";
 type MacroSource = "system-estimate" | "user-provided" | "clinician-provided";
@@ -428,6 +428,7 @@ export interface Database {
           unit: PantryUnit;
           purchased: boolean;
           purchased_at: string | null;
+          source: "manual" | "meal_plan" | "coach";
           created_at: string;
           updated_at: string;
         };
@@ -441,6 +442,7 @@ export interface Database {
           unit?: PantryUnit;
           purchased?: boolean;
           purchased_at?: string | null;
+          source?: "manual" | "meal_plan" | "coach";
           created_at?: string;
           updated_at?: string;
         };

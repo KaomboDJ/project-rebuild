@@ -19,6 +19,7 @@ export const DIET_STYLES = [
   { value: "pescatarian", label: "Pescetariano" },
   { value: "low-carb", label: "Baixo em hidratos" },
   { value: "mediterranean", label: "Mediterrânico" },
+  { value: "ketogenic", label: "Cetogénica" },
 ] as const;
 
 export const BUDGET_PREFERENCES = [

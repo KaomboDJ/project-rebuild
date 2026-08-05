@@ -10,8 +10,9 @@
 // lib/decision-engine/validation.ts enforces for the Decision Engine's AI
 // refinement layer.
 
-import type { DietStyle, MealType, NutritionProfile, PlannedMealSlot, Recipe, WeekPlanResult } from "./types";
+import type { DietStyle, MealType, NutritionProfile, PlannedMealSlot, PantryStockLine, Recipe, WeekPlanResult } from "./types";
 import { dayOfWeek, isMainMeal } from "./reasoning";
+import { buildPantryStockIndex, pantryCoverageScore } from "./pantry-coverage";
 
 const BUDGET_RANK: Record<string, number> = { low: 0, medium: 1, high: 2 };
 
@@ -117,8 +118,18 @@ export function generateWeekPlan(params: {
    * and lib/nutrition/reasoning.ts's explainMealChoice, which describes
    * exactly this behaviour and nothing more. */
   trainingDaysOfWeek?: string[];
+  /** Founder request (2026-08-05): "se já tiveres na despensa usa esses
+   * items para o plano semanal". Current pantry stock (quantity > 0
+   * rows) - when supplied, every meal slot softly prefers whichever
+   * candidate already has the most of its ingredients covered at home
+   * (never a hard filter; a recipe needing a full shop is still eligible,
+   * just sorted lower when a well-stocked alternative exists). See
+   * lib/nutrition/pantry-coverage.ts and reasoning.ts's explainMealChoice,
+   * which uses the exact same scoring function to describe this. */
+  pantryStock?: PantryStockLine[];
 }): WeekPlanResult {
-  const { weekStart, profile, recipes, carryOverRecipeIds = {}, trainingDaysOfWeek = [] } = params;
+  const { weekStart, profile, recipes, carryOverRecipeIds = {}, trainingDaysOfWeek = [], pantryStock = [] } = params;
+  const pantryByKey = buildPantryStockIndex(pantryStock);
   const slots = activeSlots(profile);
   const window = profile.preferredPlanMode === "simple-rotation"
     ? 1
@@ -162,9 +173,21 @@ export function generateWeekPlan(params: {
       // in lib/nutrition/reasoning.ts describes exactly this condition, so
       // keep the two in sync if this ever changes.
       const preferProtein = isMainMeal(mealSlot) && trainingDaysOfWeek.includes(dayOfWeek(dayDate));
-      const orderedCandidates = preferProtein
-        ? [...candidates].sort((a, b) => b.proteinGPerServing - a.proteinGPerServing)
-        : candidates;
+      const orderedCandidates = [...candidates].sort((a, b) => {
+        // Pantry coverage is the primary soft signal when pantry data is
+        // available - preferring what's already at home saves the
+        // founder an unnecessary purchase. Training-day protein
+        // preference only breaks ties between equally-stocked candidates,
+        // so it never overrides a genuinely better pantry match.
+        if (pantryStock.length > 0) {
+          const diff =
+            pantryCoverageScore(b, pantryByKey, profile.peopleCount) -
+            pantryCoverageScore(a, pantryByKey, profile.peopleCount);
+          if (diff !== 0) return diff;
+        }
+        if (preferProtein) return b.proteinGPerServing - a.proteinGPerServing;
+        return 0; // preserve candidatesForSlot's stable id-order (Array.sort is stable since ES2019)
+      });
 
       let pick = orderedCandidates.find((r) => !recentlyUsed.slice(-window).includes(r.id));
       if (!pick) {

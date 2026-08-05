@@ -5,7 +5,7 @@ import { getNutritionProfile, upsertNutritionProfile } from "@/lib/nutrition/que
 
 const updateSchema = z.object({
   goal: z.enum(["lose-weight", "maintain-weight", "build-muscle", "manage-blood-sugar", "improve-energy"]).optional(),
-  dietStyle: z.enum(["omnivore", "vegetarian", "vegan", "pescatarian", "low-carb", "mediterranean"]).optional(),
+  dietStyle: z.enum(["omnivore", "vegetarian", "vegan", "pescatarian", "low-carb", "mediterranean", "ketogenic"]).optional(),
   allergies: z.array(z.string().trim().min(1)).max(20).optional(),
   exclusions: z.array(z.string().trim().min(1)).max(40).optional(),
   medicalConstraints: z.string().max(1000).optional(),

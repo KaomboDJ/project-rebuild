@@ -3,7 +3,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getWeekRange } from "@/lib/date/ranges";
 import { generateWeekPlan } from "@/lib/nutrition/planner";
-import { getNutritionProfile, getPreferredTrainingDays, getWeekPlan, listRecipesWithIngredients, saveWeekPlan, toPlanResponse } from "@/lib/nutrition/queries";
+import {
+  getNutritionProfile,
+  getPantryStockLines,
+  getPreferredTrainingDays,
+  getWeekPlan,
+  listRecipesWithIngredients,
+  saveWeekPlan,
+  toPlanResponse,
+} from "@/lib/nutrition/queries";
 
 /**
  * GET returns the founder's current-week meal plan (or the week containing
@@ -27,12 +35,13 @@ export async function GET(request: NextRequest) {
   const weekStart = getWeekRange(weekParam ?? date).start;
 
   try {
-    const [planWithItems, profile, trainingDaysOfWeek] = await Promise.all([
+    const [planWithItems, profile, trainingDaysOfWeek, pantryStock] = await Promise.all([
       getWeekPlan(supabase, user.id, weekStart),
       getNutritionProfile(supabase, user.id),
       getPreferredTrainingDays(supabase, user.id),
+      getPantryStockLines(supabase, user.id),
     ]);
-    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek });
+    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek, pantryStock });
     return NextResponse.json({ weekStart, ...response });
   } catch {
     return NextResponse.json({ error: "load-failed" }, { status: 500 });
@@ -52,15 +61,16 @@ export async function POST() {
   const weekStart = getWeekRange(date).start;
 
   try {
-    const [profile, recipes, trainingDaysOfWeek] = await Promise.all([
+    const [profile, recipes, trainingDaysOfWeek, pantryStock] = await Promise.all([
       getNutritionProfile(supabase, user.id),
       listRecipesWithIngredients(supabase),
       getPreferredTrainingDays(supabase, user.id),
+      getPantryStockLines(supabase, user.id),
     ]);
 
-    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek });
+    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek, pantryStock });
     const planWithItems = await saveWeekPlan(supabase, user.id, result);
-    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek });
+    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek, pantryStock });
 
     return NextResponse.json({ weekStart, limitedVariety: result.limitedVariety, ...response });
   } catch {

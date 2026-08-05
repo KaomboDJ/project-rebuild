@@ -7,6 +7,7 @@ import { aggregateIngredients, subtractPantryStock } from "./shopping";
 import { explainMealChoice } from "./reasoning";
 import type {
   NutritionProfile,
+  PantryStockLine,
   PlannedMealSlot,
   Recipe,
   ShoppingLine,
@@ -103,6 +104,20 @@ export async function getPreferredTrainingDays(supabase: Supabase, userId: strin
     .eq("user_id", userId)
     .maybeSingle();
   return data?.preferred_training_days ?? ["monday", "wednesday", "friday"];
+}
+
+/** Current pantry stock (quantity > 0 rows only, matching
+ * generateShoppingListForPlan's own filter below) shaped for
+ * lib/nutrition/pantry-coverage.ts's matching functions - shared by the
+ * planner's soft pantry-preference sort and reasoning.ts's "Porquê esta
+ * refeição?" explanation, so both react to the exact same snapshot. */
+export async function getPantryStockLines(supabase: Supabase, userId: string): Promise<PantryStockLine[]> {
+  const { data } = await supabase
+    .from("pantry_items")
+    .select("name, quantity, unit")
+    .eq("user_id", userId)
+    .gt("quantity", 0);
+  return (data ?? []).map((p) => ({ name: p.name, quantity: Number(p.quantity), unit: p.unit }));
 }
 
 export async function upsertNutritionProfile(
@@ -467,11 +482,12 @@ export async function toPlanResponse(
   supabase: Supabase,
   planWithItems: MealPlanWithItems | null,
   /** When supplied, each item's `reason` is computed via
-   * lib/nutrition/reasoning.ts's explainMealChoice against this profile and
+   * lib/nutrition/reasoning.ts's explainMealChoice against this profile,
    * the founder's weekly training days (see getPreferredTrainingDays
-   * above). Optional so existing callers (Coach tool calls, the nutrition
+   * above), and current pantry stock (see getPantryStockLines above).
+   * Optional so existing callers (Coach tool calls, the nutrition
    * dashboard summary) keep working unchanged with an empty `reason`. */
-  reasoningContext?: { profile: NutritionProfile; trainingDaysOfWeek: string[] }
+  reasoningContext?: { profile: NutritionProfile; trainingDaysOfWeek: string[]; pantryStock?: PantryStockLine[] }
 ): Promise<PlanResponse> {
   if (!planWithItems) return { plan: null, items: [], dailyMacros: [], weekAverage: null };
 
@@ -509,6 +525,7 @@ export async function toPlanResponse(
               dayDate: row.day_date,
               profile: reasoningContext.profile,
               trainingDaysOfWeek: reasoningContext.trainingDaysOfWeek,
+              pantryStock: reasoningContext.pantryStock,
             })
           : [],
     };
@@ -559,17 +576,8 @@ export async function generateShoppingListForPlan(
   }));
 
   const required = aggregateIngredients(plannedSlots, recipesById);
-
-  const { data: pantryRows } = await supabase
-    .from("pantry_items")
-    .select("name, quantity, unit")
-    .eq("user_id", userId)
-    .gt("quantity", 0);
-
-  const lines = subtractPantryStock(
-    required,
-    (pantryRows ?? []).map((p) => ({ name: p.name, quantity: Number(p.quantity), unit: p.unit }))
-  );
+  const pantryStock = await getPantryStockLines(supabase, userId);
+  const lines = subtractPantryStock(required, pantryStock);
 
   const { data: list, error: listError } = await supabase
     .from("shopping_lists")
@@ -584,11 +592,20 @@ export async function generateShoppingListForPlan(
   if (listError || !list)
     throw new Error(listError?.message ?? "Falha ao criar a lista de compras.");
 
+  // Only ever deletes this plan's OWN previously-generated lines
+  // (source = 'meal_plan') - never anything the founder added by hand on
+  // /nutrition/shopping (source = 'manual', addShoppingItem's default) or
+  // via the Coach (source = 'coach', add_to_shopping_list). Before this
+  // scoping existed, regenerating a plan's shopping list silently deleted
+  // every item on the list regardless of where it came from - a live
+  // founder-reported bug ("coloquei comida na lista mas as sugestões não
+  // incluem").
   await supabase
     .from("shopping_list_items")
     .delete()
     .eq("shopping_list_id", list.id)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("source", "meal_plan");
 
   if (lines.length > 0) {
     const { error: itemsError } = await supabase.from("shopping_list_items").insert(
@@ -598,6 +615,7 @@ export async function generateShoppingListForPlan(
         name: line.name,
         quantity: line.quantity,
         unit: line.unit as Database["public"]["Tables"]["shopping_list_items"]["Row"]["unit"],
+        source: "meal_plan" as const,
       }))
     );
     if (itemsError) throw new Error(itemsError.message);

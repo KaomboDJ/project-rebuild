@@ -7,7 +7,7 @@
 // database, same discipline as lib/decision-engine/rules.ts.
 
 export type NutritionGoal = "lose-weight" | "maintain-weight" | "build-muscle" | "manage-blood-sugar" | "improve-energy";
-export type DietStyle = "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "low-carb" | "mediterranean";
+export type DietStyle = "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "low-carb" | "mediterranean" | "ketogenic";
 export type BudgetTier = "low" | "medium" | "high";
 export type VarietyPreference = "low" | "medium" | "high";
 export type MacroSource = "system-estimate" | "user-provided" | "clinician-provided";

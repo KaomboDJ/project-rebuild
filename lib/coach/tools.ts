@@ -12,6 +12,7 @@ import { generateWeekPlan, suggestReplacement } from "@/lib/nutrition/planner";
 import {
   completeMealPlanItem,
   getNutritionProfile,
+  getPantryStockLines,
   getPreferredTrainingDays,
   getWeekPlan,
   listRecipesWithIngredients,
@@ -391,6 +392,10 @@ export async function executeMutatingTool(
         name: nameArg,
         quantity,
         unit: unit as PantryItem["unit"],
+        // Coach-added lines are never touched by
+        // generateShoppingListForPlan's delete-before-reinsert (scoped to
+        // source = 'meal_plan' only) - same protection manual additions get.
+        source: "coach",
       })
       .select("*")
       .single();
@@ -453,14 +458,15 @@ export async function executeMutatingTool(
   if (name === "generate_week_plan") {
     const { date } = await getFounderNow(supabase, userId);
     const weekStart = getWeekRange(date).start;
-    const [profile, recipes, trainingDaysOfWeek] = await Promise.all([
+    const [profile, recipes, trainingDaysOfWeek, pantryStock] = await Promise.all([
       getNutritionProfile(supabase, userId),
       listRecipesWithIngredients(supabase),
       getPreferredTrainingDays(supabase, userId),
+      getPantryStockLines(supabase, userId),
     ]);
-    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek });
+    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek, pantryStock });
     const planWithItems = await saveWeekPlan(supabase, userId, result);
-    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek });
+    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek, pantryStock });
     return { weekStart, limitedVariety: result.limitedVariety, ...response };
   }
 

@@ -132,6 +132,12 @@ export async function addShoppingItem(
       quantity: input.quantity ?? 1,
       unit: input.unit,
       pantry_item_id: input.pantryItemId ?? null,
+      // Explicit even though it's the column default - this is the one
+      // path a founder adding an item by hand on /nutrition/shopping goes
+      // through, and generateShoppingListForPlan (lib/nutrition/
+      // queries.ts) only ever deletes source = 'meal_plan' rows, never
+      // this one.
+      source: "manual",
     })
     .select("*")
     .single();
