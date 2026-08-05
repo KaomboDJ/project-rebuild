@@ -32,6 +32,15 @@ type MealPlanMode = "decide-for-me" | "simple-rotation" | "flexible-week";
 type MealPlanStatus = "active" | "archived";
 type MealPlanItemStatus = "planned" | "eaten" | "skipped";
 
+type TrainingCategoryId =
+  | "calistenia" | "cardio_leve" | "cardio_pesado" | "hipertrofia"
+  | "artes_marciais_strike" | "wrestling_grappling" | "mobilidade" | "parkour";
+type TrainingLocation = "home" | "gym" | "outdoor" | "mixed";
+type TrainingIntensity = "low" | "medium" | "high";
+type TrainingVarietyPreference = "low" | "medium" | "high";
+type TrainingPlanStatus = "active" | "archived";
+type TrainingPlanItemStatus = "planned" | "done" | "skipped";
+
 export interface Database {
   public: {
     Tables: {
@@ -747,6 +756,108 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["meal_plan_items"]["Insert"]>;
         Relationships: [];
       };
+      training_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          preferred_categories: string[];
+          session_duration_minutes: number;
+          location: TrainingLocation;
+          intensity_preference: TrainingIntensity;
+          variety_preference: TrainingVarietyPreference;
+          physical_limitations: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          preferred_categories?: string[];
+          session_duration_minutes?: number;
+          location?: TrainingLocation;
+          intensity_preference?: TrainingIntensity;
+          variety_preference?: TrainingVarietyPreference;
+          physical_limitations?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["training_profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      workout_sessions: {
+        Row: {
+          id: string;
+          name: string;
+          workout_type_id: TrainingCategoryId;
+          duration_minutes: number;
+          location: TrainingLocation;
+          intensity: TrainingIntensity;
+          equipment: string[];
+          structure: string;
+          safety_note: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          workout_type_id: TrainingCategoryId;
+          duration_minutes: number;
+          location?: TrainingLocation;
+          intensity?: TrainingIntensity;
+          equipment?: string[];
+          structure?: string;
+          safety_note?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["workout_sessions"]["Insert"]>;
+        Relationships: [];
+      };
+      training_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_start: string;
+          status: TrainingPlanStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          week_start: string;
+          status?: TrainingPlanStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["training_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      training_plan_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          training_plan_id: string;
+          day_date: string;
+          session_id: string;
+          status: TrainingPlanItemStatus;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          training_plan_id: string;
+          day_date: string;
+          session_id: string;
+          status?: TrainingPlanItemStatus;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["training_plan_items"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -773,6 +884,13 @@ export interface Database {
           p_status: MealPlanItemStatus;
         };
         Returns: Database["public"]["Tables"]["meal_plan_items"]["Row"];
+      };
+      set_training_plan_item_status: {
+        Args: {
+          p_training_plan_item_id: string;
+          p_status: TrainingPlanItemStatus;
+        };
+        Returns: Database["public"]["Tables"]["training_plan_items"]["Row"];
       };
     };
     Enums: Record<string, never>;

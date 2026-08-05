@@ -21,6 +21,17 @@ import {
   toPlanResponse,
   type MealPlanItemRow,
 } from "@/lib/nutrition/queries";
+import { generateWeekTrainingPlan, suggestTrainingReplacement } from "@/lib/training/planner";
+import {
+  completeTrainingPlanItem,
+  getTrainingProfile,
+  getWeekTrainingPlan,
+  listWorkoutSessions,
+  replaceTrainingPlanItem,
+  saveWeekTrainingPlan,
+  toTrainingPlanResponse,
+  type TrainingPlanItemRow,
+} from "@/lib/training/queries";
 
 type Supabase = SupabaseClient<Database>;
 type PantryItem = Database["public"]["Tables"]["pantry_items"]["Row"];
@@ -175,6 +186,43 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ["day_date", "meal_slot"],
     },
   },
+  {
+    name: "get_week_training_plan",
+    description:
+      "Lista o plano de treino da semana atual do utilizador (Training Toolkit), com sessões, categoria, duração e estado (planeado/feito/saltado). Usa antes de responder a perguntas como 'o que é que tenho para treinar hoje' ou 'qual é o plano de treino desta semana'.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "generate_week_training_plan",
+    description:
+      "PROPÕE gerar (ou substituir) o plano de treino das próximas 7 dias com base no perfil de treino do utilizador (categorias preferidas, duração da sessão, local, intensidade) e nos dias de treino habituais já configurados. Substitui qualquer plano já existente para essa semana. Requer confirmação explícita.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "replace_session",
+    description:
+      "PROPÕE substituir uma sessão de treino planeada por uma alternativa que respeite o perfil de treino do utilizador. Identifica a sessão pela data. Requer confirmação explícita.",
+    input_schema: {
+      type: "object",
+      properties: {
+        day_date: { type: "string", description: "Data no formato YYYY-MM-DD." },
+      },
+      required: ["day_date"],
+    },
+  },
+  {
+    name: "mark_session_done",
+    description:
+      "PROPÕE marcar uma sessão de treino planeada como feita ou saltada. Requer confirmação explícita.",
+    input_schema: {
+      type: "object",
+      properties: {
+        day_date: { type: "string", description: "Data no formato YYYY-MM-DD." },
+        status: { type: "string", enum: ["done", "skipped"] },
+      },
+      required: ["day_date", "status"],
+    },
+  },
 ];
 
 export function isKnownTool(name: string): name is ToolName {
@@ -226,6 +274,28 @@ async function resolveMealPlanItem(
   return data;
 }
 
+/** Resolves a training_plan_items row from the day_date the model supplies
+ * — one planned session per day, so unlike meals there's no second key
+ * needed (mirrors resolveMealPlanItem above). */
+async function resolveTrainingPlanItem(
+  supabase: Supabase,
+  userId: string,
+  args: { day_date?: unknown }
+): Promise<TrainingPlanItemRow> {
+  const dayDate = typeof args.day_date === "string" ? args.day_date : undefined;
+  if (!dayDate) throw new Error("É necessário indicar day_date.");
+
+  const { data, error } = await supabase
+    .from("training_plan_items")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("day_date", dayDate)
+    .maybeSingle();
+  if (error) throw new Error("Falha ao ler o plano de treino.");
+  if (!data) throw new Error(`Não encontrei nenhuma sessão de treino planeada para ${dayDate}.`);
+  return data;
+}
+
 // --- Read-only tools: executed immediately, result fed back to the model. ---
 
 export async function executeReadOnlyTool(
@@ -272,6 +342,14 @@ export async function executeReadOnlyTool(
     return { weekStart, ...response };
   }
 
+  if (name === "get_week_training_plan") {
+    const { date } = await getFounderNow(supabase, userId);
+    const weekStart = getWeekRange(date).start;
+    const planWithItems = await getWeekTrainingPlan(supabase, userId, weekStart);
+    const response = await toTrainingPlanResponse(supabase, planWithItems);
+    return { weekStart, ...response };
+  }
+
   throw new Error(`${name} não é uma tool de leitura.`);
 }
 
@@ -300,6 +378,12 @@ function summarize(name: ToolName, args: Record<string, unknown>): string {
       return `Substituir ${args.meal_slot ?? "refeição"} de ${args.day_date ?? "?"} por uma alternativa`;
     case "mark_meal_eaten":
       return `Marcar ${args.meal_slot ?? "refeição"} de ${args.day_date ?? "?"} como feita`;
+    case "generate_week_training_plan":
+      return "Gerar (ou substituir) o plano de treino da semana";
+    case "replace_session":
+      return `Substituir a sessão de treino de ${args.day_date ?? "?"} por uma alternativa`;
+    case "mark_session_done":
+      return `Marcar a sessão de treino de ${args.day_date ?? "?"} como ${args.status === "skipped" ? "saltada" : "feita"}`;
     default:
       return `Executar ${name}`;
   }
@@ -483,6 +567,38 @@ export async function executeMutatingTool(
     const current = await resolveMealPlanItem(supabase, userId, args);
     const result = await completeMealPlanItem(supabase, userId, current.id, "eaten");
     return { item: result.item, consumedIngredients: result.consumedIngredients };
+  }
+
+  if (name === "generate_week_training_plan") {
+    const { date } = await getFounderNow(supabase, userId);
+    const weekStart = getWeekRange(date).start;
+    const [profile, sessions, trainingDaysOfWeek, existing] = await Promise.all([
+      getTrainingProfile(supabase, userId),
+      listWorkoutSessions(supabase),
+      getPreferredTrainingDays(supabase, userId),
+      getWeekTrainingPlan(supabase, userId, weekStart),
+    ]);
+    const carryOverSessionIds = (existing?.items ?? []).map((i) => i.session_id);
+    const result = generateWeekTrainingPlan({ weekStart, profile, sessions, trainingDaysOfWeek, carryOverSessionIds });
+    const planWithItems = await saveWeekTrainingPlan(supabase, userId, result);
+    const response = await toTrainingPlanResponse(supabase, planWithItems, { profile });
+    return { weekStart, limitedVariety: result.limitedVariety, ...response };
+  }
+
+  if (name === "replace_session") {
+    const current = await resolveTrainingPlanItem(supabase, userId, args);
+    const [profile, sessions] = await Promise.all([getTrainingProfile(supabase, userId), listWorkoutSessions(supabase)]);
+    const suggestion = suggestTrainingReplacement(sessions, profile, current.session_id);
+    if (!suggestion) throw new Error("Não encontrei nenhuma alternativa adequada na biblioteca de sessões.");
+    const item = await replaceTrainingPlanItem(supabase, userId, current.id, suggestion.id);
+    return { item, newSession: suggestion.name };
+  }
+
+  if (name === "mark_session_done") {
+    const current = await resolveTrainingPlanItem(supabase, userId, args);
+    const status = args.status === "skipped" ? "skipped" : "done";
+    const item = await completeTrainingPlanItem(supabase, userId, current.id, status);
+    return { item };
   }
 
   throw new Error(`Tool ${name} não implementada.`);

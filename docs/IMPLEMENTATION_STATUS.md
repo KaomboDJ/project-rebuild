@@ -543,7 +543,7 @@ fix with no unit-testable logic). The new e2e spec was not executed here
 (Playwright's Chromium download is blocked by this sandbox's network
 allowlist) but will run in CI.
 
-## Milestone 15 (in progress): Training Toolkit — engine (2026-08-05)
+## Milestone 15, stage 1: Training Toolkit — engine (2026-08-05)
 
 Founder request: "é possível [o Coach] elaborar um treino para a semana
 toda?" — confirmed this doesn't exist as a real feature yet (the Coach has
@@ -610,16 +610,73 @@ re-run for this exact commit (will run before the next slice ships) but no
 new lint-relevant patterns were introduced beyond what's already clean
 elsewhere.
 
-Still pending, tracked separately: `lib/training/queries.ts` (server-only
-persistence, mirroring `lib/nutrition/queries.ts`), the weekly-plan API
-route, a `generate_week_training_plan` Coach tool (+ replace/mark-done),
-teaching the Coach's system prompt to proactively offer generating the
-training plan / meal plan / shopping list with closed yes/no questions
-(the founder's other ask this same message — "Queres também o plano
-alimentar? Queres a lista de compras?"), the `/training` UI page, nav
-entry, and adding the three new tables to `lib/account/reset.ts`'s wipe
-list so "Reiniciar conta de teste" stays truthful about deleting every
-user-owned table.
+Still pending after stage 1, done in stage 2 below: `lib/training/queries.ts`,
+the weekly-plan API routes, and the Coach tool wiring. Still pending after
+stage 2: the `/training` UI page, nav entry, and adding the three new
+tables to `lib/account/reset.ts`'s wipe list so "Reiniciar conta de teste"
+stays truthful about deleting every user-owned table — tracked as stage 3.
+
+## Milestone 15, stage 2: Training Toolkit — persistence, API, Coach (2026-08-05)
+
+Continues stage 1 above, mirroring `lib/nutrition/queries.ts` /
+`app/api/nutrition/*` / `lib/coach/tools.ts`'s nutrition wiring one-for-one
+for training, per the founder's "ok dale" to continue exactly where the
+status report left off.
+
+Built:
+- `lib/training/queries.ts` — server-only persistence:
+  `getTrainingProfile`/`upsertTrainingProfile`/`hasTrainingProfile`,
+  `listWorkoutSessions`/`getWorkoutSessionsById` (the curated library,
+  read-only), `getWeekTrainingPlan`/`getTrainingPlanById`/
+  `saveWeekTrainingPlan` (upsert-by-`user_id,week_start` + delete-and-
+  reinsert-items, the same "regeneration replaces, never accumulates"
+  contract as `saveWeekPlan`), `replaceTrainingPlanItem`,
+  `completeTrainingPlanItem` (calls `set_training_plan_item_status`, no
+  pantry-consume step since sessions don't have ingredients), and
+  `toTrainingPlanResponse` (joins persisted items with session data +
+  optional reasoning).
+- `lib/training/reasoning.ts` — `explainSessionChoice`, a "Porquê esta
+  sessão?" plain-language explanation mirroring
+  `lib/nutrition/reasoning.ts`'s own discipline: every sentence describes a
+  real, checkable fact (category preference match, duration fit, location
+  fit, intensity fit, physical limitations acknowledged), never an
+  invented claim. 6 new tests in `lib/training/reasoning.test.ts`.
+- `app/api/training/profile/route.ts` (GET/PUT, mirrors
+  `app/api/nutrition/profile/route.ts`), `app/api/training/plan/route.ts`
+  (GET current week / POST regenerate, mirrors
+  `app/api/nutrition/plan/route.ts` minus the shopping-list side effect,
+  which has no training equivalent), `app/api/training/plan/[itemId]/route.ts`
+  (PATCH `complete`/`replace`, mirrors the nutrition item route's
+  discriminated-union pattern).
+- `lib/coach/tools.ts` / `lib/coach/types.ts` — three new tools:
+  `get_week_training_plan` (read-only, mirrors `get_week_plan`),
+  `generate_week_training_plan`, `replace_session`, `mark_session_done`
+  (proposals requiring explicit founder confirmation, same as every other
+  mutating tool). `lib/ai/provider.ts`'s system prompt now describes the
+  training tools and, per the founder's other request this same message
+  ("é possivel também perguntar se a pessoa quer o plano alimentar e
+  gerar? ... 'Queres também o plano alimentar?' 'Queres também a lista de
+  compras?'"), instructs the Coach to proactively ask a short closed
+  yes/no question offering to generate the other related weekly plans
+  (training ↔ meal plan ↔ shopping list) after generating one of them —
+  never generating anything without an explicit yes.
+- `lib/supabase/database.types.ts` — added `training_profiles`,
+  `workout_sessions`, `training_plans`, `training_plan_items` table types
+  and the `set_training_plan_item_status` RPC type, matching migration
+  `202608050001_training_toolkit.sql` column-for-column.
+
+Reused rather than duplicated: `getPreferredTrainingDays`
+(`profiles.preferred_training_days`) is the same "which weekdays do you
+train" signal nutrition's planner already reads — the Training Toolkit's
+own week generation reads it too, rather than inventing a second concept
+of "training days" living only in `training_profiles`.
+
+Tests: `lib/training/reasoning.test.ts` (6 cases, new). Full suite:
+450/450 passing. `tsc --noEmit` clean, `next lint` clean (0 warnings).
+
+Still pending: stage 3 — the `/training` UI page, nav entry, and wiring
+the four new tables into `lib/account/reset.ts`'s "Reiniciar conta de
+teste" wipe list.
 
 ## Nutrition/pantry/shopping-list connection (2026-08-05)
 
