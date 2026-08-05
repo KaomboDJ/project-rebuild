@@ -145,7 +145,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
         Como te devemos chamar? <span className="text-rose-500">*</span>
         <input
           className="field-input mt-1"
-          placeholder="Marco"
+          placeholder="Ex.: Marco"
           value={draft.preferredName}
           onChange={(event) => setDraft({ ...draft, preferredName: event.target.value })}
         />
