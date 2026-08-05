@@ -1081,3 +1081,42 @@ sandbox); validation will be applying the migration and confirming (a) a
 normal onboarding still succeeds, (b) the Playwright suite's authenticated
 fixture still seeds successfully, and (c) a raw `upsert` with
 `onboarding_completed: true` and no consent timestamps is rejected.
+
+## e2e tests for the Training Toolkit UI — #145 (2026-08-05, written, not yet run live)
+
+Founder instruction: "faz todos" — closing the last real code gap flagged
+in the audit: the Training Toolkit (Milestone 15) shipped with only
+unit-level tests (`lib/training/planner.test.ts`, `reasoning.test.ts`);
+nothing exercised `/training` or `/training/profile` end-to-end, unlike
+most other domains in this suite.
+
+**`e2e/training.spec.ts`** (new, 6 tests), mirroring
+`shopping-list-source.spec.ts`'s pattern (seed via `page.request.post`,
+assert on the rendered page):
+- the no-plan-yet empty state links to `/training/profile` before any
+  training profile exists;
+- saving a training profile (toggling a category, duration, physical
+  limitations) via the form persists across a reload;
+- generating a plan produces **exactly 3** planned items — not 7. Caught
+  while reading `lib/training/planner.ts`: `generateWeekTrainingPlan` only
+  plans a session on days actually present in `trainingDaysOfWeek`; every
+  other day is a rest day, never a placeholder. `e2e/fixtures.ts`'s
+  `MINIMAL_PROFILE` sets `preferred_training_days` to exactly
+  `["monday", "wednesday", "friday"]`, so every assertion is written
+  against that fixed count rather than hard-coded calendar dates, so the
+  suite can't go stale as real time passes;
+- marking a session done / skipping a session renders the expected
+  "· feito" / strikethrough state and removes its action buttons;
+- "Porquê esta sessão?" actually expands its `<details>` disclosure.
+
+`npx playwright test e2e/training.spec.ts --list` confirms all 6 tests
+parse and are discovered correctly. **Not executed against a live
+Supabase instance in this sandbox** — same `*.supabase.co` network
+restriction that has blocked every other live Playwright run this
+session; needs a real run (locally or in CI) to confirm they actually
+pass, same "written this session, execution blocked here" honesty this
+file has used before for e2e work under this constraint.
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean (the new spec
+file included, since `tsconfig.json` covers `e2e/**/*.ts`), `next lint`
+clean.
