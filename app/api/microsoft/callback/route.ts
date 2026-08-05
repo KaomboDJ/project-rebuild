@@ -13,14 +13,28 @@ import { saveMicrosoftConnection, syncMicrosoftCalendarSources } from "@/lib/mic
 export async function GET(request: NextRequest) {
   const settingsUrl = (query: string) => new URL(`/settings${query}`, request.url);
 
-  const error = request.nextUrl.searchParams.get("error");
-  if (error) {
-    return NextResponse.redirect(settingsUrl("?outlook=denied"));
-  }
-
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const cookieState = request.cookies.get(MICROSOFT_OAUTH_STATE_COOKIE)?.value;
+
+  const error = request.nextUrl.searchParams.get("error");
+  if (error) {
+    // Microsoft's personal-account (MSA) consent flow has been observed to
+    // fire a second, stale redirect to this route a few seconds after the
+    // real one - same `state`, but `error=server_error` instead of `code`,
+    // arriving after the first request already completed the connection
+    // and deleted the one-time state cookie. If the cookie is already gone,
+    // a prior request already resolved this flow (success or failure) - do
+    // not show a false "denied" banner over what may be a completed
+    // connection. Only trust `error` when the state cookie is still present,
+    // i.e. this is the first/only response to a still-open attempt.
+    if (!cookieState) {
+      return NextResponse.redirect(settingsUrl(""));
+    }
+    const response = NextResponse.redirect(settingsUrl("?outlook=denied"));
+    response.cookies.delete(MICROSOFT_OAUTH_STATE_COOKIE);
+    return response;
+  }
 
   if (!code || !state || !cookieState || state !== cookieState) {
     return NextResponse.redirect(settingsUrl("?outlook=error"));
