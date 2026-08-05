@@ -9,6 +9,7 @@ import { zonedWallTimeToUtc } from "@/lib/date/timezone";
 import { getUnifiedCalendarEventsForDate } from "@/lib/calendar-intelligence/unified";
 import { buildPantrySummary } from "@/lib/coach/pantry-context";
 import { getTodaysDinnerPlanName } from "@/lib/nutrition/queries";
+import { getTodaysTrainingSessionName } from "@/lib/training/queries";
 import { getRuleAdjustments, listMutedRuleIds } from "./queries";
 import type { GeneratedDecision } from "./types";
 
@@ -49,6 +50,7 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
   }));
 
   const todaysDinnerPlanName = await getTodaysDinnerPlanName(supabase, userId, date).catch(() => null);
+  const todaysTrainingSessionName = await getTodaysTrainingSessionName(supabase, userId, date).catch(() => null);
 
   // Milestone 14 — learned, bounded scoring nudges (queries.ts's
   // getRuleAdjustments, backed by patterns.ts) and the founder's own
@@ -69,6 +71,7 @@ export async function runDecisionGeneration(supabase: Supabase, userId: string):
     calendarEvents,
     pantryItems,
     todaysDinnerPlanName,
+    todaysTrainingSessionName,
     mutedRuleIds,
     ruleAdjustments,
   });

@@ -167,15 +167,27 @@ export function lunchTraining(context: DailyContext): DecisionCandidate[] {
   const startHHMM = slot.start.slice(11, 16);
   const endHHMM = slot.end.slice(11, 16);
 
+  // Task #117: a Training Toolkit session already planned for today
+  // (context.todaysTrainingSessionName) takes priority over the generic
+  // "Treina entre as X e Y" phrasing — same "an already-decided plan beats
+  // a same-day generic nudge" rationale as pickDinnerLabel above, so the
+  // Início/Hoje decision never contradicts what's actually on /training
+  // for today.
+  const sessionName = context.todaysTrainingSessionName;
+
   return [
     {
       ruleId: "lunch-training",
       domain: "training",
-      recommendedAction: `Treina entre as ${startHHMM} e as ${endHHMM}.`,
+      recommendedAction: sessionName
+        ? `Treina ${sessionName} entre as ${startHHMM} e as ${endHHMM}.`
+        : `Treina entre as ${startHHMM} e as ${endHHMM}.`,
       recommendedStart: slot.start,
       recommendedEnd: slot.end,
       baseTitle: "Treino ao almoço",
-      baseReason: "Hoje é um dos teus dias de treino planeados e esta é a melhor janela disponível.",
+      baseReason: sessionName
+        ? `Hoje tens ${sessionName} planeado no teu plano de treino da semana, e esta é a melhor janela disponível.`
+        : "Hoje é um dos teus dias de treino planeados e esta é a melhor janela disponível.",
       requiresFreeWindow: true,
       minWindowMinutes: 35,
       baseImpact: "high",

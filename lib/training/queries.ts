@@ -264,6 +264,33 @@ export async function getTrainingCategoryByDateForWeek(
   return byDate;
 }
 
+/**
+ * The training session the founder is currently assigned for `date`, if a
+ * training plan covers it and it's still "planned" (not already done or
+ * skipped) — feeds the Decision Engine's `lunch-training` rule
+ * (lib/decision-engine/rules.ts's lunchTraining) so it names the actual
+ * planned session instead of a generic "Treina entre as X e Y" prompt,
+ * mirroring lib/nutrition/queries.ts's getTodaysDinnerPlanName for the
+ * exact same reason: an already-decided weekly plan is a stronger
+ * commitment than a same-day generic nudge (task #117). */
+export async function getTodaysTrainingSessionName(
+  supabase: Supabase,
+  userId: string,
+  date: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("training_plan_items")
+    .select("session_id")
+    .eq("user_id", userId)
+    .eq("day_date", date)
+    .eq("status", "planned")
+    .maybeSingle();
+  if (!data) return null;
+
+  const { data: session } = await supabase.from("workout_sessions").select("name").eq("id", data.session_id).maybeSingle();
+  return session?.name ?? null;
+}
+
 export interface TrainingPlanItemView {
   id: string;
   dayDate: string;

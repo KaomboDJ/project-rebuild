@@ -56,6 +56,19 @@ describe("lunchTraining", () => {
     });
     expect(lunchTraining(context)).toHaveLength(0);
   });
+
+  it("names today's Training Toolkit session instead of the generic phrasing when one is planned (task #117)", () => {
+    const [candidate] = lunchTraining(baseContext({ todaysTrainingSessionName: "Muay Thai — sessão intensa" }));
+    expect(candidate.recommendedAction).toContain("Muay Thai — sessão intensa");
+    expect(candidate.baseReason).toContain("Muay Thai — sessão intensa");
+    expect(candidate.baseReason).toContain("plano de treino da semana");
+  });
+
+  it("falls back to the generic phrasing when no Training Toolkit session is planned for today", () => {
+    const [candidate] = lunchTraining(baseContext());
+    expect(candidate.recommendedAction).not.toContain("—");
+    expect(candidate.baseReason).toBe("Hoje é um dos teus dias de treino planeados e esta é a melhor janela disponível.");
+  });
 });
 
 describe("reducedTraining", () => {

@@ -975,6 +975,49 @@ category, and the fallback-to-flat-sentence case when no category is
 supplied).
 
 Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
-clean, full `vitest` suite passing (466/466 — 458 prior + 8 new). `next
+clean, full `vitest` suite passing (458/458 — 450 prior + 8 new). `next
+build` still only fails on the same pre-existing Google-Fonts
+sandbox-network restriction, unrelated to these changes.
+
+## Same-day training override on daily decisions — #117 (2026-08-05)
+
+Founder instruction: "faz todos" — closing the `#117` gap flagged above,
+so the Início/Hoje "Treino ao almoço" decision names the actual planned
+Training Toolkit session for today instead of contradicting it with a
+generic "Treina entre as X e Y" prompt. Mirrors Milestone 12's
+`todaysDinnerPlanName` mechanism exactly, applied to training instead of
+nutrition — same "an already-decided plan beats a same-day generic nudge"
+rationale.
+
+Built:
+- **`lib/training/queries.ts`** — new
+  `getTodaysTrainingSessionName(supabase, userId, date)`: reads today's
+  `training_plan_items` row for this user (status `'planned'`) and joins
+  `workout_sessions` for its name; returns `null` when no training plan
+  covers today.
+- **`lib/decision-engine/types.ts`** — `DailyContext` gained an optional
+  `todaysTrainingSessionName?: string | null`, documented identically to
+  `todaysDinnerPlanName`.
+- **`lib/decision-engine/context-builder.ts`** and **`run.ts`** — threaded
+  the new field through `BuildDailyContextParams` and
+  `runDecisionGeneration` exactly like `todaysDinnerPlanName` (same
+  `.catch(() => null)` failure-degrades-to-"no override" contract).
+- **`lib/decision-engine/rules.ts`**'s `lunchTraining` — when
+  `context.todaysTrainingSessionName` is set, `recommendedAction` becomes
+  "Treina {sessionName} entre as X e Y." and `baseReason` names the plan
+  ("Hoje tens {sessionName} planeado no teu plano de treino da semana...");
+  absent, both fall back to the original generic phrasing unchanged.
+  `reducedTraining`, `mobilityInsteadOfCancellation`, and
+  `prepareTrainingEquipment` were deliberately left untouched — this pass
+  only targets the one rule that names a specific training block, keeping
+  the change a single coherent slice rather than restyling every
+  training-domain rule at once.
+
+2 new tests in `rules.test.ts`: the override text appears when a session
+is planned, and the original generic phrasing survives untouched when
+none is.
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (460/460 — 458 prior + 2 new). `next
 build` still only fails on the same pre-existing Google-Fonts
 sandbox-network restriction, unrelated to these changes.

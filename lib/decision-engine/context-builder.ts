@@ -181,6 +181,8 @@ export interface BuildDailyContextParams {
   pantryItems?: PantryItemSummary[];
   /** Milestone 12 — see DailyContext.todaysDinnerPlanName's doc comment. */
   todaysDinnerPlanName?: string | null;
+  /** Task #117 — see DailyContext.todaysTrainingSessionName's doc comment. */
+  todaysTrainingSessionName?: string | null;
   /** Milestone 14 — see DailyContext.mutedRuleIds's doc comment. */
   mutedRuleIds?: string[];
   /** Milestone 14 — see DailyContext.ruleAdjustments's doc comment. */
@@ -195,6 +197,7 @@ export async function buildDailyContext({
   calendarEvents = [],
   pantryItems = [],
   todaysDinnerPlanName = null,
+  todaysTrainingSessionName = null,
   mutedRuleIds = [],
   ruleAdjustments = {},
 }: BuildDailyContextParams): Promise<DailyContext> {
@@ -260,6 +263,7 @@ export async function buildDailyContext({
     userCheckIn,
     pantryItems,
     todaysDinnerPlanName,
+    todaysTrainingSessionName,
     mutedRuleIds,
     ruleAdjustments,
   };

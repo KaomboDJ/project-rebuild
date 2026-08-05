@@ -165,6 +165,15 @@ export interface DailyContext {
    * assigned and available").
    */
   todaysDinnerPlanName?: string | null;
+  /**
+   * Task #117: the Training Toolkit session name planned for today
+   * (training_plan_items joined with workout_sessions, status 'planned'),
+   * when a training plan covers it — same rationale as
+   * todaysDinnerPlanName above. Undefined/null when no training plan
+   * exists for today; rules.ts's lunchTraining falls back to its
+   * original generic "Treina entre as X e Y" phrasing unchanged.
+   */
+  todaysTrainingSessionName?: string | null;
 }
 
 export interface DecisionCandidate {
