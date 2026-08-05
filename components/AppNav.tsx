@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Circle, History, Home, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
+import { Circle, Dumbbell, History, Home, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
 import type { ComponentType } from "react";
 import { MiniCalendar } from "@/components/MiniCalendar";
 
@@ -21,6 +21,7 @@ const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ size?: num
   { href: "/today", label: "Hoje", icon: ListChecks },
   { href: "/coach", label: "Coach", icon: MessageCircleHeart },
   { href: "/nutrition", label: "Alimentação", icon: ShoppingBasket },
+  { href: "/training", label: "Treino", icon: Dumbbell },
   { href: "/history", label: "Histórico", icon: History },
   { href: "/settings", label: "Definições", icon: Settings },
 ];

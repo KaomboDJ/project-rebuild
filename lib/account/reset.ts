@@ -20,12 +20,14 @@ type Admin = SupabaseClient<Database>;
  * behavior is configured. Order is still child-before-parent as a second,
  * independent safety net in case any of those cascades are ever changed:
  * decision_feedback/coach_messages/inventory_events/meal_plan_items/
- * shopping_list_items/notification_deliveries before the rows they
- * reference (decisions, coach_conversations, pantry_items, meal_plans,
- * shopping_lists), and decisions before decision_runs.
+ * training_plan_items/shopping_list_items/notification_deliveries before
+ * the rows they reference (decisions, coach_conversations, pantry_items,
+ * meal_plans, training_plans, shopping_lists), and decisions before
+ * decision_runs.
  *
- * Deliberately NOT touched: `recipes` and `recipe_ingredients` (shared,
- * global recipe library — not per-user data at all).
+ * Deliberately NOT touched: `recipes`/`recipe_ingredients` and
+ * `workout_sessions` (all shared, global curated libraries — not per-user
+ * data at all).
  *
  * Must run with the admin/service-role client: push_subscriptions and
  * notification_deliveries explicitly revoke all grants from `authenticated`
@@ -40,6 +42,7 @@ export async function resetTestAccountData(admin: Admin, userId: string): Promis
     "coach_messages",
     "inventory_events",
     "meal_plan_items",
+    "training_plan_items",
     "shopping_list_items",
     "notification_deliveries",
   ] as const;
@@ -58,6 +61,8 @@ export async function resetTestAccountData(admin: Admin, userId: string): Promis
     "shopping_lists",
     "meal_plans",
     "nutrition_profiles",
+    "training_plans",
+    "training_profiles",
     "muted_rules",
     "founder_notes",
     "push_subscriptions",

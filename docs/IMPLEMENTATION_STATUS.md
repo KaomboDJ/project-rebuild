@@ -674,9 +674,46 @@ of "training days" living only in `training_profiles`.
 Tests: `lib/training/reasoning.test.ts` (6 cases, new). Full suite:
 450/450 passing. `tsc --noEmit` clean, `next lint` clean (0 warnings).
 
-Still pending: stage 3 — the `/training` UI page, nav entry, and wiring
-the four new tables into `lib/account/reset.ts`'s "Reiniciar conta de
-teste" wipe list.
+## Milestone 15, stage 3: Training Toolkit — UI, nav, reset wiring (2026-08-05)
+
+Completes the Training Toolkit's first vertical slice (stages 1-2 above).
+
+Built:
+- `components/training/TrainingPlanView.tsx` — the 7-day plan view,
+  mirroring `components/nutrition/MealPlanView.tsx`'s interaction pattern
+  (generate/regenerate, mark done/skipped, replace, collapsible "Porquê
+  esta sessão?" reasoning) minus the shopping-list/batch-prep pieces that
+  have no training equivalent. Also shows each session's structure/safety
+  note in a collapsible block, never a rigid numeric prescription
+  (CLAUDE.md coaching-safety).
+- `components/training/TrainingProfileForm.tsx` — settings form (preferred
+  categories as toggle chips, session duration, location, intensity,
+  variety, free-text physical limitations), mirroring
+  `components/nutrition/NutritionProfileForm.tsx`, saved via PUT
+  `/api/training/profile`.
+- `app/(app)/training/page.tsx` (week plan) and
+  `app/(app)/training/profile/page.tsx` (settings) — server components
+  fetching via `lib/training/queries.ts`, mirroring the nutrition plan/
+  profile pages' structure.
+- `components/AppNav.tsx` — added a "Treino" nav entry (Dumbbell icon)
+  between "Alimentação" and "Histórico", on both the desktop sidebar and
+  mobile tab bar.
+- `lib/account/reset.ts` — added `training_plan_items` (child, deleted
+  before `training_plans`) and `training_plans`/`training_profiles`
+  (parent tables) to "Reiniciar conta de teste"'s wipe list, so it stays
+  truthful about deleting every user-owned table now that the Training
+  Toolkit exists. `workout_sessions` deliberately left untouched — shared,
+  global curated library, same treatment as `recipes`.
+
+Validation: `tsc --noEmit` clean, `next lint` clean (0 warnings), full
+vitest suite green (450/450 — no new test files needed for this UI-only
+slice; the underlying logic is already covered by
+`lib/training/planner.test.ts` and `lib/training/reasoning.test.ts`).
+
+Outstanding for the founder: apply the three pending migrations
+(`202608050001_training_toolkit.sql`, `202608050002_shopping_list_item_source.sql`,
+`202608050003_ketogenic_diet_style.sql`) via the Supabase SQL editor — this
+sandbox cannot reach `*.supabase.co` to apply them directly.
 
 ## Nutrition/pantry/shopping-list connection (2026-08-05)
 
