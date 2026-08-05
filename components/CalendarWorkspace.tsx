@@ -356,6 +356,9 @@ export function CalendarWorkspace({
                   </HelpTip>
                 </div>
                 {error && <p className="text-sm text-red-400">{error}</p>}
+                <p className="px-1 text-center text-[11px] text-neutral-500">
+                  Sugestões geradas por regras e IA — não confirmadas por um médico ou nutricionista.
+                </p>
               </>
             )}
 

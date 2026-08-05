@@ -196,6 +196,9 @@ export function CoachPageClient({
             <Send size={14} />
           </button>
         </form>
+        <p className="border-t border-white/[0.06] px-4 py-2 text-center text-[11px] text-neutral-500">
+          Sugestões do Coach — não confirmadas por um médico ou nutricionista.
+        </p>
       </section>
 
       <aside className="surface-card hidden w-64 shrink-0 p-4 md:block">

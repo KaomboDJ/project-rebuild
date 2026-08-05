@@ -118,6 +118,9 @@ export function CoachDrawer() {
             <Send size={14} />
           </button>
         </form>
+        <p className="px-3 pb-2 text-center text-[11px] text-neutral-500">
+          Sugestões do Coach — não confirmadas por um médico ou nutricionista.
+        </p>
       </div>
     );
   }
@@ -188,6 +191,9 @@ export function CoachDrawer() {
             <Send size={14} />
           </button>
         </form>
+        <p className="px-3 pb-2 text-center text-[11px] text-neutral-500">
+          Sugestões do Coach — não confirmadas por um médico ou nutricionista.
+        </p>
       </div>
     </div>
   );

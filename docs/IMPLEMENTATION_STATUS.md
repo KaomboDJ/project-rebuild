@@ -861,3 +861,53 @@ pre-filled defaults — not a real friction point).
 
 Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
 clean, full `vitest` suite passing (450/450).
+
+## Safety copy reinforcement: suggestions, not confirmed medical fact (2026-08-05)
+
+Founder instruction, directly following the friction-reduction pass above:
+"nada destas decisões poderão ser confirmadas com um médico, nutricionista,
+ou profissional de saúde. Por isso este coach tem de funcionar com
+sugestões e não verdades absolutas." CLAUDE.md's Coaching Safety section
+already barred diagnosis/medical claims/unsafe prescriptions at the
+behavioral level; this pass makes that visible to the founder on screen,
+not just enforced silently in the system prompt, and tightens the prompt
+language itself.
+
+Audited where a "não é conselho médico"-style line already existed:
+`app/(app)/nutrition/plan/page.tsx` and `app/(app)/training/page.tsx` both
+already had one. The Coach chat itself (`/coach`, `CoachDrawer`) and the
+daily decisions list (`CalendarWorkspace.tsx`) — arguably the two
+highest-traffic, most open-ended surfaces — had none.
+
+Built:
+- `lib/ai/provider.ts` / `lib/decision-engine/prompts.ts` — `SAFETY_RULES`
+  (kept in sync between the two, per the existing header comment) now
+  explicitly instructs: frame every answer as a suggestion or starting
+  point, never a settled/validated fact; for anything with real health
+  weight, say plainly it cannot be confirmed and recommend checking with a
+  doctor/nutritionist, rather than softening into vague hedges and then
+  answering as if confirmed anyway.
+- `components/coach/CoachPageClient.tsx` and `components/CoachDrawer.tsx`
+  (both the compact and expanded views) — added a persistent, low-weight
+  caption under the composer: "Sugestões do Coach — não confirmadas por um
+  médico ou nutricionista." Always visible, not just shown once or on the
+  empty state.
+- `components/CalendarWorkspace.tsx` — added one caption below the daily
+  decisions list (not per-card, to avoid repetition): "Sugestões geradas
+  por regras e IA — não confirmadas por um médico ou nutricionista."
+
+On the founder's separate question of whether the Coach has "uma base de
+dados vasta" for reliable, concrete answers: today it does not draw on an
+external medical/nutrition database. Its concrete grounding is the curated
+recipe library (`recipes`/`recipe_ingredients`) and workout session
+library (`workout_sessions`), both reviewed by the founder, plus the
+deterministic decision-engine rules — the AI layer only rephrases/
+personalizes what those already produced, per `docs/08_AI_ARCHITECTURE.md`
+and every planner module's "never delegate selection to an LLM" header
+comment. Expanding to a larger external nutrition/exercise-science
+database (e.g. a food-composition API) would be a real scope decision, not
+folded into this pass.
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (450/450 — no logic changed, only
+prompt copy and static UI captions).
