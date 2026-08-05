@@ -70,6 +70,15 @@ const MINIMAL_PROFILE = {
   current_constraints: "Conta de teste automatizada - sem restrições reais.",
   intervention_tone: "direto",
   onboarding_completed: true,
+  // Task #146: enforce_onboarding_consent_trigger (supabase/migrations/
+  // 202608050004_enforce_onboarding_consent.sql) now rejects any insert
+  // that sets onboarding_completed: true without both consent timestamps
+  // already present - this direct admin-client seed has to satisfy that
+  // exact same rule the real OnboardingForm.tsx submission does, or every
+  // authenticated fixture in this suite (Today/Calendar, Nutrition,
+  // Training, Coach, Settings, Memory) starts failing at setup.
+  privacy_consent_at: new Date().toISOString(),
+  terms_accepted_at: new Date().toISOString(),
 };
 
 const testPasswords = new Map<string, string>();

@@ -1063,11 +1063,21 @@ rather than reusing an earlier grant). The migration file is committed to
 the repo and ready — needs the founder to say go, then apply it the same
 way as `202608050001`-`202608050003`.
 
-No code change was needed elsewhere: the fix is entirely at the database
-layer, and the legitimate `OnboardingForm.tsx` submission path already
-sets both consent timestamps together before setting
-`onboarding_completed: true`, so it was never affected either way. Not
-independently testable via `vitest` (no local Postgres in this sandbox);
-validation will be applying the migration and confirming (a) a normal
-onboarding still succeeds and (b) a raw `upsert` with
+The legitimate `OnboardingForm.tsx` submission path already sets both
+consent timestamps together before setting `onboarding_completed: true`,
+so it was never affected either way — but one real regression risk was
+caught while checking for other direct writers: **`e2e/fixtures.ts`'s
+`MINIMAL_PROFILE`** (used by every authenticated Playwright fixture —
+Today/Calendar, Nutrition, Training, Coach, Settings, Memory) seeds a
+profile via the admin client with `onboarding_completed: true` and no
+consent timestamps at all. Triggers fire regardless of RLS, so this
+migration would have failed every authenticated e2e test at setup the
+next time the suite ran. Fixed by adding
+`privacy_consent_at`/`terms_accepted_at` (both `new Date().toISOString()`)
+to `MINIMAL_PROFILE` before the migration is ever applied.
+
+Not independently testable via `vitest` (no local Postgres in this
+sandbox); validation will be applying the migration and confirming (a) a
+normal onboarding still succeeds, (b) the Playwright suite's authenticated
+fixture still seeds successfully, and (c) a raw `upsert` with
 `onboarding_completed: true` and no consent timestamps is rejected.
