@@ -200,6 +200,83 @@ describe("generateWeekPlan", () => {
     expect(mondayBreakfast?.recipeId).toBe("a-low-protein");
   });
 
+  it("trainingCategoryByDate overrides the flat protein preference with a carbs bias for cardio_pesado", () => {
+    const recipes = [
+      recipe({ id: "low-carb", mealType: "dinner", proteinGPerServing: 40, carbsGPerServing: 10 }),
+      recipe({ id: "high-carb", mealType: "dinner", proteinGPerServing: 10, carbsGPerServing: 60 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    // 2026-08-03 is a Monday - flagged both as a flat training day (which
+    // alone would prefer protein) and, via trainingCategoryByDate, as a
+    // cardio_pesado day (which should prefer carbs instead).
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+      trainingCategoryByDate: { "2026-08-03": "cardio_pesado" },
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("high-carb");
+  });
+
+  it("trainingCategoryByDate keeps the protein bias for hipertrofia", () => {
+    const recipes = [
+      recipe({ id: "low-protein", mealType: "dinner", proteinGPerServing: 10, carbsGPerServing: 60 }),
+      recipe({ id: "high-protein", mealType: "dinner", proteinGPerServing: 40, carbsGPerServing: 10 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingCategoryByDate: { "2026-08-03": "hipertrofia" },
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("high-protein");
+  });
+
+  it("trainingCategoryByDate applies no macro bias at all for a neutral category (mobilidade)", () => {
+    const recipes = [
+      recipe({ id: "first", mealType: "dinner", proteinGPerServing: 40, carbsGPerServing: 10 }),
+      recipe({ id: "second", mealType: "dinner", proteinGPerServing: 10, carbsGPerServing: 60 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    // Even though the day is flagged in trainingDaysOfWeek (which alone
+    // would prefer protein), a mapped neutral category overrides that
+    // with no bias - falls back to candidatesForSlot's stable id order.
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+      trainingCategoryByDate: { "2026-08-03": "mobilidade" },
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("first");
+  });
+
+  it("a day absent from trainingCategoryByDate falls back to the flat trainingDaysOfWeek protein preference", () => {
+    const recipes = [
+      recipe({ id: "a-low-protein", mealType: "dinner", proteinGPerServing: 10 }),
+      recipe({ id: "b-high-protein", mealType: "dinner", proteinGPerServing: 40 }),
+      recipe({ id: "l1", mealType: "lunch" }),
+      recipe({ id: "b1", mealType: "breakfast" }),
+    ];
+    const result = generateWeekPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ includeSnack: false }),
+      recipes,
+      trainingDaysOfWeek: ["monday"],
+      trainingCategoryByDate: { "2026-08-04": "mobilidade" }, // a different day only
+    });
+    const mondayDinner = result.items.find((i) => i.mealSlot === "dinner" && i.dayDate === "2026-08-03");
+    expect(mondayDinner?.recipeId).toBe("b-high-protein");
+  });
+
   it("prefers a recipe already fully covered by pantry stock over one that needs a full shop", () => {
     const recipes = [
       recipe({

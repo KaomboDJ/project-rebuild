@@ -234,6 +234,36 @@ export async function completeTrainingPlanItem(
   return data;
 }
 
+/** Task #143: builds a dayDate -> planned TrainingCategory map for one
+ * week, so lib/nutrition/planner.ts and reasoning.ts can bias/explain
+ * meal macros around what's actually planned that day - composed here
+ * (training + workout-session join) and passed in as plain data so
+ * lib/nutrition/* never imports from lib/training/* directly, matching
+ * the existing pantryStock/trainingDaysOfWeek "compose at the route/tool
+ * layer" pattern. Returns an empty object when there's no saved training
+ * plan for the week yet, which callers treat as "no override available"
+ * and fall back to their prior flat behaviour unchanged. */
+export async function getTrainingCategoryByDateForWeek(
+  supabase: Supabase,
+  userId: string,
+  weekStart: string
+): Promise<Record<string, TrainingCategory>> {
+  const planWithItems = await getWeekTrainingPlan(supabase, userId, weekStart);
+  if (!planWithItems) return {};
+
+  const sessionsById = await getWorkoutSessionsById(
+    supabase,
+    planWithItems.items.map((i) => i.session_id)
+  );
+
+  const byDate: Record<string, TrainingCategory> = {};
+  for (const item of planWithItems.items) {
+    const session = sessionsById.get(item.session_id);
+    if (session) byDate[item.day_date] = session.workoutTypeId;
+  }
+  return byDate;
+}
+
 export interface TrainingPlanItemView {
   id: string;
   dayDate: string;

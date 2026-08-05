@@ -911,3 +911,70 @@ folded into this pass.
 Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
 clean, full `vitest` suite passing (450/450 — no logic changed, only
 prompt copy and static UI captions).
+
+## Category-aware meal-plan macros — #116 (2026-08-05)
+
+Founder instruction: "faz todos" (build every item from the gap analysis),
+closing the `#116` gap flagged in the shopping-list/workout-catalog section
+above — wiring the founder's actual planned training category into the
+weekly meal plan's macro sort, not just the flat "is today a training day"
+signal from Milestone 12.
+
+Built:
+- **`lib/nutrition/workout-types.ts`** — new
+  `TRAINING_CATEGORY_NUTRITION_BIAS: Record<TrainingCategory, "protein" |
+  "carbs" | "neutral">`, read directly off the existing
+  `TRAINING_CATEGORY_MACRO_GUIDANCE` paragraphs rather than invented
+  separately: `hipertrofia`/`wrestling_grappling` → protein (their text
+  leads with recovery/repair protein need), `cardio_pesado`/
+  `artes_marciais_strike` → carbs (their text leads with pre-session fuel
+  need), `calistenia`/`cardio_leve`/`mobilidade`/`parkour` → neutral (their
+  text says no special adjustment is needed).
+- **`lib/nutrition/planner.ts`** — `generateWeekPlan` takes an optional
+  `trainingCategoryByDate?: Record<string, TrainingCategory>`. A day
+  present in the map uses that category's bias (protein/carbs/neutral);
+  a day absent from the map falls back to the original flat
+  `trainingDaysOfWeek`-only protein preference, so existing callers that
+  don't pass training-plan data see zero behaviour change. Still a soft
+  sort, never a hard filter — pantry coverage still takes priority.
+- **`lib/nutrition/reasoning.ts`** — `explainMealChoice` takes an optional
+  `trainingCategory` and, when supplied, replaces the generic "dias de
+  treino habituais" sentence with one naming the real category and its
+  real bias ("Hoje tens Hipertrofia planeado..." / "...Cardio pesado...
+  mais hidratos de carbono..."); a neutral category now correctly adds no
+  macro-bias sentence at all, matching that its guidance text says no
+  adjustment was made.
+- **`lib/training/queries.ts`** — new
+  `getTrainingCategoryByDateForWeek(supabase, userId, weekStart)`: joins a
+  saved `training_plans`/`training_plan_items` week with
+  `workout_sessions` to build the `dayDate -> TrainingCategory` map;
+  returns `{}` when no training plan exists yet for that week. Kept here
+  (not in `lib/nutrition/*`) and composed only at the route/Coach-tool
+  layer — nutrition and training remain decoupled, matching the existing
+  `pantryStock`/`trainingDaysOfWeek` composition pattern.
+- **`lib/nutrition/queries.ts`** — `toPlanResponse`'s `reasoningContext`
+  gained an optional `trainingCategoryByDate`, passed straight through to
+  `explainMealChoice` per row.
+- **`app/api/nutrition/plan/route.ts`** (GET + POST) and
+  **`lib/coach/tools.ts`**'s `generate_week_plan` — all three now fetch
+  `getTrainingCategoryByDateForWeek` alongside the existing profile/
+  recipes/pantry/training-days calls and thread it into both
+  `generateWeekPlan` and `toPlanResponse`.
+
+`get_week_plan` (the Coach's read-only tool) is unchanged — it already
+called `toPlanResponse` with no `reasoningContext` at all (no `reason`
+sentences), so there was nothing to wire there without a separate,
+larger change to that read path; out of scope for this pass.
+
+8 new tests: 4 in `planner.test.ts` (carbs bias for `cardio_pesado`,
+protein bias preserved for `hipertrofia`, no bias at all for the neutral
+`mobilidade`, and the "day absent from the map falls back to the flat
+behaviour" case) and 4 in `reasoning.test.ts` (category-specific protein
+sentence, category-specific carbs sentence, no sentence for a neutral
+category, and the fallback-to-flat-sentence case when no category is
+supplied).
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (466/466 — 458 prior + 8 new). `next
+build` still only fails on the same pre-existing Google-Fonts
+sandbox-network restriction, unrelated to these changes.

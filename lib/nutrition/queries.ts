@@ -13,6 +13,7 @@ import type {
   ShoppingLine,
   WeekPlanResult,
 } from "./types";
+import type { TrainingCategory } from "./workout-types";
 
 type Supabase = SupabaseClient<Database>;
 type NutritionProfileRow = Database["public"]["Tables"]["nutrition_profiles"]["Row"];
@@ -487,7 +488,17 @@ export async function toPlanResponse(
    * above), and current pantry stock (see getPantryStockLines above).
    * Optional so existing callers (Coach tool calls, the nutrition
    * dashboard summary) keep working unchanged with an empty `reason`. */
-  reasoningContext?: { profile: NutritionProfile; trainingDaysOfWeek: string[]; pantryStock?: PantryStockLine[] }
+  reasoningContext?: {
+    profile: NutritionProfile;
+    trainingDaysOfWeek: string[];
+    pantryStock?: PantryStockLine[];
+    /** Task #143: dayDate -> planned TrainingCategory for this week, from
+     * lib/training/queries.ts's getWeekTrainingPlan (joined by the route
+     * layer, never imported directly here - see planner.ts's identical
+     * param for the decoupling rationale). Optional; omitted callers keep
+     * getting the flat trainingDaysOfWeek-only reasoning sentence. */
+    trainingCategoryByDate?: Record<string, TrainingCategory>;
+  }
 ): Promise<PlanResponse> {
   if (!planWithItems) return { plan: null, items: [], dailyMacros: [], weekAverage: null };
 
@@ -526,6 +537,7 @@ export async function toPlanResponse(
               profile: reasoningContext.profile,
               trainingDaysOfWeek: reasoningContext.trainingDaysOfWeek,
               pantryStock: reasoningContext.pantryStock,
+              trainingCategory: reasoningContext.trainingCategoryByDate?.[row.day_date],
             })
           : [],
     };

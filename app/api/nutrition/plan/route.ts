@@ -12,6 +12,7 @@ import {
   saveWeekPlan,
   toPlanResponse,
 } from "@/lib/nutrition/queries";
+import { getTrainingCategoryByDateForWeek } from "@/lib/training/queries";
 
 /**
  * GET returns the founder's current-week meal plan (or the week containing
@@ -35,13 +36,19 @@ export async function GET(request: NextRequest) {
   const weekStart = getWeekRange(weekParam ?? date).start;
 
   try {
-    const [planWithItems, profile, trainingDaysOfWeek, pantryStock] = await Promise.all([
+    const [planWithItems, profile, trainingDaysOfWeek, pantryStock, trainingCategoryByDate] = await Promise.all([
       getWeekPlan(supabase, user.id, weekStart),
       getNutritionProfile(supabase, user.id),
       getPreferredTrainingDays(supabase, user.id),
       getPantryStockLines(supabase, user.id),
+      getTrainingCategoryByDateForWeek(supabase, user.id, weekStart),
     ]);
-    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek, pantryStock });
+    const response = await toPlanResponse(supabase, planWithItems, {
+      profile,
+      trainingDaysOfWeek,
+      pantryStock,
+      trainingCategoryByDate,
+    });
     return NextResponse.json({ weekStart, ...response });
   } catch {
     return NextResponse.json({ error: "load-failed" }, { status: 500 });
@@ -61,16 +68,22 @@ export async function POST() {
   const weekStart = getWeekRange(date).start;
 
   try {
-    const [profile, recipes, trainingDaysOfWeek, pantryStock] = await Promise.all([
+    const [profile, recipes, trainingDaysOfWeek, pantryStock, trainingCategoryByDate] = await Promise.all([
       getNutritionProfile(supabase, user.id),
       listRecipesWithIngredients(supabase),
       getPreferredTrainingDays(supabase, user.id),
       getPantryStockLines(supabase, user.id),
+      getTrainingCategoryByDateForWeek(supabase, user.id, weekStart),
     ]);
 
-    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek, pantryStock });
+    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek, pantryStock, trainingCategoryByDate });
     const planWithItems = await saveWeekPlan(supabase, user.id, result);
-    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek, pantryStock });
+    const response = await toPlanResponse(supabase, planWithItems, {
+      profile,
+      trainingDaysOfWeek,
+      pantryStock,
+      trainingCategoryByDate,
+    });
 
     return NextResponse.json({ weekStart, limitedVariety: result.limitedVariety, ...response });
   } catch {

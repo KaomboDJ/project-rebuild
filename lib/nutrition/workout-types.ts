@@ -92,6 +92,29 @@ export const TRAINING_CATEGORY_MACRO_GUIDANCE: Record<TrainingCategory, string> 
     "Parkour combina força explosiva, controlo corporal e impacto nas articulações. Uma alimentação equilibrada entre proteína (para a recuperação) e hidratos (para a energia explosiva) costuma ser suficiente.",
 };
 
+/** Which macro the meal planner should lean toward on a day carrying this
+ * category, read directly off TRAINING_CATEGORY_MACRO_GUIDANCE above
+ * rather than invented separately - "protein" when that paragraph leads
+ * with recovery/repair protein need (hipertrofia, wrestling_grappling),
+ * "carbs" when it leads with pre-session fuel need (cardio_pesado,
+ * artes_marciais_strike), "neutral" when the paragraph itself says no
+ * special adjustment is needed (calistenia, cardio_leve, mobilidade,
+ * parkour - the parkour text explicitly reads "equilibrada... costuma
+ * ser suficiente"). Feeds lib/nutrition/planner.ts's per-day sort bias -
+ * see task #143 in docs/IMPLEMENTATION_STATUS.md. */
+export type TrainingNutritionBias = "protein" | "carbs" | "neutral";
+
+export const TRAINING_CATEGORY_NUTRITION_BIAS: Record<TrainingCategory, TrainingNutritionBias> = {
+  calistenia: "neutral",
+  cardio_leve: "neutral",
+  cardio_pesado: "carbs",
+  hipertrofia: "protein",
+  artes_marciais_strike: "carbs",
+  wrestling_grappling: "protein",
+  mobilidade: "neutral",
+  parkour: "neutral",
+};
+
 export function isTrainingCategory(value: string): value is TrainingCategory {
   return (TRAINING_CATEGORIES as string[]).includes(value);
 }

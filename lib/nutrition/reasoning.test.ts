@@ -93,6 +93,55 @@ describe("explainMealChoice", () => {
     expect(breakfast.some((s) => s.includes("dias de treino"))).toBe(false);
   });
 
+  it("uses the category-specific protein sentence (not the flat one) when trainingCategory is hipertrofia", () => {
+    const dinner = explainMealChoice({
+      recipe: recipe({ id: "d1", mealType: "dinner", proteinGPerServing: 35 }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-03",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: ["monday"],
+      trainingCategory: "hipertrofia",
+    });
+    expect(dinner.some((s) => s.includes("Hipertrofia") && s.includes("mais proteína") && s.includes("35g"))).toBe(true);
+    expect(dinner.some((s) => s.includes("dias de treino habituais"))).toBe(false);
+  });
+
+  it("uses a carbs sentence when trainingCategory is cardio_pesado", () => {
+    const dinner = explainMealChoice({
+      recipe: recipe({ id: "d1", mealType: "dinner", carbsGPerServing: 55 }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-03",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: ["monday"],
+      trainingCategory: "cardio_pesado",
+    });
+    expect(dinner.some((s) => s.includes("Cardio pesado") && s.includes("mais hidratos de carbono") && s.includes("55g"))).toBe(true);
+  });
+
+  it("adds no macro-bias sentence at all for a neutral trainingCategory", () => {
+    const dinner = explainMealChoice({
+      recipe: recipe({ id: "d1", mealType: "dinner" }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-03",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: ["monday"],
+      trainingCategory: "mobilidade",
+    });
+    expect(dinner.some((s) => s.includes("mais proteína") || s.includes("mais hidratos de carbono"))).toBe(false);
+    expect(dinner.some((s) => s.includes("dias de treino habituais"))).toBe(false);
+  });
+
+  it("falls back to the flat training-day sentence when trainingCategory is not supplied", () => {
+    const dinner = explainMealChoice({
+      recipe: recipe({ id: "d1", mealType: "dinner", proteinGPerServing: 35 }),
+      mealSlot: "dinner",
+      dayDate: "2026-08-03",
+      profile: BASE_PROFILE,
+      trainingDaysOfWeek: ["monday"],
+    });
+    expect(dinner.some((s) => s.includes("dias de treino habituais") && s.includes("35g"))).toBe(true);
+  });
+
   it("always includes a goal-linked sentence", () => {
     const sentences = explainMealChoice({
       recipe: recipe({ id: "d1", mealType: "dinner" }),

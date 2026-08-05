@@ -13,6 +13,8 @@
 import type { DietStyle, MealType, NutritionProfile, PlannedMealSlot, PantryStockLine, Recipe, WeekPlanResult } from "./types";
 import { dayOfWeek, isMainMeal } from "./reasoning";
 import { buildPantryStockIndex, pantryCoverageScore } from "./pantry-coverage";
+import type { TrainingCategory } from "./workout-types";
+import { TRAINING_CATEGORY_NUTRITION_BIAS } from "./workout-types";
 
 const BUDGET_RANK: Record<string, number> = { low: 0, medium: 1, high: 2 };
 
@@ -127,8 +129,27 @@ export function generateWeekPlan(params: {
    * lib/nutrition/pantry-coverage.ts and reasoning.ts's explainMealChoice,
    * which uses the exact same scoring function to describe this. */
   pantryStock?: PantryStockLine[];
+  /** Today's-planned-training-category-aware macro bias (task #143):
+   * maps a day (YYYY-MM-DD) to the TrainingCategory planned for it in
+   * the Training Toolkit (lib/training/queries.ts's getWeekTrainingPlan,
+   * joined by the caller - never imported directly here, keeping
+   * nutrition/training decoupled per CLAUDE.md's "one coherent vertical
+   * slice" and the existing cross-domain composition pattern). When a
+   * day has a mapped category, its TRAINING_CATEGORY_NUTRITION_BIAS
+   * (protein / carbs / neutral) replaces the flat trainingDaysOfWeek
+   * protein-only preference for that day; days absent from this map
+   * fall back to the existing trainingDaysOfWeek behaviour unchanged. */
+  trainingCategoryByDate?: Record<string, TrainingCategory>;
 }): WeekPlanResult {
-  const { weekStart, profile, recipes, carryOverRecipeIds = {}, trainingDaysOfWeek = [], pantryStock = [] } = params;
+  const {
+    weekStart,
+    profile,
+    recipes,
+    carryOverRecipeIds = {},
+    trainingDaysOfWeek = [],
+    pantryStock = [],
+    trainingCategoryByDate = {},
+  } = params;
   const pantryByKey = buildPantryStockIndex(pantryStock);
   const slots = activeSlots(profile);
   const window = profile.preferredPlanMode === "simple-rotation"
@@ -172,13 +193,26 @@ export function generateWeekPlan(params: {
       // candidate the founder would otherwise have had. explainMealChoice
       // in lib/nutrition/reasoning.ts describes exactly this condition, so
       // keep the two in sync if this ever changes.
-      const preferProtein = isMainMeal(mealSlot) && trainingDaysOfWeek.includes(dayOfWeek(dayDate));
+      // Category-aware macro bias (task #143): a day present in
+      // trainingCategoryByDate uses that category's nutrition bias
+      // (protein / carbs / neutral, from workout-types.ts's guidance
+      // text); a day absent from that map falls back to the original
+      // flat "any training day softly prefers protein" behaviour so
+      // callers that don't pass training-plan data (yet) see no change.
+      const plannedCategory = trainingCategoryByDate[dayDate];
+      const macroBias = plannedCategory
+        ? TRAINING_CATEGORY_NUTRITION_BIAS[plannedCategory]
+        : trainingDaysOfWeek.includes(dayOfWeek(dayDate))
+          ? "protein"
+          : "neutral";
+      const preferProtein = isMainMeal(mealSlot) && macroBias === "protein";
+      const preferCarbs = isMainMeal(mealSlot) && macroBias === "carbs";
       const orderedCandidates = [...candidates].sort((a, b) => {
         // Pantry coverage is the primary soft signal when pantry data is
         // available - preferring what's already at home saves the
-        // founder an unnecessary purchase. Training-day protein
-        // preference only breaks ties between equally-stocked candidates,
-        // so it never overrides a genuinely better pantry match.
+        // founder an unnecessary purchase. The training macro bias only
+        // breaks ties between equally-stocked candidates, so it never
+        // overrides a genuinely better pantry match.
         if (pantryStock.length > 0) {
           const diff =
             pantryCoverageScore(b, pantryByKey, profile.peopleCount) -
@@ -186,6 +220,7 @@ export function generateWeekPlan(params: {
           if (diff !== 0) return diff;
         }
         if (preferProtein) return b.proteinGPerServing - a.proteinGPerServing;
+        if (preferCarbs) return b.carbsGPerServing - a.carbsGPerServing;
         return 0; // preserve candidatesForSlot's stable id-order (Array.sort is stable since ES2019)
       });
 

@@ -24,6 +24,7 @@ import {
 import { generateWeekTrainingPlan, suggestTrainingReplacement } from "@/lib/training/planner";
 import {
   completeTrainingPlanItem,
+  getTrainingCategoryByDateForWeek,
   getTrainingProfile,
   getWeekTrainingPlan,
   listWorkoutSessions,
@@ -557,15 +558,21 @@ export async function executeMutatingTool(
   if (name === "generate_week_plan") {
     const { date } = await getFounderNow(supabase, userId);
     const weekStart = getWeekRange(date).start;
-    const [profile, recipes, trainingDaysOfWeek, pantryStock] = await Promise.all([
+    const [profile, recipes, trainingDaysOfWeek, pantryStock, trainingCategoryByDate] = await Promise.all([
       getNutritionProfile(supabase, userId),
       listRecipesWithIngredients(supabase),
       getPreferredTrainingDays(supabase, userId),
       getPantryStockLines(supabase, userId),
+      getTrainingCategoryByDateForWeek(supabase, userId, weekStart),
     ]);
-    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek, pantryStock });
+    const result = generateWeekPlan({ weekStart, profile, recipes, trainingDaysOfWeek, pantryStock, trainingCategoryByDate });
     const planWithItems = await saveWeekPlan(supabase, userId, result);
-    const response = await toPlanResponse(supabase, planWithItems, { profile, trainingDaysOfWeek, pantryStock });
+    const response = await toPlanResponse(supabase, planWithItems, {
+      profile,
+      trainingDaysOfWeek,
+      pantryStock,
+      trainingCategoryByDate,
+    });
     return { weekStart, limitedVariety: result.limitedVariety, ...response };
   }
 
