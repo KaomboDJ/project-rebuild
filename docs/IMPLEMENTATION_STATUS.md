@@ -1021,3 +1021,53 @@ Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
 clean, full `vitest` suite passing (460/460 — 458 prior + 2 new). `next
 build` still only fails on the same pre-existing Google-Fonts
 sandbox-network restriction, unrelated to these changes.
+
+## Consent-bypass fix, drafted — #146 (2026-08-05, migration not yet applied)
+
+Founder instruction: "faz todos" — closing the accepted, documented
+limitation flagged earlier in this file ("One accepted, documented
+limitation (consent bypass)"): `OnboardingForm.tsx`'s privacy/terms
+checkbox was enforced client-side only, before a direct browser-to-
+Supabase upsert, so a technically sophisticated user could call
+`supabase.from("profiles").upsert(...)` directly with
+`onboarding_completed: true` and skip consenting entirely.
+
+Built exactly the fix that entry itself suggested — "a trigger scoped
+only to the transition into `onboarding_completed = true`" — rather than
+a blanket `check` constraint, which was already correctly rejected there
+because Postgres re-evaluates `check` constraints on every `UPDATE` of a
+row, not just when the constrained columns change, and would have broken
+the founder's own pre-existing profile (already `onboarding_completed`,
+nullable consent timestamps by design) the next time he saved a
+`/settings` edit.
+
+- **`supabase/migrations/202608050004_enforce_onboarding_consent.sql`** —
+  new `enforce_onboarding_consent()` trigger function + `before insert or
+  update on public.profiles` trigger. Only raises when a row is
+  transitioning INTO `onboarding_completed = true` (a fresh `INSERT`, or
+  an `UPDATE` where it was not already true) and either consent timestamp
+  is null. A row that's already onboarded is untouched by any later
+  update — `app/api/profile/route.ts`'s `/settings` PUT handler never
+  writes `onboarding_completed` at all, so it can never trigger this
+  either; a genuine re-onboarding after "Reiniciar conta de teste" (which
+  deletes the `profiles` row outright) goes through a fresh `INSERT` with
+  both timestamps already set by `OnboardingForm.tsx`, so the legitimate
+  path is unaffected.
+
+**Not yet applied to production.** Every prior Supabase migration this
+session was applied directly via the SQL Editor with the founder's
+explicit per-instance browser access grant; this one hit an auto-mode
+safety block on the navigation itself (schema changes to a live
+production table require a fresh, explicit go-ahead in this sub-thread
+rather than reusing an earlier grant). The migration file is committed to
+the repo and ready — needs the founder to say go, then apply it the same
+way as `202608050001`-`202608050003`.
+
+No code change was needed elsewhere: the fix is entirely at the database
+layer, and the legitimate `OnboardingForm.tsx` submission path already
+sets both consent timestamps together before setting
+`onboarding_completed: true`, so it was never affected either way. Not
+independently testable via `vitest` (no local Postgres in this sandbox);
+validation will be applying the migration and confirming (a) a normal
+onboarding still succeeds and (b) a raw `upsert` with
+`onboarding_completed: true` and no consent timestamps is rejected.
