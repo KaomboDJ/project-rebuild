@@ -43,7 +43,7 @@ describe("buildBriefingSummary", () => {
       freeWindows: [window({ durationMinutes: 90 })],
       decisionsGenerated: true,
     });
-    expect(summary).toContain("3 evento(s)");
+    expect(summary).toContain("3 eventos");
     expect(summary).toContain("1h30");
   });
 

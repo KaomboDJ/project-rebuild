@@ -15,6 +15,7 @@
 // then confirm".
 
 import type { FreeWindow } from "./types";
+import { pluralizePt } from "@/lib/format/pluralize";
 
 export interface FreeWindowDriftResult {
   changed: boolean;
@@ -66,7 +67,7 @@ export function buildBriefingSummary(params: {
   const minutes = totalFreeMinutes % 60;
   const freeLabel = hours > 0 ? `${hours}h${minutes.toString().padStart(2, "0")}` : `${minutes}min`;
 
-  const base = `Hoje: ${eventCount} evento(s) no calendário, ${freeLabel} livres em ${freeWindows.length} janela(s).`;
+  const base = `Hoje: ${pluralizePt(eventCount, "evento", "eventos")} no calendário, ${freeLabel} livres em ${pluralizePt(freeWindows.length, "janela", "janelas")}.`;
   const generated = decisionsGenerated ? " Decisões de hoje já preparadas." : " Ainda sem decisões geradas hoje.";
   const staleNote = drift?.changed
     ? " A agenda mudou desde a última vez — as decisões de hoje podem já não refletir a agenda atual."

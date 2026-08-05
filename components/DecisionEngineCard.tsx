@@ -230,11 +230,15 @@ export function DecisionEngineCard({
       {isPending && !showSkip && !showEdit && !showAccountPicker && (
         <div className="mt-4 flex flex-wrap gap-2 pl-12">
           {decision.status === "proposed" && (
-            <button disabled={busy} className="btn-secondary" onClick={() => patch({ status: "accepted" })}>
+            <button disabled={busy} className="btn-primary" onClick={() => patch({ status: "accepted" })}>
               Aceitar
             </button>
           )}
-          <button disabled={busy} className="btn-primary" onClick={() => patch({ status: "completed" })}>
+          <button
+            disabled={busy}
+            className={decision.status === "proposed" ? "btn-secondary" : "btn-primary"}
+            onClick={() => patch({ status: "completed" })}
+          >
             <Check size={15} />
             Feito
           </button>

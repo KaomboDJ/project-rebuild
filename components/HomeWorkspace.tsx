@@ -17,6 +17,7 @@ import type { DayPlan, DayPlanItem } from "@/lib/day-plan/types";
 import type { ConnectionSummary } from "@/lib/google/calendar";
 import type { IdentityProgression } from "@/lib/gamification/progression";
 import { IdentityProgressCard } from "@/components/IdentityProgressCard";
+import { pluralizePt } from "@/lib/format/pluralize";
 
 const STATE_LABEL: Record<DayPlan["operatingState"], string> = {
   recovery: "Recuperação",
@@ -135,7 +136,7 @@ export function HomeWorkspace({
         </p>
         <h1 className="text-2xl font-semibold capitalize tracking-tight">{formatDate(plan.date)}</h1>
         <p className="text-sm text-neutral-400">
-          Estado: {STATE_LABEL[plan.operatingState]} · {fixedCount} compromisso(s) · {freeCount} janela(s) livre(s)
+          Estado: {STATE_LABEL[plan.operatingState]} · {pluralizePt(fixedCount, "compromisso", "compromissos")} · {pluralizePt(freeCount, "janela livre", "janelas livres")}
         </p>
         {plan.nextAction && (
           <p className="mt-2 text-sm text-neutral-200">
@@ -196,7 +197,7 @@ export function HomeWorkspace({
         {plan.bannerState === "confirmed" && (
           <p className="flex items-center gap-2 text-sm text-neutral-300">
             <CheckCircle2 size={16} className="text-emerald-500" />
-            {plan.planConfirmedAt ? "Plano confirmado" : "Plano em dia"} · {plan.decisions.length} decisões · {plan.decisions.filter((decision) => decision.calendar_event_id).length} no calendário
+            {plan.planConfirmedAt ? "Plano confirmado" : "Plano em dia"} · {pluralizePt(plan.decisions.length, "decisão", "decisões")} · {plan.decisions.filter((decision) => decision.calendar_event_id).length} no calendário
           </p>
         )}
         {plan.bannerState === "confirmed_with_conflict" && (
