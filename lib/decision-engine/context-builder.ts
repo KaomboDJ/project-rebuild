@@ -139,7 +139,11 @@ function mapProfileRow(
     userId,
     preferredName: row.preferred_name,
     timezone: row.timezone || DEFAULT_PROFILE.timezone,
-    currentIdentity: row.current_identity,
+    // Optional since the 2026-08-05 friction-reduction pass (onboarding no
+    // longer requires these) - fall back like every other optional field
+    // here, so a founder who skipped them still gets a coherent context
+    // instead of an empty string threaded through prompts.
+    currentIdentity: row.current_identity || DEFAULT_PROFILE.currentIdentity,
     desiredIdentity: row.desired_identity,
     primaryObjective: row.primary_objective,
     preferredTrainingDays: row.preferred_training_days ?? DEFAULT_PROFILE.preferredTrainingDays,
@@ -155,7 +159,7 @@ function mapProfileRow(
       start: workingHours.start ?? DEFAULT_PROFILE.workingHours.start,
       end: workingHours.end ?? DEFAULT_PROFILE.workingHours.end,
     },
-    currentConstraints: row.current_constraints,
+    currentConstraints: row.current_constraints || DEFAULT_PROFILE.currentConstraints,
     interventionTone: row.intervention_tone || DEFAULT_PROFILE.interventionTone,
   };
 }

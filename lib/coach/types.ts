@@ -18,7 +18,8 @@ export type ToolName =
   | "get_week_training_plan"
   | "generate_week_training_plan"
   | "replace_session"
-  | "mark_session_done";
+  | "mark_session_done"
+  | "update_profile_notes";
 
 /** Tools the server executes immediately and feeds back to the model in the
  * same turn — they only read data, so there's nothing for the user to
@@ -45,6 +46,7 @@ export const MUTATING_TOOLS: ReadonlySet<ToolName> = new Set([
   "generate_week_training_plan",
   "replace_session",
   "mark_session_done",
+  "update_profile_notes",
 ]);
 
 export type ToolCallStatus = "proposed" | "confirmed" | "declined" | "executed" | "failed";

@@ -21,7 +21,12 @@ const WEEKDAY_VALUES = ["monday", "tuesday", "wednesday", "thursday", "friday", 
 const updateSchema = z.object({
   preferredName: z.string().trim().min(1).max(80),
   timezone: z.string().trim().min(1).max(80),
-  currentIdentity: z.string().trim().min(1).max(500),
+  // Optional (2026-08-05 friction-reduction pass, founder feedback via a
+  // test user): the founder can leave these blank and share them with the
+  // Coach conversationally instead - see lib/profile/onboarding.ts's
+  // validateOnboardingDraft for the full rationale and every downstream
+  // consumer's fallback.
+  currentIdentity: z.string().trim().max(500),
   desiredIdentity: z.string().trim().min(1).max(500),
   primaryObjective: z.enum(objectiveValues),
   preferredTrainingDays: z.array(z.enum(WEEKDAY_VALUES)).min(1),
@@ -35,8 +40,8 @@ const updateSchema = z.object({
   sleepScheduleType: z.enum(["regular", "shift"]),
   workingHoursStart: z.string().regex(TIME_RE),
   workingHoursEnd: z.string().regex(TIME_RE),
-  currentConstraints: z.string().trim().min(1).max(1000),
-  interventionTone: z.string().trim().min(1).max(300),
+  currentConstraints: z.string().trim().max(1000),
+  interventionTone: z.string().trim().max(300),
 });
 
 export async function GET() {

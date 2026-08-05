@@ -784,3 +784,80 @@ migrations (202608050001-3) via the Supabase SQL editor.
 Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
 clean, full `vitest` suite passing (444/444, +13 vs. the previous 431
 Training-Toolkit-engine baseline).
+
+## Friction reduction: fewer required inputs (2026-08-05)
+
+Real user feedback via a test user (José Gama, relayed by the founder):
+"pessoalmente sinto que tenho de dedicar demasiado tempo à APP para
+aprender o seu funcionamento e para a utilização diária... não tenho
+vontade de estar sempre a lançar a app para colocar inputs... Preciso que
+a app trabalhe para mim e não eu para a app." He also asked about
+wearable/device pairing to passively collect training/steps data — that
+specific ask is out of scope per FOUNDER_CONTEXT.md's "Deep wearable
+integrations before the decision loop is validated" (deferred, not
+rejected). The founder asked instead to reduce every input we reasonably
+can without touching that boundary.
+
+Investigated actual friction points rather than guessing:
+
+- **Onboarding (`components/OnboardingForm.tsx`)** was a single
+  un-skippable page with 5 required free-text/textarea fields
+  (`preferredName`, `currentIdentity`, `desiredIdentity`,
+  `currentConstraints`, `interventionTone`) plus several selects/times
+  (already defaulted, low friction). Every one of
+  `currentIdentity`/`currentConstraints`/`interventionTone` already had a
+  working fallback everywhere it's consumed
+  (`lib/decision-engine/context-builder.ts`'s `DEFAULT_PROFILE`,
+  `lib/decision-engine/prompts.ts`'s "não definida"/"nenhuma reportada"
+  copy, `lib/ai/provider.ts`'s Coach system prompt) — the DB columns are
+  even `not null default ''`/`'direto e prático'`. The friction was purely
+  an app-layer requirement with no functional reason behind it.
+- **Daily check-in (`components/DailyCheckInForm.tsx`)** was already
+  fairly light (3 sliders defaulting to 3, 2 optional fields) but still
+  needed the founder to open the app and re-set three sliders every day
+  even when nothing had changed.
+
+Built:
+- `lib/profile/onboarding.ts` — `validateOnboardingDraft` no longer
+  requires `currentIdentity`/`currentConstraints`/`interventionTone`.
+  `preferredName` and `desiredIdentity` stay required (name for
+  addressing the founder; desired identity is the core "atleta em
+  reconstrução" reframe the product is built around).
+- `components/OnboardingForm.tsx` / `components/settings/ProfileEditForm.tsx`
+  — dropped the required asterisk on those 3 fields, added "(opcional)"
+  labels and a short note that they can be shared with the Coach later
+  instead.
+- `app/api/profile/route.ts` — relaxed the Zod schema's `.min(1)` to allow
+  empty strings for the same 3 fields (kept the max-length caps).
+- `lib/decision-engine/context-builder.ts` — `mapProfileRow` now falls
+  back to `DEFAULT_PROFILE.currentIdentity`/`currentConstraints` when the
+  row's value is empty, matching every other optional field's existing
+  pattern in that function (`interventionTone` already did this).
+- `lib/coach/tools.ts` / `lib/coach/types.ts` — new `update_profile_notes`
+  mutating tool (proposal, requires confirmation like every other mutating
+  tool) that saves whichever of current identity/constraints/tone the
+  founder actually volunteers in conversation. `lib/ai/provider.ts`'s
+  system prompt instructs the Coach to offer this at most once per
+  conversation, only with fields the founder actually said, and never to
+  interrogate the founder about these fields unprompted — directly
+  answering "a app trabalha para mim" instead of a form.
+- `components/DailyCheckInForm.tsx` — added a "Foi como ontem" shortcut:
+  fetches yesterday's `sleep_quality`/`energy_level`/`stress_level` on
+  mount and, when present, shows a one-tap button that submits with those
+  values immediately. `physical_limitation`/`notes` are deliberately never
+  carried forward (day-specific; yesterday's knee pain may not apply
+  today), so the founder only re-types those if actually relevant.
+- `lib/date/calendar-grid.ts`'s existing `addDays` reused for the
+  "yesterday" date key rather than adding a fifth copy of the same
+  UTC-noon-anchored day-arithmetic helper.
+- `lib/profile/onboarding.test.ts` — updated the two tests that asserted
+  the now-optional fields were required, to assert the opposite with the
+  rationale documented inline.
+
+Deliberately not touched: wearable/device integrations (explicitly
+deferred per FOUNDER_CONTEXT.md, not part of this pass) and the
+onboarding's time/select fields (already zero-effort thanks to sensible
+pre-filled defaults — not a real friction point).
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (450/450).

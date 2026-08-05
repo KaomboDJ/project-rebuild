@@ -135,16 +135,13 @@ export function ProfileEditForm({ initialProfile }: { initialProfile: ProfileRow
       </label>
 
       <label className="block text-sm">
-        Quem és hoje? <span className="text-rose-500">*</span>
+        Quem és hoje? <span className="text-neutral-500">(opcional)</span>
         <textarea
           className="field-input mt-1"
           rows={2}
           value={draft.currentIdentity}
           onChange={(event) => setDraft({ ...draft, currentIdentity: event.target.value })}
         />
-        {showErrors && errors.currentIdentity && (
-          <span className="mt-1 block text-xs text-rose-500">{errors.currentIdentity}</span>
-        )}
       </label>
 
       <label className="block text-sm">
@@ -305,28 +302,22 @@ export function ProfileEditForm({ initialProfile }: { initialProfile: ProfileRow
       </div>
 
       <label className="block text-sm">
-        Que responsabilidades e limites moldam a tua vida? <span className="text-rose-500">*</span>
+        Que responsabilidades e limites moldam a tua vida? <span className="text-neutral-500">(opcional)</span>
         <textarea
           className="field-input mt-1"
           rows={2}
           value={draft.currentConstraints}
           onChange={(event) => setDraft({ ...draft, currentConstraints: event.target.value })}
         />
-        {showErrors && errors.currentConstraints && (
-          <span className="mt-1 block text-xs text-rose-500">{errors.currentConstraints}</span>
-        )}
       </label>
 
       <label className="block text-sm">
-        Que tom de comunicação funciona contigo? <span className="text-rose-500">*</span>
+        Que tom de comunicação funciona contigo? <span className="text-neutral-500">(opcional)</span>
         <input
           className="field-input mt-1"
           value={draft.interventionTone}
           onChange={(event) => setDraft({ ...draft, interventionTone: event.target.value })}
         />
-        {showErrors && errors.interventionTone && (
-          <span className="mt-1 block text-xs text-rose-500">{errors.interventionTone}</span>
-        )}
       </label>
 
       <div className="flex items-center gap-3 pt-1">

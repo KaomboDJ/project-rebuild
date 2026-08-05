@@ -155,7 +155,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       </label>
 
       <label className="block text-sm">
-        Quem és hoje? <span className="text-rose-500">*</span>
+        Quem és hoje? <span className="text-neutral-500">(opcional)</span>
         <textarea
           className="field-input mt-1"
           placeholder="Ex.: ex-atleta, rotina interrompida, sono irregular"
@@ -163,9 +163,9 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
           value={draft.currentIdentity}
           onChange={(event) => setDraft({ ...draft, currentIdentity: event.target.value })}
         />
-        {showErrors && errors.currentIdentity && (
-          <span className="mt-1 block text-xs text-rose-500">{errors.currentIdentity}</span>
-        )}
+        <span className="mt-1 block text-xs text-neutral-500">
+          Podes deixar em branco e contar isto ao Coach mais tarde, na conversa.
+        </span>
       </label>
 
       <label className="block text-sm">
@@ -335,7 +335,7 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
       </div>
 
       <label className="block text-sm">
-        Que responsabilidades e limites moldam a tua vida? <span className="text-rose-500">*</span>
+        Que responsabilidades e limites moldam a tua vida? <span className="text-neutral-500">(opcional)</span>
         <textarea
           className="field-input mt-1"
           placeholder="Trabalho, família, sono..."
@@ -343,22 +343,19 @@ export function OnboardingForm({ initialProfile }: { initialProfile: ProfileRow 
           value={draft.currentConstraints}
           onChange={(event) => setDraft({ ...draft, currentConstraints: event.target.value })}
         />
-        {showErrors && errors.currentConstraints && (
-          <span className="mt-1 block text-xs text-rose-500">{errors.currentConstraints}</span>
-        )}
+        <span className="mt-1 block text-xs text-neutral-500">
+          Também podes deixar isto para depois - o Coach adapta-se à medida que te conhece.
+        </span>
       </label>
 
       <label className="block text-sm">
-        Que tom de comunicação funciona contigo? <span className="text-rose-500">*</span>
+        Que tom de comunicação funciona contigo? <span className="text-neutral-500">(opcional)</span>
         <input
           className="field-input mt-1"
           placeholder="Ex.: direto, sem lição de moral"
           value={draft.interventionTone}
           onChange={(event) => setDraft({ ...draft, interventionTone: event.target.value })}
         />
-        {showErrors && errors.interventionTone && (
-          <span className="mt-1 block text-xs text-rose-500">{errors.interventionTone}</span>
-        )}
       </label>
 
       {submitError && <p className="text-sm text-red-400">{submitError}</p>}

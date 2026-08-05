@@ -27,9 +27,14 @@ describe("validateOnboardingDraft", () => {
     expect(isOnboardingValid({ ...VALID, preferredName: "" })).toBe(false);
   });
 
-  it("requires currentIdentity and desiredIdentity", () => {
+  it("requires desiredIdentity but not currentIdentity", () => {
+    // Friction-reduction pass (2026-08-05, real user feedback): currentIdentity
+    // is optional so a founder can skip straight into the app and tell the
+    // Coach later - see lib/decision-engine/context-builder.ts's
+    // DEFAULT_PROFILE fallback for what fills the gap. desiredIdentity stays
+    // required - it's the core "atleta em reconstrução" identity reframe.
     const errors = validateOnboardingDraft({ ...VALID, currentIdentity: "", desiredIdentity: "" });
-    expect(errors.currentIdentity).toBeDefined();
+    expect(errors.currentIdentity).toBeUndefined();
     expect(errors.desiredIdentity).toBeDefined();
   });
 
@@ -65,10 +70,13 @@ describe("validateOnboardingDraft", () => {
     expect(validateOnboardingDraft({ ...VALID, sleepScheduleType: "shift" })).toEqual({});
   });
 
-  it("requires currentConstraints and interventionTone", () => {
+  it("does not require currentConstraints or interventionTone", () => {
+    // Same friction-reduction pass - both are optional, filled later via
+    // Settings or picked up conversationally by the Coach
+    // (lib/coach/tools.ts's update_profile_notes).
     const errors = validateOnboardingDraft({ ...VALID, currentConstraints: "", interventionTone: "  " });
-    expect(errors.currentConstraints).toBeDefined();
-    expect(errors.interventionTone).toBeDefined();
+    expect(errors.currentConstraints).toBeUndefined();
+    expect(errors.interventionTone).toBeUndefined();
   });
 
   // Working hours (docs/17_UX_AUDIT.md, S1) - added to onboarding and reused

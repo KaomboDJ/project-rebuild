@@ -1,14 +1,31 @@
 "use client";
 
-import { useState } from "react";
+// Founder feedback (2026-08-05, real user via José Gama): "Preciso que a
+// app trabalhe para mim e não eu para a app" - this form was already fairly
+// light (3 sliders defaulting to 3, 2 optional fields), but on a day where
+// nothing changed the founder still had to open the app and confirm three
+// sliders by hand. The "Foi como ontem" shortcut below fetches yesterday's
+// sleep/energy/stress values and submits with one tap when they exist,
+// while leaving physical_limitation/notes untouched (those are genuinely
+// day-specific - e.g. yesterday's knee pain may not apply today - so they
+// are never silently carried forward).
+
+import { useEffect, useState } from "react";
 import { Activity, Moon, Zap } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { addDays } from "@/lib/date/calendar-grid";
 
 const SLIDERS = [
   { key: "sleepQuality", label: "Qualidade do sono", icon: Moon } as const,
   { key: "energyLevel", label: "Energia", icon: Zap } as const,
   { key: "stressLevel", label: "Stress", icon: Activity } as const,
 ];
+
+interface YesterdayValues {
+  sleepQuality: number;
+  energyLevel: number;
+  stressLevel: number;
+}
 
 export function DailyCheckInForm({
   date,
@@ -24,6 +41,38 @@ export function DailyCheckInForm({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [yesterday, setYesterday] = useState<YesterdayValues | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadYesterday() {
+      const supabase = createSupabaseBrowserClient();
+      if (!supabase) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("daily_check_ins")
+        .select("sleep_quality, energy_level, stress_level")
+        .eq("user_id", user.id)
+        .eq("date", addDays(date, -1))
+        .maybeSingle();
+
+      if (!cancelled && data && data.sleep_quality !== null && data.energy_level !== null && data.stress_level !== null) {
+        setYesterday({
+          sleepQuality: data.sleep_quality,
+          energyLevel: data.energy_level,
+          stressLevel: data.stress_level,
+        });
+      }
+    }
+    loadYesterday();
+    return () => {
+      cancelled = true;
+    };
+  }, [date]);
 
   const values: Record<(typeof SLIDERS)[number]["key"], number> = {
     sleepQuality,
@@ -36,8 +85,7 @@ export function DailyCheckInForm({
     stressLevel: setStressLevel,
   };
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function submitCheckIn(overrides?: YesterdayValues) {
     setSubmitting(true);
     setError(null);
 
@@ -61,9 +109,9 @@ export function DailyCheckInForm({
       {
         user_id: user.id,
         date,
-        sleep_quality: sleepQuality,
-        energy_level: energyLevel,
-        stress_level: stressLevel,
+        sleep_quality: overrides?.sleepQuality ?? sleepQuality,
+        energy_level: overrides?.energyLevel ?? energyLevel,
+        stress_level: overrides?.stressLevel ?? stressLevel,
         physical_limitation: physicalLimitation || null,
         notes: notes || null,
       },
@@ -80,8 +128,25 @@ export function DailyCheckInForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="surface-card space-y-5 p-5">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        submitCheckIn();
+      }}
+      className="surface-card space-y-5 p-5"
+    >
       <h2 className="text-lg font-semibold tracking-tight">Como estás hoje?</h2>
+
+      {yesterday && (
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => submitCheckIn(yesterday)}
+          className="btn-secondary w-full py-2.5 text-sm"
+        >
+          Foi como ontem (sono {yesterday.sleepQuality}, energia {yesterday.energyLevel}, stress {yesterday.stressLevel})
+        </button>
+      )}
 
       <div className="space-y-4">
         {SLIDERS.map(({ key, label, icon: Icon }) => (

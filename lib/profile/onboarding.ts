@@ -103,8 +103,20 @@ const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 export function validateOnboardingDraft(draft: OnboardingDraft): OnboardingErrors {
   const errors: OnboardingErrors = {};
 
+  // Founder feedback (2026-08-05, a test user via José Gama): "Preciso que
+  // a app trabalhe para mim e não eu para a app" - the onboarding wall
+  // previously forced 5 free-text fields before the founder could even see
+  // the app. currentIdentity/currentConstraints/interventionTone are now
+  // optional: every consumer already has a graceful fallback (see
+  // lib/decision-engine/context-builder.ts's DEFAULT_PROFILE fallbacks and
+  // lib/ai/provider.ts's buildSystemPrompt "não definida"/"nenhuma
+  // indicada" copy), and the Coach can pick these up conversationally
+  // later instead of gating entry on them. preferredName/desiredIdentity
+  // stay required - one is needed to address the founder by name, the
+  // other is the core "atleta em reconstrução" identity-reframe the whole
+  // product is built around (FOUNDER_CONTEXT.md) - neither is a burden to
+  // type once.
   if (!draft.preferredName.trim()) errors.preferredName = "Obrigatório.";
-  if (!draft.currentIdentity.trim()) errors.currentIdentity = "Obrigatório.";
   if (!draft.desiredIdentity.trim()) errors.desiredIdentity = "Obrigatório.";
   if (!PRIMARY_OBJECTIVES.some((objective) => objective.value === draft.primaryObjective)) {
     errors.primaryObjective = "Escolhe um objetivo.";
@@ -137,8 +149,8 @@ export function validateOnboardingDraft(draft: OnboardingDraft): OnboardingError
   ) {
     errors.workingHoursEnd = "Tem de ser depois da hora de início.";
   }
-  if (!draft.currentConstraints.trim()) errors.currentConstraints = "Obrigatório.";
-  if (!draft.interventionTone.trim()) errors.interventionTone = "Obrigatório.";
+  // currentConstraints/interventionTone: intentionally not required - see
+  // the note above validateOnboardingDraft.
 
   return errors;
 }

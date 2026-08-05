@@ -223,6 +223,19 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ["day_date", "status"],
     },
   },
+  {
+    name: "update_profile_notes",
+    description:
+      "PROPÕE guardar no perfil (Definições) informação pessoal que o utilizador partilhou na conversa e que ainda não está guardada - identidade atual, restrições/responsabilidades da vida, ou tom de comunicação preferido. Usa isto quando o utilizador contar algo relevante espontaneamente, para não teres de lhe perguntar outra vez da próxima vez. Nunca interrogues o utilizador sobre estes campos sem ele tocar no assunto primeiro, e nunca proponhas isto mais do que uma vez por conversa. Requer confirmação explícita. Só inclui os campos que o utilizador realmente partilhou - nunca inventes ou completes os outros.",
+    input_schema: {
+      type: "object",
+      properties: {
+        current_identity: { type: "string", description: "Ex.: 'ex-atleta, rotina interrompida, sono irregular'." },
+        current_constraints: { type: "string", description: "Ex.: 'trabalho exigente, filho pequeno, sono interrompido'." },
+        intervention_tone: { type: "string", description: "Ex.: 'direto, sem lição de moral'." },
+      },
+    },
+  },
 ];
 
 export function isKnownTool(name: string): name is ToolName {
@@ -384,6 +397,8 @@ function summarize(name: ToolName, args: Record<string, unknown>): string {
       return `Substituir a sessão de treino de ${args.day_date ?? "?"} por uma alternativa`;
     case "mark_session_done":
       return `Marcar a sessão de treino de ${args.day_date ?? "?"} como ${args.status === "skipped" ? "saltada" : "feita"}`;
+    case "update_profile_notes":
+      return "Guardar no perfil o que partilhaste agora (Definições)";
     default:
       return `Executar ${name}`;
   }
@@ -599,6 +614,25 @@ export async function executeMutatingTool(
     const status = args.status === "skipped" ? "skipped" : "done";
     const item = await completeTrainingPlanItem(supabase, userId, current.id, status);
     return { item };
+  }
+
+  if (name === "update_profile_notes") {
+    const update: { current_identity?: string; current_constraints?: string; intervention_tone?: string } = {};
+    if (typeof args.current_identity === "string" && args.current_identity.trim()) {
+      update.current_identity = args.current_identity.trim().slice(0, 500);
+    }
+    if (typeof args.current_constraints === "string" && args.current_constraints.trim()) {
+      update.current_constraints = args.current_constraints.trim().slice(0, 1000);
+    }
+    if (typeof args.intervention_tone === "string" && args.intervention_tone.trim()) {
+      update.intervention_tone = args.intervention_tone.trim().slice(0, 300);
+    }
+    if (Object.keys(update).length === 0) {
+      throw new Error("Nada para guardar - indica pelo menos um campo.");
+    }
+    const { data, error } = await supabase.from("profiles").update(update).eq("user_id", userId).select("*").single();
+    if (error || !data) throw new Error(error?.message ?? "Falha ao guardar o perfil.");
+    return { updatedFields: Object.keys(update) };
   }
 
   throw new Error(`Tool ${name} não implementada.`);
