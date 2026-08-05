@@ -19,13 +19,12 @@
 
 import type { MealType, NutritionGoal, NutritionProfile, Recipe } from "./types";
 
-const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
-/** Same convention as lib/decision-engine/rules.ts's dayOfWeek: noon UTC
- * avoids date-boundary/DST edge cases for a plain "YYYY-MM-DD" string. */
-export function dayOfWeek(dateKey: string): string {
-  return DAY_NAMES[new Date(`${dateKey}T12:00:00Z`).getUTCDay()];
-}
+// Re-exported so existing imports (lib/nutrition/planner.ts, this
+// module's own tests) keep working unchanged - the implementation moved
+// to lib/date/weekday.ts on 2026-08-05 once lib/training/planner.ts
+// needed the exact same logic, rather than adding a third copy.
+import { dayOfWeek } from "@/lib/date/weekday";
+export { dayOfWeek };
 
 /** Only lunch and dinner are "main meals" for the training-day protein
  * preference - matches generateWeekPlan's own condition, so this stays

@@ -542,3 +542,81 @@ clean, full `vitest` suite passing (413/413, unchanged — this is a UI-only
 fix with no unit-testable logic). The new e2e spec was not executed here
 (Playwright's Chromium download is blocked by this sandbox's network
 allowlist) but will run in CI.
+
+## Milestone 15 (in progress): Training Toolkit — engine (2026-08-05)
+
+Founder request: "é possível [o Coach] elaborar um treino para a semana
+toda?" — confirmed this doesn't exist as a real feature yet (the Coach has
+no training-plan tool at all; asking it today just gets an ungrounded LLM
+answer, never persisted, never reviewable). Founder chose the full
+deterministic engine (mirroring the Nutrition Toolkit's own architecture)
+over a lighter conversational-only version. Being built in stages; this is
+stage 1 (schema + deterministic engine), stages 2-3 (persistence/API/Coach
+tool, then UI) tracked separately.
+
+While designing the category taxonomy, the founder corrected the original
+`lib/nutrition/workout-types.ts` (16 named activities tagged with 1-2 of 4
+broad categories): striking martial arts (Muay Thai, kickboxing) and
+grappling martial arts (jiu-jitsu, judo, wrestling, sambo) are physically
+different disciplines and must never share a category, and light cardio
+(walking, easy jog) is a different demand than heavy cardio (HIIT,
+sprints, bike/row intervals). `workout-types.ts` was rewritten around the
+founder's own 8-category taxonomy (`calistenia`, `cardio_leve`,
+`cardio_pesado`, `hipertrofia`, `artes_marciais_strike`,
+`wrestling_grappling`, `mobilidade`, `parkour`) — the category is now the
+thing a founder actually picks for a day's training, not an activity
+tagged with a category after the fact. This happened before anything was
+committed or applied, so there's no migration-of-a-migration involved.
+
+Built:
+- `supabase/migrations/202608050001_training_toolkit.sql` — mirrors
+  `202607300007_nutrition_toolkit.sql` one-for-one: `training_profiles`
+  (user-owned settings: preferred categories, session duration, location,
+  intensity/variety preference, free-text physical limitations, same
+  treatment as `nutrition_profiles.medical_constraints`),
+  `workout_sessions` (curated, global, read-only-to-the-app library — 29
+  seeded sessions across all 8 categories, including named Muay Thai/
+  Kickboxing/Boxe sessions under `artes_marciais_strike` and named
+  Jiu-jitsu/Wrestling-Judo sessions under `wrestling_grappling`, kept
+  deliberately separate), `training_plans`/`training_plan_items` (one
+  planned session per day; a rest day is simply a day with no row, never a
+  placeholder "rest" session), `set_training_plan_item_status` (atomic
+  status+completed_at update, mirrors `set_meal_plan_item_status`). RLS
+  mirrors nutrition exactly. **Not yet applied to production** — same
+  sandbox DNS restriction as always; the founder needs to run this via the
+  Supabase SQL editor once it's reviewed. Every session's structure/
+  safety_note is deliberately general and moderate, never a rigid
+  numeric/medical prescription (CLAUDE.md coaching-safety).
+- `lib/training/types.ts` / `lib/training/planner.ts` — pure, deterministic
+  `generateWeekTrainingPlan`, mirroring `lib/nutrition/planner.ts`'s
+  hard/soft-filter + variety-window approach exactly (preferred categories
+  are a hard filter; session duration and location are soft, relaxed one
+  at a time). Reuses the same `trainingDaysOfWeek` signal
+  (`profiles.preferred_training_days`) nutrition's planner now uses, so a
+  rest day is a day simply absent from the plan. `suggestTrainingReplacement`
+  mirrors `suggestReplacement`'s closest-match rule (duration instead of
+  calories). Recipe/session selection is never delegated to an LLM — same
+  contract as nutrition and the Decision Engine.
+- `lib/date/weekday.ts` — extracted the `dayOfWeek` helper that
+  `lib/decision-engine/rules.ts`, `lib/nutrition/reasoning.ts`, and now
+  `lib/training/planner.ts` all needed, rather than adding a third/fourth
+  copy; `reasoning.ts` re-exports it so existing imports keep working.
+
+Tests: `lib/training/planner.test.ts` (17 cases), `lib/date/weekday.test.ts`
+(1 case), `lib/nutrition/workout-types.test.ts` rewritten for the new
+taxonomy (7 cases, unchanged count). Full suite: 431/431 passing (+18 vs.
+the previous 413 baseline). `tsc --noEmit` clean, `next lint` not yet
+re-run for this exact commit (will run before the next slice ships) but no
+new lint-relevant patterns were introduced beyond what's already clean
+elsewhere.
+
+Still pending, tracked separately: `lib/training/queries.ts` (server-only
+persistence, mirroring `lib/nutrition/queries.ts`), the weekly-plan API
+route, a `generate_week_training_plan` Coach tool (+ replace/mark-done),
+teaching the Coach's system prompt to proactively offer generating the
+training plan / meal plan / shopping list with closed yes/no questions
+(the founder's other ask this same message — "Queres também o plano
+alimentar? Queres a lista de compras?"), the `/training` UI page, nav
+entry, and adding the three new tables to `lib/account/reset.ts`'s wipe
+list so "Reiniciar conta de teste" stays truthful about deleting every
+user-owned table.
