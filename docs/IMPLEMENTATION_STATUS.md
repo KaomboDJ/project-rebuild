@@ -508,3 +508,37 @@ Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
 clean, full `vitest` suite passing (413/413, +20 new vs. the previous
 393 baseline). `next build` still only fails on the same pre-existing
 Google-Fonts sandbox-network restriction, unrelated to these changes.
+
+## Mobile fix: app-guide bubble covering Coach's send button (2026-08-05)
+
+Founder report, live on mobile: the floating "?" app-guide bubble
+(`components/AppGuide.tsx`, `fixed bottom-24 right-4 z-30`) was untappable
+to cover — it sat directly on top of `/coach`'s own "Enviar" (send) button.
+Root cause: the bubble's offset assumes a small margin above the ~64-80px
+bottom tab bar, which works for every other page since their content
+scrolls independently of that corner. `/coach`'s compose form
+(`components/coach/CoachPageClient.tsx`) is different: its send button is
+the last in-flow element inside a near-full-viewport-height card, so on
+mobile it lands directly under the bubble's fixed position — not just a
+visual overlap, the fixed element sits on top in the stacking order and
+absorbs the tap.
+
+Fixed by not rendering the bubble on `/coach` at all (`AppGuide` now
+returns `null` for that route, after all its hooks run — kept the hook
+order identical across renders per the Rules of Hooks) rather than hunting
+for an offset guaranteed to clear a compose bar whose height varies with
+font scaling and the safe-area inset. The page already has its own "Ver
+contexto" (Info icon) affordance, and the guide's own copy on every other
+page already points founders at the Coach for anything more specific.
+
+Added `e2e/responsive.spec.ts`'s "the app-guide bubble does not cover the
+Coach send button" (runs across all four viewport projects, including
+390x844 mobile) — checks both that the bubble is absent on `/coach` and,
+more directly, that `document.elementFromPoint` at the send button's own
+center actually resolves to that button (the real-world symptom).
+
+Validated in an isolated sandbox copy: `tsc --noEmit` clean, `next lint`
+clean, full `vitest` suite passing (413/413, unchanged — this is a UI-only
+fix with no unit-testable logic). The new e2e spec was not executed here
+(Playwright's Chromium download is blocked by this sandbox's network
+allowlist) but will run in CI.

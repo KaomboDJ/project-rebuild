@@ -38,6 +38,33 @@ test.describe("Responsive layout across breakpoints", () => {
     expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 2);
   });
 
+  // Founder report (2026-08-05, mobile): the floating "?" app-guide bubble
+  // (components/AppGuide.tsx, `fixed bottom-24 right-4`) sat directly on
+  // top of the Coach page's own "Enviar" button, since that button is the
+  // last in-flow element of a near-full-viewport-height compose form -
+  // untappable, not just visually overlapping. Fixed by not rendering the
+  // bubble at all on /coach. Regression-tests both the absence of the
+  // bubble and, more directly, that the real point a tap would land on
+  // (the Enviar button's own center) actually resolves to that button.
+  test("the app-guide bubble does not cover the Coach send button", async ({ page }) => {
+    await page.goto("/coach");
+    await expect(page.getByRole("button", { name: "Abrir guia da aplicação" })).toBeHidden();
+
+    const sendButton = page.getByRole("button", { name: "Enviar" });
+    await expect(sendButton).toBeVisible();
+    const box = await sendButton.boundingBox();
+    expect(box).not.toBeNull();
+    const isOnTop = await page.evaluate(
+      ([x, y]) => {
+        const top = document.elementFromPoint(x, y);
+        const button = document.querySelector('button[aria-label="Enviar"]');
+        return !!top && !!button && (top === button || button.contains(top));
+      },
+      [box!.x + box!.width / 2, box!.y + box!.height / 2]
+    );
+    expect(isOnTop).toBe(true);
+  });
+
   test("the Home plan and Decisions execution controls stay reachable", async ({ page }) => {
     await page.goto("/home");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

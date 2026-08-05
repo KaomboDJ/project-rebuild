@@ -86,6 +86,25 @@ export function AppGuide() {
     try { localStorage.setItem("rebuild:app-guide-seen", "1"); } catch { /* non-critical */ }
   }
 
+  // Founder report, live on mobile (2026-08-05): the floating "?" bubble
+  // sits at `fixed bottom-24 right-4`, meant to clear the ~64-80px bottom
+  // tab bar (components/AppNav.tsx) with a small margin. Every other
+  // page's content scrolls independently of that corner, but /coach's
+  // compose form (components/coach/CoachPageClient.tsx) is the last
+  // in-flow element inside a near-full-viewport-height card, so on mobile
+  // its own "Enviar" button lands directly under this fixed bubble - not
+  // just visually overlapped but literally untappable, since the fixed
+  // button sits on top in the stacking order. Rather than chase a corner
+  // offset that's guaranteed to clear a compose bar whose height varies
+  // with font scaling and the safe-area inset, skip rendering the bubble
+  // on /coach entirely: the page already has its own "Ver contexto" (Info
+  // icon) affordance in the header, and the guide's own copy on every
+  // other page already points founders at the Coach for anything more
+  // specific ("Para decisoes pessoais ... usa o Coach"). This check runs
+  // after every hook above, never before, so hook order stays identical
+  // across renders regardless of route.
+  if (pathname.startsWith("/coach")) return null;
+
   return (
     <>
       <button
