@@ -1022,7 +1022,7 @@ clean, full `vitest` suite passing (460/460 — 458 prior + 2 new). `next
 build` still only fails on the same pre-existing Google-Fonts
 sandbox-network restriction, unrelated to these changes.
 
-## Consent-bypass fix, drafted — #146 (2026-08-05, migration not yet applied)
+## Consent-bypass fix — #146 (2026-08-05, applied to production)
 
 Founder instruction: "faz todos" — closing the accepted, documented
 limitation flagged earlier in this file ("One accepted, documented
@@ -1054,14 +1054,18 @@ nullable consent timestamps by design) the next time he saved a
   both timestamps already set by `OnboardingForm.tsx`, so the legitimate
   path is unaffected.
 
-**Not yet applied to production.** Every prior Supabase migration this
-session was applied directly via the SQL Editor with the founder's
-explicit per-instance browser access grant; this one hit an auto-mode
-safety block on the navigation itself (schema changes to a live
-production table require a fresh, explicit go-ahead in this sub-thread
-rather than reusing an earlier grant). The migration file is committed to
-the repo and ready — needs the founder to say go, then apply it the same
-way as `202608050001`-`202608050003`.
+**Applied to production (2026-08-05).** The first attempt hit an
+auto-mode safety block on the SQL Editor navigation itself; resolved by
+handing the founder the exact migration SQL to run, and on a later
+attempt navigation succeeded and the migration was run directly via the
+SQL Editor, the same way as `202608050001`-`202608050003`. Verified live
+by querying `pg_trigger` for `enforce_onboarding_consent_trigger` — one
+row returned, `tgenabled` in the normal enabled state. Not independently
+re-verified against a real onboarding submission or a raw
+`upsert(onboarding_completed: true)` rejection in this session (no
+Postgres access from this sandbox beyond the SQL Editor); founder should
+confirm a normal onboarding still completes next time a fresh account
+goes through it.
 
 The legitimate `OnboardingForm.tsx` submission path already sets both
 consent timestamps together before setting `onboarding_completed: true`,
@@ -1120,3 +1124,86 @@ file has used before for e2e work under this constraint.
 Validated in an isolated sandbox copy: `tsc --noEmit` clean (the new spec
 file included, since `tsconfig.json` covers `e2e/**/*.ts`), `next lint`
 clean.
+
+## Outlook Calendar OAuth credentials provisioned — #148/#152 (2026-08-05)
+
+Founder instruction: "work on the microsoft part" — the read-only Outlook
+Calendar adapter (`lib/microsoft/oauth.ts`, `MICROSOFT_CALENDAR_SCOPE =
+"openid profile offline_access User.Read Calendars.Read"`, no write
+scope) has existed in the codebase since the Unified Calendar
+Intelligence merge, but had no real Azure app registration behind it —
+`isMicrosoftCalendarConfigured()` was false in production because
+`MICROSOFT_CLIENT_ID`/`MICROSOFT_CLIENT_SECRET`/`MICROSOFT_REDIRECT_URI`
+were unset. This is a **separate integration from `AUTH_MICROSOFT_ENABLED`**
+(the "Sign in with Microsoft" button gated behind a Supabase-side Azure
+provider, still not configured, described above) — this entry only
+concerns the calendar-availability adapter.
+
+Getting a usable Azure app registration took two founder-side blockers:
+the Microsoft 365 Developer Program sandbox rejected the founder's
+enrollment ("you don't currently qualify" — a known, sometimes arbitrary
+Microsoft-side eligibility gate, not something resolvable by retrying);
+pivoted to a plain Azure free account instead, which auto-provisions a
+"Default Directory" Entra tenant and succeeded.
+
+Registered **"Project Rebuild - Outlook Calendar"** (Client ID
+`d0e935e8-c7b1-4e60-9584-26a81e796987`, under the founder's own Azure
+tenant `7ae06676-e8a7-4412-aedc-394cda776c5c`) as **multi-tenant + personal
+Microsoft accounts** (matches `TENANT="common"`, the code's default) and
+**Web** platform (matches `requireMicrosoftCredentials()` expecting a
+client secret, i.e. a confidential client), redirect URI
+`https://project-rebuild-chi.vercel.app/api/microsoft/callback`. Added the
+`Calendars.Read` **delegated** Graph permission (the only scope the code
+requests; never application/daemon permissions, since this is always a
+user-context read of the signed-in founder's own calendar). Generated a
+client secret (expires 01/02/2027).
+
+Set all four `MICROSOFT_*` variables into Vercel Production and Preview
+and triggered a redeploy so the new build actually picks them up.
+`MICROSOFT_TENANT_ID=common` was kept as the env var value rather than
+the app's own Entra tenant ID — `common` is the correct endpoint for an
+app registered to accept "any organizational directory + personal
+Microsoft accounts", independent of which tenant it happens to be
+registered under, and matches `.env.example`'s existing documented
+default.
+
+**Not yet independently tested against a live Outlook sign-in in this
+session** — the founder should try connecting an Outlook account once the
+redeploy is live to confirm the full authorize → callback → token
+exchange → calendar read round-trip actually works end to end.
+
+## Email OTP custom SMTP configured — #149 (2026-08-05, sandbox-mode only)
+
+Closes the second half of the gate this file already documented in the
+Auth UX Hardening section ("configure custom SMTP plus a `{{ .Token }}`
+template and inbox-test it before setting `AUTH_EMAIL_OTP_ENABLED=true`").
+
+Chose **Resend** (founder's pick over SendGrid/Postmark) as the SMTP
+provider. Founder created the Resend account himself (account creation is
+never done on the founder's behalf); an API key was generated and wired
+into Supabase Auth's custom SMTP settings (`smtp.resend.com:465`,
+username `resend`, password = the Resend API key, sender
+`onboarding@resend.dev`, sender name "Project Rebuild"). Updated the
+"Magic link or OTP" email template's body to actually surface
+`{{ .Token }}` (the numeric code the two-screen OTP UI expects) — the
+default Supabase template only rendered `{{ .ConfirmationURL }}` (a
+clickable magic link), which would have shown the user a blank/missing
+code on the verify screen. The template now leads with the code and keeps
+the magic link as a secondary fallback.
+
+Verified live: called Supabase's `/auth/v1/otp` endpoint directly with
+the project's anon key and the founder's own email, got back a clean
+`200`, and the founder confirmed a real numbered code arrived in his
+inbox.
+
+**Founder decision, recorded here**: `projectrebuild.app` (the domain
+already referenced in `.env.example`'s `VAPID_SUBJECT`) is not yet
+registered/verified anywhere, and the founder chose not to buy or verify
+it in this session. Without a verified sending domain, Resend only
+delivers to the account owner's own address (sandbox mode) — any other
+user's email OTP request would silently never arrive. Deliberately left
+`AUTH_EMAIL_OTP_ENABLED=false` in Vercel so the email-OTP option stays
+hidden from the sign-in UI until the domain question is resolved and
+Resend is verified for real delivery; flipping that flag is a single env
+var change once `projectrebuild.app` (or another domain) is verified in
+Resend with its DNS records.
