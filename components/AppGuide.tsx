@@ -61,17 +61,7 @@ function guideFor(pathname: string): GuideContent {
 export function AppGuide() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [firstVisit, setFirstVisit] = useState(false);
   const guide = useMemo(() => guideFor(pathname), [pathname]);
-
-  useEffect(() => {
-    try {
-      const seen = localStorage.getItem("rebuild:app-guide-seen") === "1";
-      setFirstVisit(!seen);
-    } catch {
-      setFirstVisit(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -82,8 +72,6 @@ export function AppGuide() {
 
   function showGuide() {
     setOpen(true);
-    setFirstVisit(false);
-    try { localStorage.setItem("rebuild:app-guide-seen", "1"); } catch { /* non-critical */ }
   }
 
   // Founder report, live on mobile (2026-08-05): the floating "?" bubble
@@ -107,14 +95,18 @@ export function AppGuide() {
 
   return (
     <>
+      {/* Founder report (2026-08-05): the expanded "Precisas de ajuda?"
+          text pill (shown once per browser via localStorage) made this
+          fixed-position button wide enough to sit on top of page content
+          on most screens, not just clear the corner. Icon-only, always -
+          same tap target, no longer competes with whatever's underneath. */}
       <button
         type="button"
         onClick={showGuide}
         aria-label="Abrir guia da aplicação"
-        className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-700 px-3 py-3 text-sm font-medium text-white shadow-2xl shadow-black/40 transition hover:bg-emerald-600 md:bottom-6 md:right-6"
+        className="fixed bottom-24 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-700 text-white shadow-2xl shadow-black/40 transition hover:bg-emerald-600 md:bottom-6 md:right-6"
       >
         <CircleHelp size={20} />
-        {firstVisit && <span className="pr-1">Precisas de ajuda?</span>}
       </button>
 
       {open && (

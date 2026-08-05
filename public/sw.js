@@ -13,7 +13,17 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Only intercept GET (the PWA-installability heuristic this worker exists
+// for never needed anything else). Bug found live: mutating requests (the
+// pantry "Adicionar" POST, and every other POST/PATCH/DELETE API call) were
+// failing client-side with no request ever reaching the server - the
+// fetch(event.request) below re-forwards the original Request object,
+// including its already-consumed body stream, which mobile WebKit's
+// service worker implementation cannot reliably do for a request with a
+// JSON body. Returning without calling respondWith() for non-GET requests
+// lets the browser handle them natively, bypassing the worker entirely.
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
   event.respondWith(fetch(event.request));
 });
 
