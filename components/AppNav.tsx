@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Circle, Dumbbell, History, Home, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
+import { CalendarCheck2, Circle, Dumbbell, History, Home, ListChecks, Lock, MessageCircleHeart, Settings, ShoppingBasket, UserCog } from "lucide-react";
 import type { ComponentType } from "react";
 import { MiniCalendar } from "@/components/MiniCalendar";
 import type { SetupStage } from "@/lib/setup/guard";
@@ -37,6 +37,25 @@ const STAGE_VISIBLE_HREFS: Record<SetupStage, string[] | null> = {
   training: ["/settings", "/training"],
   done: null,
 };
+// Sub-menu shown in the desktop sidebar while the mandatory setup gate isn't
+// finished yet. "Calendário" and "Perfil" both live on /settings and are
+// reachable from stage "calendar" onward; "Plano de Treino" only unlocks once
+// the user reaches stage "training"; "Plano de Alimentação" stays locked the
+// whole time the gate is up, since it only becomes relevant once setup is done.
+type SetupNavItem = {
+  href: string;
+  label: string;
+  icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  unlocked: (stage: SetupStage) => boolean;
+};
+
+const SETUP_NAV_ITEMS: SetupNavItem[] = [
+  { href: "/settings#calendario", label: "Calendário", icon: CalendarCheck2, unlocked: () => true },
+  { href: "/settings#perfil", label: "Perfil", icon: UserCog, unlocked: () => true },
+  { href: "/training/profile", label: "Plano de Treino", icon: Dumbbell, unlocked: (stage) => stage === "training" },
+  { href: "/nutrition", label: "Plano de Alimentação", icon: ShoppingBasket, unlocked: () => false },
+];
+
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -71,26 +90,63 @@ export function AppNav({
           </span>
           <span className="font-semibold tracking-tight">Rebuild</span>
         </Link>
-        <div className="flex flex-col gap-1">
-          {visibleItems.map((item) => {
-            const active = isActive(pathname, item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
-                  active
-                    ? "bg-emerald-500/15 text-emerald-300"
-                    : "text-neutral-400 hover:bg-white/[0.05] hover:text-neutral-100"
-                }`}
-              >
-                <Icon size={18} strokeWidth={2} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+        {setupStage !== "done" ? (
+          <div className="flex flex-col gap-1">
+            <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-neutral-500">Configuração</p>
+            {SETUP_NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              if (!item.unlocked(setupStage)) {
+                return (
+                  <span
+                    key={item.href}
+                    title="Disponível depois de completares os passos anteriores"
+                    className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-600"
+                  >
+                    <Icon size={18} strokeWidth={2} />
+                    {item.label}
+                    <Lock size={13} className="ml-auto" />
+                  </span>
+                );
+              }
+              const active = isActive(pathname, item.href.split("#")[0]);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                    active
+                      ? "bg-emerald-500/15 text-emerald-300"
+                      : "text-neutral-400 hover:bg-white/[0.05] hover:text-neutral-100"
+                  }`}
+                >
+                  <Icon size={18} strokeWidth={2} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {visibleItems.map((item) => {
+              const active = isActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                    active
+                      ? "bg-emerald-500/15 text-emerald-300"
+                      : "text-neutral-400 hover:bg-white/[0.05] hover:text-neutral-100"
+                  }`}
+                >
+                  <Icon size={18} strokeWidth={2} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
         <div className="my-4 border-t border-white/[0.06]" />
         <MiniCalendar />
         <div className="mt-auto pt-4">
