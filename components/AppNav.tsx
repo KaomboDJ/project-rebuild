@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Circle, Dumbbell, History, Home, ListChecks, MessageCircleHeart, Settings, ShoppingBasket } from "lucide-react";
 import type { ComponentType } from "react";
 import { MiniCalendar } from "@/components/MiniCalendar";
+import type { SetupStage } from "@/lib/setup/guard";
 
 // "Calendário" was dropped as a separate nav item once /calendar started
 // redirecting into the merged Calendar Workspace at /today (see
@@ -26,6 +27,17 @@ const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ size?: num
   { href: "/settings", label: "Definições", icon: Settings },
 ];
 
+// While the user hasn't finished the mandatory setup gate (see
+// lib/setup/guard.ts), most destinations would just bounce them straight
+// back via requireSetupComplete. Rather than show nav items that dead-end
+// in a redirect, only surface the item(s) relevant to the current stage.
+// "done" (the normal case) shows everything, as before.
+const STAGE_VISIBLE_HREFS: Record<SetupStage, string[] | null> = {
+  calendar: ["/settings"],
+  training: ["/settings", "/training"],
+  done: null,
+};
+
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -37,9 +49,16 @@ function isActive(pathname: string, href: string) {
  * into its own client component because active-route highlighting needs
  * usePathname(), while AppShell itself stays a server component.
  */
-export function AppNav({ calendarConnected = false }: { calendarConnected?: boolean }) {
+export function AppNav({
+  calendarConnected = false,
+  setupStage = "done",
+}: {
+  calendarConnected?: boolean;
+  setupStage?: SetupStage;
+}) {
   const pathname = usePathname();
-
+  const visibleHrefs = STAGE_VISIBLE_HREFS[setupStage];
+  const visibleItems = visibleHrefs ? NAV_ITEMS.filter((item) => visibleHrefs.includes(item.href)) : NAV_ITEMS;
   return (
     <>
       <nav
@@ -53,7 +72,7 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
           <span className="font-semibold tracking-tight">Rebuild</span>
         </Link>
         <div className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {visibleItems.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (
@@ -72,10 +91,8 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
             );
           })}
         </div>
-
         <div className="my-4 border-t border-white/[0.06]" />
         <MiniCalendar />
-
         <div className="mt-auto pt-4">
           <Link
             href="/settings"
@@ -89,13 +106,12 @@ export function AppNav({ calendarConnected = false }: { calendarConnected?: bool
           </Link>
         </div>
       </nav>
-
       <nav
         aria-label="Navegação principal"
         className="fixed inset-x-0 bottom-0 z-20 flex border-t border-white/[0.06] bg-app/95 backdrop-blur md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (

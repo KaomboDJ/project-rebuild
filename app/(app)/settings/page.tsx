@@ -42,9 +42,9 @@ const OUTLOOK_STATUS_MESSAGE: Record<string, string> = {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string; outlook?: string }>;
+  searchParams: Promise<{ calendar?: string; outlook?: string ; setup?: string }>;
 }) {
-  const { calendar, outlook } = await searchParams;
+    const { calendar, outlook, setup } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -70,6 +70,15 @@ export default async function SettingsPage({
         <p className="text-sm uppercase tracking-wide text-neutral-400">Conta</p>
         <h1 className="text-2xl font-semibold tracking-tight">Definições</h1>
       </div>
+
+      {setup === "calendar" && (
+      <div role="note" className="surface-card border-emerald-500/30 p-4 text-sm text-neutral-200">
+      <p className="font-medium">Falta só isto: liga um calendário</p>
+      <p className="mt-1 text-neutral-400">
+      Depois de ligares o Google Calendar ou o Outlook abaixo, já podes usar o resto da app.
+      </p>
+      </div>
+      )}
 
       <section className="surface-card p-5">
         <div className="flex items-center gap-3">

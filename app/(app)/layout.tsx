@@ -2,18 +2,16 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isAnyCalendarConnected } from "@/lib/calendar-intelligence/sources";
+import { getSetupStage } from "@/lib/setup/guard";
 
 export default async function AuthenticatedLayout({ children }: { children: ReactNode }) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     redirect("/?setup=required");
   }
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) {
     redirect("/");
   }
@@ -26,18 +24,18 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
     .select("onboarding_completed")
     .eq("user_id", user.id)
     .maybeSingle();
-
   if (!profile?.onboarding_completed) {
     redirect("/onboarding");
   }
 
-  // Feeds the sidebar's connected-calendar indicator (Calendar Workspace
-  // spec) - cheap admin-table lookup, fine to run on every authenticated
-  // page alongside the profile check above.
-  const calendarConnected = await isAnyCalendarConnected(user.id);
+  // Sequential setup gate: until calendar + training are both in place,
+  // most routes redirect back here anyway (see lib/setup/guard.ts). The
+  // nav uses this same stage to hide destinations that would just bounce.
+  const setupStage = await getSetupStage(supabase, user.id);
+  const calendarConnected = setupStage !== "calendar";
 
   return (
-    <AppShell email={user.email} calendarConnected={calendarConnected}>
+    <AppShell email={user.email} calendarConnected={calendarConnected} setupStage={setupStage}>
       {children}
     </AppShell>
   );
