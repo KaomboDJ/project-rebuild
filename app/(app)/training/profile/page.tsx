@@ -9,6 +9,7 @@ export default async function TrainingProfilePage({
 }: {
   searchParams: Promise<{ setup?: string }>;
 }) {
+  const { setup } = await searchParams;
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return (
