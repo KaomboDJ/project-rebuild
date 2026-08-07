@@ -3,17 +3,20 @@ import type { ReactNode } from "react";
 import { AppNav } from "@/components/AppNav";
 import { AppGuide } from "@/components/AppGuide";
 import type { SetupStage } from "@/lib/setup/guard";
+import type { IdentityProgression } from "@/lib/gamification/progression";
 
 export function AppShell({
   children,
   email,
   calendarConnected = false,
   setupStage = "done",
+  progression,
 }: {
   children: ReactNode;
   email?: string | null;
   calendarConnected?: boolean;
   setupStage?: SetupStage;
+  progression?: IdentityProgression;
 }) {
   return (
     <div className="min-h-screen bg-app text-neutral-100">
@@ -28,7 +31,7 @@ export function AppShell({
       >
         Saltar para o conteúdo
       </a>
-      <AppNav calendarConnected={calendarConnected} setupStage={setupStage} />
+      <AppNav calendarConnected={calendarConnected} setupStage={setupStage} progression={progression} />
       <AppGuide />
       {/* Slim top bar, mobile only - the sidebar already carries the brand
           on desktop. Bottom padding on <main> reserves space for the fixed

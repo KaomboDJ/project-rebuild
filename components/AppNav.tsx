@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarCheck2, Circle, Dumbbell, History, Home, ListChecks, Lock, MessageCircleHeart, Settings, ShoppingBasket, UserCog } from "lucide-react";
 import type { ComponentType } from "react";
-import { MiniCalendar } from "@/components/MiniCalendar";
+import { IdentityProgressCard } from "@/components/IdentityProgressCard";
+import { HelpTip } from "@/components/ui/HelpTip";
+import type { IdentityProgression } from "@/lib/gamification/progression";
 import type { SetupStage } from "@/lib/setup/guard";
 
 // "Calendário" was dropped as a separate nav item once /calendar started
@@ -47,15 +49,31 @@ type SetupNavItem = {
   label: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   unlocked: (stage: SetupStage) => boolean;
+  // Shown in a HelpTip next to the lock icon when unlocked() is false, so
+  // the reason for a locked item is actually visible on hover/tap instead
+  // of relying on a native title="" tooltip (easy to miss / doesn't work
+  // well on touch).
+  lockedReason: string;
 };
 
 const SETUP_NAV_ITEMS: SetupNavItem[] = [
-  { href: "/settings#calendario", label: "Calendário", icon: CalendarCheck2, unlocked: () => true },
-  { href: "/settings#perfil", label: "Perfil", icon: UserCog, unlocked: () => true },
-  { href: "/training/profile", label: "Plano de Treino", icon: Dumbbell, unlocked: (stage) => stage === "training" },
-  { href: "/nutrition", label: "Plano de Alimentação", icon: ShoppingBasket, unlocked: () => false },
+  { href: "/settings#calendario", label: "Calendário", icon: CalendarCheck2, unlocked: () => true, lockedReason: "" },
+  { href: "/settings#perfil", label: "Perfil", icon: UserCog, unlocked: () => true, lockedReason: "" },
+  {
+    href: "/training/profile",
+    label: "Plano de Treino",
+    icon: Dumbbell,
+    unlocked: (stage) => stage === "training",
+    lockedReason: "Disponível depois de ligares um calendário - é o próximo passo da configuração.",
+  },
+  {
+    href: "/nutrition",
+    label: "Plano de Alimentação",
+    icon: ShoppingBasket,
+    unlocked: () => false,
+    lockedReason: "Disponível depois de terminares a configuração inicial (calendário e plano de treino).",
+  },
 ];
-
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -71,9 +89,11 @@ function isActive(pathname: string, href: string) {
 export function AppNav({
   calendarConnected = false,
   setupStage = "done",
+  progression,
 }: {
   calendarConnected?: boolean;
   setupStage?: SetupStage;
+  progression?: IdentityProgression;
 }) {
   const pathname = usePathname();
   const visibleHrefs = STAGE_VISIBLE_HREFS[setupStage];
@@ -96,18 +116,20 @@ export function AppNav({
             {SETUP_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               if (!item.unlocked(setupStage)) {
-                return (
-                  <span
-                    key={item.href}
-                    title="Disponível depois de completares os passos anteriores"
-                    className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-600"
-                  >
-                    <Icon size={18} strokeWidth={2} />
-                    {item.label}
-                    <Lock size={13} className="ml-auto" />
-                  </span>
-                );
-              }
+                        return (
+          <span
+            key={item.href}
+            className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-600"
+          >
+            <Icon size={18} strokeWidth={2} />
+            {item.label}
+            <span className="ml-auto flex items-center gap-1">
+              <Lock size={13} />
+              <HelpTip heading={item.label}>{item.lockedReason}</HelpTip>
+            </span>
+          </span>
+        );
+      }
               const active = isActive(pathname, item.href.split("#")[0]);
               return (
                 <Link
@@ -148,8 +170,8 @@ export function AppNav({
           </div>
         )}
         <div className="my-4 border-t border-white/[0.06]" />
-        <MiniCalendar />
-        <div className="mt-auto pt-4">
+{progression && <IdentityProgressCard progression={progression} compact />}
+<div className="mt-auto pt-4">
           <Link
             href="/settings"
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-400 transition hover:bg-white/[0.05] hover:text-neutral-300"
