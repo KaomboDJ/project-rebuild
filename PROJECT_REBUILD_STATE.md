@@ -78,6 +78,17 @@ After Milestone 11A shipped, the founder explicitly lifted the per-milestone che
 
 This does not relax anything else in `CLAUDE.md`: the product rule (what real decision becomes easier?), the "do not build yet" list, coaching safety constraints, and the instruction to flag genuine architecture-or-scope conflicts still apply. Only the standing-authorization cadence changed — from "ask before each milestone's production step" to "proceed through the roadmap, still one coherent vertical slice at a time, still documented as it goes."
 
+## Governance note — 2026-08-11 (private Android Health Connect bridge)
+
+The founder clarified that the companion will be distributed privately to a
+small group rather than through Google Play, but required strong protection
+against malware, account compromise and data leakage. Milestone 16B is therefore
+Android-only and intentionally narrow: Health Connect read access, a revocable
+`health:write` device token and no general Rebuild session or provider secrets.
+Private distribution does not lower release gates; founder-signed release APKs,
+checksums, automated security checks, physical-device validation and an external
+static/mobile scan are required before sharing. See `docs/21_SECURITY_THREAT_MODEL.md`.
+
 ## Update rule
 
 Update this file only when the baseline, current experiment, non-negotiable, or operating plan materially changes.

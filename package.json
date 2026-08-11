@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "security:secrets": "node scripts/security/scan-secrets.mjs",
+    "security:audit": "npm audit --audit-level=high --omit=dev",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

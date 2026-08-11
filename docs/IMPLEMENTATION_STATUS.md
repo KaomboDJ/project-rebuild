@@ -1,5 +1,34 @@
 # Implementation Status
 
+## Milestone 16B — private Android Health Connect companion (2026-08-11)
+
+**Status:** source implementation complete on
+`codex/health-data-bridge-foundation`; not yet deployed or approved for friend
+distribution.
+
+Implemented a secure, Android-only Health Connect companion and the complete
+server pairing path. Web users can create a five-minute one-use code, review
+paired devices and revoke access. The code exchanges atomically for a 256-bit,
+90-day device credential whose HMAC hash alone is stored. The credential has
+only `health:write`; the Android app encrypts it with Android Keystore AES-GCM,
+disables backups/cleartext, requests granular read permissions and supports
+manual plus separately authorized background sync.
+
+Added strict batch/time/metadata validation, private API responses, browser
+origin checks, stable error handling, enhanced web headers, Dependabot, CodeQL,
+tracked/untracked secret scanning, production dependency audit, Android
+lint/unit/build CI and a formal OWASP-MASVS-oriented threat model. The companion
+has no Rebuild session, provider OAuth token, Supabase client key, admin key,
+calendar, nutrition or Coach access.
+
+Local web evidence: type-check clean, lint clean, 478/478 unit tests green,
+optimized production build green, tracked/untracked secret scan green and zero
+high/critical production dependency vulnerabilities after updating the locked
+`nanoid` resolution. The local machine has Java 8 and no Android SDK/Gradle, so
+the Android compilation gate must run on GitHub Actions before this can be
+called releasable. Remaining gates are documented in
+`21_SECURITY_THREAT_MODEL.md` and `22_ANDROID_COMPANION.md`.
+
 ## Phase 1 health-product completion (2026-08-03)
 
 Status: **implemented and locally validated on `codex/phase1-health-completion`; production activation pending the release gates and external secrets listed in `docs/19_PHASE_1_HEALTH_COMPLETION.md`.**

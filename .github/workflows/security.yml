@@ -1,0 +1,76 @@
+name: Security
+
+on:
+  push:
+    branches: [main, "feature/**", "codex/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-security:
+    name: Web dependency and secret checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Scan committed content for secrets
+        run: npm run security:secrets
+      - name: Reject high/critical production dependency vulnerabilities
+        run: npm run security:audit
+
+  codeql:
+    name: CodeQL (web)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v3
+
+  android:
+    name: Android companion lint, tests and debug build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Unit tests
+        run: gradle -p android-companion testDebugUnitTest
+      - name: Android lint
+        run: gradle -p android-companion lintDebug
+      - name: Build internal debug APK for verification only
+        run: gradle -p android-companion assembleDebug
+      - name: Upload reports (never distribute debug APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-security-reports
+          path: |
+            android-companion/app/build/reports/
+            android-companion/app/build/test-results/
+          retention-days: 14

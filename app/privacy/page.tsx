@@ -41,8 +41,9 @@ export default function PrivacyPage() {
           Anthropic para respostas do Coach e refinamento assistido por IA. Google e, quando
           ativado, Microsoft processam apenas os dados necessários aos serviços que decidires ligar.
           Cada ligação de calendário exige autorização separada e pode ser desligada nas Definições.
-          As futuras ligações a Apple Health e Health Connect também usam permissões separadas por
-          tipo de dado; o site não recebe as credenciais desses serviços nativos.
+          A ligação privada ao Health Connect usa permissões separadas por tipo de dado. O Companion
+          recebe apenas uma credencial revogável e limitada à importação de saúde; o site não recebe
+          credenciais do Health Connect e o APK não contém chaves administrativas.
         </p>
       </section>
 

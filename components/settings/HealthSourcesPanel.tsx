@@ -63,7 +63,7 @@ export function HealthSourcesPanel({ initialSources }: { initialSources: HealthS
       <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-neutral-400">
         <p className="font-medium text-neutral-200">Ainda sem fontes ligadas</p>
         <p className="mt-1">
-          A base segura está preparada. A ligação automática a Apple Health e Health Connect exige a aplicação móvel Rebuild Companion; o site, sozinho, não pode ler esses dados nativos.
+          A base segura está preparada. A ligação automática ao Health Connect exige o Rebuild Companion para Android; o site, sozinho, não pode ler dados nativos.
         </p>
       </div>
     );
@@ -104,4 +104,3 @@ export function HealthSourcesPanel({ initialSources }: { initialSources: HealthS
     </div>
   );
 }
-

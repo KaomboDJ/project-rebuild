@@ -3,6 +3,16 @@
 Status: Milestone 16A implemented on `codex/health-data-bridge-foundation`;
 database migration not yet applied to production.
 
+## Milestone 16B update — 2026-08-11
+
+The Android-only Health Connect companion source is now implemented together
+with a one-use pairing protocol, narrowly scoped revocable device credentials,
+Android Keystore protection, manual and optional background sync, device
+management in the web settings, request hardening and automated security
+workflows. It is not approved for distribution until the migrations and
+Production secret are applied and the CI, physical-device and signed-APK gates
+in `21_SECURITY_THREAT_MODEL.md` / `22_ANDROID_COMPANION.md` pass.
+
 ## Product decision
 
 The bridge reduces repeated manual entry and gives Rebuild better context for
@@ -75,4 +85,3 @@ Apple/Google developer configuration, background-sync behavior, real-device
 tests, conflict testing across multiple data sources and an updated DPIA/privacy
 review. Before 16C: enough real observations to define freshness and quality
 rules without guessing, plus unit tests for every health-aware decision rule.
-

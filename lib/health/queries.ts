@@ -140,9 +140,12 @@ export async function importHealthObservations(
     ]);
     return { read: incoming.length, imported };
   } catch (error) {
-    const errorCode = error instanceof Error ? error.message.slice(0, 200) : "unknown-import-error";
+    // Never persist raw database/provider errors: they can contain schema,
+    // query or upstream payload details. The caller gets a stable code while
+    // the original exception remains in-process only.
+    const errorCode = "observation-write-failed";
     await Promise.all([
-      supabase.from("health_sync_runs").update({ status: "failed", error_code: errorCode, finished_at: new Date().toISOString() }).eq("id", run.id),
+      supabase.from("health_sync_runs").update({ status: "failed", error_code: errorCode, finished_at: new Date().toISOString() }).eq("id", run.id).eq("user_id", userId),
       supabase.from("health_sources").update({ status: "error", last_error_code: errorCode }).eq("id", sourceId).eq("user_id", userId),
     ]);
     throw error;

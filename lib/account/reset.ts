@@ -47,6 +47,7 @@ export async function resetTestAccountData(admin: Admin, userId: string): Promis
     "notification_deliveries",
     "health_observations",
     "health_sync_runs",
+    "companion_pairing_codes",
   ] as const;
   for (const table of childTables) {
     const { error } = await admin.from(table).delete().eq("user_id", userId);
@@ -70,6 +71,7 @@ export async function resetTestAccountData(admin: Admin, userId: string): Promis
     "push_subscriptions",
     "notification_preferences",
     "health_sources",
+    "companion_devices",
     "calendar_sources",
     "calendar_connections",
     "profiles",

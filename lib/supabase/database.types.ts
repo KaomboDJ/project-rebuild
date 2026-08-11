@@ -855,6 +855,58 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["health_sync_runs"]["Insert"]>;
         Relationships: [];
       };
+      companion_pairing_codes: {
+        Row: {
+          id: string;
+          user_id: string;
+          code_hash: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          code_hash: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["companion_pairing_codes"]["Insert"]>;
+        Relationships: [];
+      };
+      companion_devices: {
+        Row: {
+          id: string;
+          user_id: string;
+          installation_id: string;
+          device_name: string;
+          token_hash: string;
+          scopes: string[];
+          status: "active" | "revoked";
+          expires_at: string;
+          last_seen_at: string | null;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          installation_id: string;
+          device_name: string;
+          token_hash: string;
+          scopes?: string[];
+          status?: "active" | "revoked";
+          expires_at: string;
+          last_seen_at?: string | null;
+          revoked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["companion_devices"]["Insert"]>;
+        Relationships: [];
+      };
       training_profiles: {
         Row: {
           id: string;
@@ -990,6 +1042,16 @@ export interface Database {
           p_status: TrainingPlanItemStatus;
         };
         Returns: Database["public"]["Tables"]["training_plan_items"]["Row"];
+      };
+      exchange_companion_pairing_code: {
+        Args: {
+          p_code_hash: string;
+          p_token_hash: string;
+          p_device_name: string;
+          p_installation_id: string;
+          p_expires_at: string;
+        };
+        Returns: { user_id: string; device_id: string }[];
       };
     };
     Enums: Record<string, never>;
