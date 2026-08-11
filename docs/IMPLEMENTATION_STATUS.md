@@ -35,6 +35,12 @@ minimums. The Android toolchain was updated to compile SDK 36, AGP 8.11.1,
 Kotlin 2.1.20 and Gradle 8.13 (while retaining target SDK 35); a new CI run is
 required to expose any source-level compilation issue.
 
+Second Android CI run `31525827230` passed Android unit tests, Android Lint and
+the debug verification build. CodeQL scanned every discovered TypeScript,
+JavaScript and workflow file but its upload step lacked `actions: read` and was
+rejected by GitHub's integration token; the workflow now grants that minimal
+read permission and requires one final re-run.
+
 ## Phase 1 health-product completion (2026-08-03)
 
 Status: **implemented and locally validated on `codex/phase1-health-completion`; production activation pending the release gates and external secrets listed in `docs/19_PHASE_1_HEALTH_COMPLETION.md`.**
