@@ -23,6 +23,9 @@ const USER_TABLES = [
   "notification_preferences",
   "notification_deliveries",
   "calendar_sources",
+  "health_sources",
+  "health_observations",
+  "health_sync_runs",
 ] as const;
 
 /**

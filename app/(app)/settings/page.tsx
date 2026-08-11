@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
+import { Activity, Bell, Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import {
   disconnectGoogleCalendar,
@@ -87,6 +87,21 @@ export default async function SettingsPage({
             Terminar sessão
           </button>
         </form>
+      </section>
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 text-rose-300">
+            <Activity size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Saúde e dispositivos</h2>
+            <p className="text-sm text-neutral-400">Peso, sono, passos e recuperação com origem e consentimento visíveis.</p>
+          </div>
+        </div>
+        <Link href="/settings/health" className="btn-secondary mt-4 inline-flex">
+          Gerir dados de saúde
+        </Link>
       </section>
 
       {(connections.length > 0 || outlookConnections.length > 0) && (
@@ -344,7 +359,7 @@ export default async function SettingsPage({
           <h2 className="font-medium">Os teus dados</h2>
         </div>
         <p className="text-sm text-neutral-400">
-          Guardamos o teu perfil, os compromissos e tokens de acesso do Google Calendar e Outlook
+          Guardamos o teu perfil, os dados de saúde que autorizares importar, os compromissos e tokens de acesso do Google Calendar e Outlook
           (encriptados; o Outlook é usado apenas para leitura), o histórico de decisões, as conversas com o Coach, a despensa e listas de
           compras, o plano de refeições e as notas de personalização que crias em Memória. Usamos
           fornecedores técnicos para operar o serviço — Supabase, Vercel e Anthropic — e Google

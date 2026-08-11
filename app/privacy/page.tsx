@@ -10,7 +10,7 @@ export default function PrivacyPage() {
         <h1 className="text-3xl font-semibold tracking-tight text-white">
           Política de privacidade — alpha privada
         </h1>
-        <p className="text-sm text-neutral-500">Última atualização: 31 de julho de 2026</p>
+        <p className="text-sm text-neutral-500">Última atualização: 11 de agosto de 2026</p>
       </div>
 
       <section className="space-y-3">
@@ -18,7 +18,9 @@ export default function PrivacyPage() {
         <p>
           O Rebuild guarda os dados que forneces para personalizar decisões: identidade e objetivos,
           horários, check-ins de sono, energia e stress, decisões e feedback, conversas com o Coach,
-          dados de alimentação, despensa e listas de compras. Se ligares um calendário, tratamos os
+          dados de alimentação, despensa e listas de compras. Se autorizares uma fonte de saúde,
+          também guardamos as leituras importadas (por exemplo peso, altura, sono ou passos), a sua
+          origem, dispositivo e data. Se ligares um calendário, tratamos os
           eventos necessários para identificar períodos ocupados e oportunidades no teu dia.
         </p>
       </section>
@@ -39,6 +41,8 @@ export default function PrivacyPage() {
           Anthropic para respostas do Coach e refinamento assistido por IA. Google e, quando
           ativado, Microsoft processam apenas os dados necessários aos serviços que decidires ligar.
           Cada ligação de calendário exige autorização separada e pode ser desligada nas Definições.
+          As futuras ligações a Apple Health e Health Connect também usam permissões separadas por
+          tipo de dado; o site não recebe as credenciais desses serviços nativos.
         </p>
       </section>
 
@@ -47,7 +51,8 @@ export default function PrivacyPage() {
         <p>
           Os dados de cada conta são isolados por políticas de acesso na base de dados. Tokens de
           calendário são encriptados antes de serem guardados e não são enviados para o navegador.
-          Podes rever a memória da aplicação, desligar calendários e eliminar a conta e os dados
+          Podes rever a memória da aplicação, impedir uma fonte de saúde de alimentar o Coach,
+          desligar essa fonte (apagando as leituras importadas), desligar calendários e eliminar a conta e os dados
           associados nas Definições.
         </p>
       </section>

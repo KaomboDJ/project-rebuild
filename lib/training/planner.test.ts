@@ -80,6 +80,15 @@ describe("candidatesForTrainingDay", () => {
     expect(candidates).toHaveLength(1);
     expect(relaxed).toBe(true);
   });
+
+  it("does not offer automatic candidates when free-text physical limitations exist", () => {
+    const { candidates, relaxed } = candidatesForTrainingDay(
+      HIPERTROFIA_SESSIONS,
+      profile({ physicalLimitations: "dor no joelho" })
+    );
+    expect(candidates).toHaveLength(0);
+    expect(relaxed).toBe(false);
+  });
 });
 
 describe("generateWeekTrainingPlan", () => {
@@ -146,6 +155,18 @@ describe("generateWeekTrainingPlan", () => {
       carryOverSessionIds: ["h1", "h2"],
     });
     expect(result.items[0].sessionId).toBe("h3");
+  });
+
+  it("blocks the plan instead of interpreting free-text physical limitations", () => {
+    const result = generateWeekTrainingPlan({
+      weekStart: "2026-08-03",
+      profile: profile({ physicalLimitations: "ombro em recuperação" }),
+      sessions: HIPERTROFIA_SESSIONS,
+      trainingDaysOfWeek: ["monday", "wednesday"],
+    });
+    expect(result.items).toEqual([]);
+    expect(result.blockedByPhysicalLimitations).toBe(true);
+    expect(result.limitedVariety).toBe(false);
   });
 });
 

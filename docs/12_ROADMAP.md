@@ -1,5 +1,22 @@
 # 12 — Roadmap
 
+## Phase 2 authorization — 2026-08-11
+
+Phase 1 is complete. The founder explicitly promoted automatic health context
+into the active product scope so the app can learn useful facts without asking
+the user to type them repeatedly.
+
+| # | Milestone | Status |
+|---|---|---|
+| 16A | Health Data Bridge foundation — source registry, normalized observations, provenance, deduplication, source-level coaching consent, export/reset/delete support, derived BMI and compact health summary | **Implemented on `codex/health-data-bridge-foundation`; migration not yet applied to production.** |
+| 16B | Rebuild Companion for Apple HealthKit and Android Health Connect — granular read permissions, background sync, revocation and real-device validation | **Not started. Native app work; cannot be implemented by the PWA alone.** |
+| 16C | Deterministic health-aware decision rules — only after real data quality is measured; explainable thresholds and protective fallbacks | **Not started. Deliberately gated on real imported data.** |
+
+Deep direct connectors for each watch/scale vendor, a complex health dashboard,
+diagnosis and opaque prediction remain out of scope. Xiaomi data should flow
+through Apple Health/Health Connect when the relevant Xiaomi app supports it;
+devices restricted to Xiaomi Home may need a separate later feasibility review.
+
 ## Phase 1 completion authorization — 2026-08-03
 
 The founder froze the first product phase around five capabilities: unified
@@ -75,4 +92,4 @@ Release evidence: migration `202608010001_daily_home_timing.sql` is present in P
 
 ## Explicitly not on any near-term roadmap
 
-Food photo recognition, barcode scanning, wearable integrations (Apple Health, Garmin, Xiaomi, Fitbit), location tracking, social/community features, large achievement systems, a full calendar replacement, native mobile apps, identity progression levels. (Calorie/macro tracking, food databases/recipes, and advanced predictive ML were on this list before the 2026-07-30 full roadmap authorization above moved them into Milestones 12 and 14 specifically — they are authorized only in the scoped form described there, not as a general invitation to build adjacent features.)
+Food photo recognition, barcode scanning, direct vendor-by-vendor wearable integrations, location tracking, social/community features, large achievement systems and a full calendar replacement. A small native companion is authorized only for Milestone 16B's HealthKit/Health Connect bridge; this is not authorization for a separate feature-complete native Rebuild app. (Calorie/macro tracking, food databases/recipes, advanced predictive ML and the health bridge were moved out of this historical exclusion only in their specifically documented milestone scope.)

@@ -67,6 +67,15 @@ export async function POST() {
 
     const carryOverSessionIds = (existing?.items ?? []).map((i) => i.session_id);
     const result = generateWeekTrainingPlan({ weekStart, profile, sessions, trainingDaysOfWeek, carryOverSessionIds });
+    if (result.blockedByPhysicalLimitations) {
+      return NextResponse.json(
+        {
+          error: "physical-limitations-require-review",
+          message: "O plano automático está pausado porque indicaste uma limitação física. Revê o perfil com um profissional antes de gerar um plano.",
+        },
+        { status: 422 }
+      );
+    }
     const planWithItems = await saveWeekTrainingPlan(supabase, user.id, result);
     const response = await toTrainingPlanResponse(supabase, planWithItems, { profile });
 

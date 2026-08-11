@@ -307,7 +307,10 @@ Do not build:
 - Social feeds.
 - Generic motivational quote libraries.
 - Achievements for every action.
-- Deep wearable integrations before the decision loop is validated.
+- Broad vendor-by-vendor wearable integrations without a clear decision use
+  case. After the decision loop was validated, the founder authorized a narrow
+  Health Data Bridge through Apple HealthKit / Android Health Connect, with
+  provenance, granular consent and no complex health dashboard.
 - A large settings surface.
 - Features copied from other fitness apps without a clear decision use case.
 

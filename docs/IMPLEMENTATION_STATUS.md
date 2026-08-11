@@ -1207,3 +1207,32 @@ hidden from the sign-in UI until the domain question is resolved and
 Resend is verified for real delivery; flipping that flag is a single env
 var change once `projectrebuild.app` (or another domain) is verified in
 Resend with its DNS records.
+## Milestone 16A — Health Data Bridge foundation (2026-08-11)
+
+Founder authorization: reduce manual entry by receiving weight, height, body
+composition, steps, sleep and recovery context from health apps and connected
+devices. Implemented the provider-neutral foundation without claiming that a
+web PWA can directly access native HealthKit or Health Connect stores.
+
+Added `health_sources`, `health_observations` and `health_sync_runs` with RLS,
+owner-safe composite foreign keys, source-record deduplication, provenance,
+source-level coaching consent and cascade deletion. Added strict canonical unit
+normalization, plausibility validation and derived BMI; authenticated companion
+registration/import/summary APIs; `/settings/health`; Coach context restricted
+to sources enabled by the user; and account export/reset coverage.
+
+Safety correction included in the same slice: Training Toolkit previously
+stored free-text physical limitations but did not apply them while its reasoning
+copy claimed they had been considered. Automatic generation and replacement now
+stop when this field is non-empty; the UI/Coach explains that free medical text
+needs human review instead of inventing contraindications.
+
+Production status: branch implementation only. Migration
+`202608110001_health_data_bridge.sql` must not be applied until validation and
+merge approval. Native HealthKit/Health Connect sync is Milestone 16B, not part
+of this foundation.
+
+Local validation: TypeScript clean; lint clean; 467/467 unit tests passing
+across 52 files; optimized production build successful. Two real-browser E2E
+additions (physical-limitation block and health-table cross-account isolation)
+are written but cannot run until the new migration exists in the E2E database.

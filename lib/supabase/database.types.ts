@@ -40,6 +40,13 @@ type TrainingIntensity = "low" | "medium" | "high";
 type TrainingVarietyPreference = "low" | "medium" | "high";
 type TrainingPlanStatus = "active" | "archived";
 type TrainingPlanItemStatus = "planned" | "done" | "skipped";
+type HealthProvider = "apple_health" | "health_connect" | "xiaomi_mi_fitness" | "xiaomi_home" | "manual_import";
+type HealthSourceStatus = "active" | "disconnected" | "error";
+type HealthMetric =
+  | "height_cm" | "weight_kg" | "body_fat_percent" | "visceral_fat_index"
+  | "steps_count" | "sleep_minutes" | "resting_heart_rate_bpm" | "hrv_ms"
+  | "workout_minutes" | "spo2_percent";
+type HealthSyncStatus = "running" | "completed" | "failed";
 
 export interface Database {
   public: {
@@ -754,6 +761,98 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["meal_plan_items"]["Insert"]>;
+        Relationships: [];
+      };
+      health_sources: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_key: string;
+          provider: HealthProvider;
+          label: string;
+          device_name: string | null;
+          authorized_metrics: string[];
+          use_for_coaching: boolean;
+          status: HealthSourceStatus;
+          last_sync_at: string | null;
+          last_error_code: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_key: string;
+          provider: HealthProvider;
+          label: string;
+          device_name?: string | null;
+          authorized_metrics?: string[];
+          use_for_coaching?: boolean;
+          status?: HealthSourceStatus;
+          last_sync_at?: string | null;
+          last_error_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["health_sources"]["Insert"]>;
+        Relationships: [];
+      };
+      health_observations: {
+        Row: {
+          id: string;
+          user_id: string;
+          health_source_id: string;
+          metric: HealthMetric;
+          value: number;
+          unit: string;
+          recorded_at: string;
+          external_record_id: string;
+          origin_name: string | null;
+          device_name: string | null;
+          metadata: Json;
+          imported_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          health_source_id: string;
+          metric: HealthMetric;
+          value: number;
+          unit: string;
+          recorded_at: string;
+          external_record_id: string;
+          origin_name?: string | null;
+          device_name?: string | null;
+          metadata?: Json;
+          imported_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["health_observations"]["Insert"]>;
+        Relationships: [];
+      };
+      health_sync_runs: {
+        Row: {
+          id: string;
+          user_id: string;
+          health_source_id: string;
+          status: HealthSyncStatus;
+          records_read: number;
+          records_imported: number;
+          error_code: string | null;
+          started_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          health_source_id: string;
+          status: HealthSyncStatus;
+          records_read?: number;
+          records_imported?: number;
+          error_code?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["health_sync_runs"]["Insert"]>;
         Relationships: [];
       };
       training_profiles: {

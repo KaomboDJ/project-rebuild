@@ -54,6 +54,9 @@ const USER_SCOPED_TABLES = [
   "daily_briefings",
   "muted_rules",
   "founder_notes",
+  "health_sources",
+  "health_observations",
+  "health_sync_runs",
 ] as const;
 
 interface SeededRow {
@@ -161,6 +164,36 @@ async function seedOneRowPerTable(admin: SupabaseClient, userId: string): Promis
   const noteId = await insert("founder_notes", { user_id: userId, content: "Isolation probe note" });
   rows.push({ table: "founder_notes", id: noteId, updatable: { column: "content", value: "hijacked" } });
 
+  const healthSourceId = await insert("health_sources", {
+    user_id: userId,
+    source_key: `isolation-${randomUUID()}`,
+    provider: "manual_import",
+    label: "Isolation health source",
+    authorized_metrics: ["weight_kg"],
+  });
+  rows.push({ table: "health_sources", id: healthSourceId, updatable: { column: "label", value: "hijacked" } });
+
+  const healthObservationId = await insert("health_observations", {
+    user_id: userId,
+    health_source_id: healthSourceId,
+    metric: "weight_kg",
+    value: 98,
+    unit: "kg",
+    recorded_at: new Date().toISOString(),
+    external_record_id: `isolation-${randomUUID()}`,
+  });
+  rows.push({ table: "health_observations", id: healthObservationId, updatable: { column: "value", value: 999 } });
+
+  const healthSyncRunId = await insert("health_sync_runs", {
+    user_id: userId,
+    health_source_id: healthSourceId,
+    status: "completed",
+    records_read: 1,
+    records_imported: 1,
+    finished_at: new Date().toISOString(),
+  });
+  rows.push({ table: "health_sync_runs", id: healthSyncRunId, updatable: { column: "error_code", value: "hijacked" } });
+
   return rows;
 }
 
@@ -244,6 +277,10 @@ test.describe("Cross-account data isolation (@functional-only @security)", () =>
       { table: "pantry_items", values: { user_id: userB.id, name: "Forged ownership probe" } },
       { table: "founder_notes", values: { user_id: userB.id, content: "Forged ownership probe" } },
       { table: "muted_rules", values: { user_id: userB.id, rule_id: `forged-${randomUUID()}` } },
+      {
+        table: "health_sources",
+        values: { user_id: userB.id, source_key: `forged-${randomUUID()}`, provider: "manual_import", label: "Forged source" },
+      },
     ];
 
     for (const attempt of attempts) {

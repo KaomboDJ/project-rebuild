@@ -1,5 +1,21 @@
 # Project Rebuild — Current State
 
+## Governance note — 2026-08-11 (Phase 2 Health Data Bridge)
+
+Phase 1 is complete and remains frozen as documented in
+`docs/19_PHASE_1_HEALTH_COMPLETION.md`. The founder has now explicitly promoted
+automatic health context into Phase 2: Rebuild should receive useful readings
+such as weight, height, body composition, steps, sleep and recovery from native
+health aggregators with as little manual entry as possible.
+
+Milestone 16 starts with the secure, provider-neutral server foundation and a
+small health-source control surface. It does **not** claim that the PWA can read
+HealthKit or Health Connect directly. A native Rebuild Companion is required for
+that later connector slice. Imported readings must retain provenance, be
+deduplicated, be removable by source, and influence coaching only with explicit
+user permission. No reading is a diagnosis; BMI is derived from height and
+weight rather than trusted as an imported authority.
+
 ## Governance note — 2026-08-03 (Phase 1 scope freeze)
 
 The founder authorized completion and production release of Project Rebuild as
