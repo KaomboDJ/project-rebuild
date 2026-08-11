@@ -19,13 +19,28 @@ const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 // Google account a token belongs to, to tell two connections apart and to
 // display them in Settings. Connections made before this milestone won't
 // have it until reconnected (docs/10_DATABASE.md).
-export const CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
+const IDENTITY_SCOPES = ["openid", "email"];
+export const GOOGLE_CALENDAR_READ_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events.readonly";
+export const GOOGLE_CALENDAR_WRITE_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events";
+export const GOOGLE_CALENDAR_LIST_SCOPE =
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly";
+
+export type GoogleCalendarAccess = "read" | "write";
+
+export function googleCalendarScopes(access: GoogleCalendarAccess): string[] {
+  const calendarScope =
+    access === "write" ? GOOGLE_CALENDAR_WRITE_SCOPE : GOOGLE_CALENDAR_READ_SCOPE;
+  return [...IDENTITY_SCOPES, calendarScope, GOOGLE_CALENDAR_LIST_SCOPE];
+}
 
 // Short-lived CSRF cookie shared between app/api/google/connect and
 // app/api/google/callback. Defined here (not in a route.ts) because Next.js
 // route handler files may only export HTTP method handlers and a small set
 // of reserved names.
 export const GOOGLE_OAUTH_STATE_COOKIE = "google_oauth_state";
+export const GOOGLE_OAUTH_ACCESS_COOKIE = "google_oauth_access";
 
 function requireGoogleCredentials() {
   const env = getServerEnvironment();
@@ -46,15 +61,20 @@ export function isGoogleCalendarConfigured(): boolean {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI);
 }
 
-export function buildGoogleAuthUrl(state: string): string {
+export function buildGoogleAuthUrl(
+  state: string,
+  access: GoogleCalendarAccess = "read",
+  loginHint?: string
+): string {
   const { clientId, redirectUri } = requireGoogleCredentials();
 
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: CALENDAR_SCOPE,
+    scope: googleCalendarScopes(access).join(" "),
     access_type: "offline",
+    include_granted_scopes: "true",
     // "consent" forces Google to return a refresh_token even on
     // re-authorization (matters for a single test user reconnecting during
     // development). "select_account" (added for Milestone 11A) forces
@@ -65,6 +85,8 @@ export function buildGoogleAuthUrl(state: string): string {
     prompt: "select_account consent",
     state,
   });
+
+  if (loginHint) params.set("login_hint", loginHint);
 
   return `${AUTH_ENDPOINT}?${params.toString()}`;
 }

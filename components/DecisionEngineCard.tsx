@@ -72,6 +72,7 @@ export function DecisionEngineCard({
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [slotCandidates, setSlotCandidates] = useState<SlotCandidate[] | null>(null);
   const [slotError, setSlotError] = useState<string | null>(null);
+  const writableConnections = connections.filter((connection) => connection.canWrite);
 
   async function sendFeedback(useful: boolean) {
     setFeedbackBusy(true);
@@ -118,7 +119,9 @@ export function DecisionEngineCard({
         onUpdate(decision.id, { ...decision, calendar_event_id: calendarEventId });
         setShowAccountPicker(false);
       } else if (response.status === 409) {
-        setCalendarError("Liga o Google Calendar em Definições primeiro.");
+        setCalendarError(
+          "Ativa ‘Permitir adicionar eventos’ na conta Google em Definições."
+        );
       } else {
         setCalendarError("Não foi possível adicionar ao calendário.");
       }
@@ -128,11 +131,11 @@ export function DecisionEngineCard({
   }
 
   function handleAddToCalendarClick() {
-    if (connections.length > 1) {
+    if (writableConnections.length > 1) {
       setShowAccountPicker(true);
       return;
     }
-    addToCalendar();
+    addToCalendar(writableConnections[0]?.id);
   }
 
   async function loadSlotCandidates() {
@@ -291,7 +294,7 @@ export function DecisionEngineCard({
         <div className="mt-4 space-y-2 pl-12">
           <p className="text-sm text-neutral-400">A que conta adicionar este evento?</p>
           <div className="flex flex-wrap gap-2">
-            {connections.map((connection) => (
+            {writableConnections.map((connection) => (
               <button
                 key={connection.id}
                 disabled={busy}

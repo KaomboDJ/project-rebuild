@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeConnectionEvents } from "./calendar";
+import { googleEventFields, mapGoogleEvent, mergeConnectionEvents } from "./calendar";
 import type { CalendarEvent } from "@/lib/decision-engine/types";
 
 function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
@@ -44,5 +44,53 @@ describe("mergeConnectionEvents - Milestone 11A multi-account merge", () => {
   it("handles a single connection the same as the pre-multi-account behavior", () => {
     const events = [event({ id: "a" }), event({ id: "b", start: "2026-07-30T11:00:00Z" })];
     expect(mergeConnectionEvents([events])).toEqual(events);
+  });
+});
+
+describe("Google event privacy boundary", () => {
+  const rawEvent = {
+    id: "evt-1",
+    summary: "Consulta médica",
+    location: "Clínica",
+    start: { dateTime: "2026-07-30T09:00:00Z" },
+    end: { dateTime: "2026-07-30T10:00:00Z" },
+  };
+
+  it("requests no title or location in availability-only mode", () => {
+    const fields = googleEventFields("availability_only");
+    expect(fields).not.toContain("summary");
+    expect(fields).not.toContain("location");
+  });
+
+  it("shows only a provider placeholder by default", () => {
+    const result = mapGoogleEvent(rawEvent, "primary", "availability_only");
+    expect(result?.title).toBe("Ocupado — Google");
+    expect(result?.location).toBeUndefined();
+  });
+
+  it("allows title and location only after per-calendar opt-in", () => {
+    const result = mapGoogleEvent(rawEvent, "primary", "metadata_allowed");
+    expect(result?.title).toBe("Consulta médica");
+    expect(result?.location).toBe("Clínica");
+  });
+
+  it("always strips private metadata even after opt-in", () => {
+    const result = mapGoogleEvent(
+      { ...rawEvent, visibility: "private" as const },
+      "primary",
+      "metadata_allowed"
+    );
+    expect(result?.title).toBe("Ocupado — Google");
+    expect(result?.location).toBeUndefined();
+  });
+
+  it("ignores transparent events so they do not block free time", () => {
+    expect(
+      mapGoogleEvent(
+        { ...rawEvent, transparency: "transparent" as const },
+        "primary",
+        "metadata_allowed"
+      )
+    ).toBeNull();
   });
 });

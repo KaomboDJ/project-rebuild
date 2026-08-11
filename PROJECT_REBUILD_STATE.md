@@ -1,5 +1,13 @@
 # Project Rebuild — Current State
 
+## Governance note — 2026-08-11 (calendar privacy boundary)
+
+The founder authorized calendar privacy controls after asking whether the app reads event content or
+only busy time. The product contract is now availability-only by default, with per-calendar opt-in
+for title and location, provider-side field minimization, and a separate Google authorization for
+creating Rebuild events. Descriptions, attendees and attachments remain outside the integration.
+This hardening stays within the already-authorized unified-calendar scope.
+
 ## Governance note — 2026-08-03 (Phase 1 scope freeze)
 
 The founder authorized completion and production release of Project Rebuild as

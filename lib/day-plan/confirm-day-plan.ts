@@ -60,8 +60,11 @@ export async function confirmDayPlan(
 
   const freshEvents = await getUnifiedCalendarEventsForDate(userId, date, timezone);
   const connections = await listConnections(userId);
+  const writableConnections = connections.filter((connection) => connection.canWrite);
   const resolvedConnectionId =
-    params.connectionId ?? connections.find((connection) => connection.isPrimary)?.id ?? connections[0]?.id;
+    params.connectionId ??
+    writableConnections.find((connection) => connection.isPrimary)?.id ??
+    writableConnections[0]?.id;
   let scheduledCount = 0;
   let skippedConflictCount = 0;
   for (const decision of decisionsNeedingCalendarEvent(current)) {

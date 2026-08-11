@@ -63,8 +63,15 @@ export async function POST(request: NextRequest) {
   const timezone = profileRow?.timezone || DEFAULT_PROFILE.timezone;
 
   const connections = await listConnections(user.id);
+  const writableConnections = connections.filter((connection) => connection.canWrite);
   const resolvedConnectionId =
-    parsed.data.connectionId ?? connections.find((connection) => connection.isPrimary)?.id ?? connections[0]?.id;
+    parsed.data.connectionId ??
+    writableConnections.find((connection) => connection.isPrimary)?.id ??
+    writableConnections[0]?.id;
+
+  if (!resolvedConnectionId || !writableConnections.some((connection) => connection.id === resolvedConnectionId)) {
+    return NextResponse.json({ error: "calendar-write-permission-required" }, { status: 409 });
+  }
 
   const eventId = await createInterventionEvent(
     user.id,

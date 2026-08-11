@@ -222,11 +222,19 @@ export async function getMicrosoftEventsForRange(
 ): Promise<NormalizedCalendarEvent[]> {
   const accessToken = await getValidMicrosoftAccessToken(connectionId);
   const { timeMin, timeMax } = localRangeUtc(startDateKey, endDateKey, timeZone);
-  const params = new URLSearchParams({ startDateTime: timeMin, endDateTime: timeMax });
+  const selectedFields = ["id", "start", "end", "isAllDay", "showAs"];
+  if (source.privacyMode === "metadata_allowed") {
+    selectedFields.push("subject", "sensitivity", "location");
+  }
+  const params = new URLSearchParams({
+    startDateTime: timeMin,
+    endDateTime: timeMax,
+    $select: selectedFields.join(","),
+  });
   const body = await graphFetch<{ value: GraphEvent[] }>(
     `/me/calendars/${encodeURIComponent(source.externalCalendarId)}/calendarView?${params.toString()}`,
     accessToken,
     { Prefer: `outlook.timezone="${timeZone}"` }
   );
-  return body.value.map((event) => normalizeGraphEvent(event, source.id));
+  return body.value.map((event) => normalizeGraphEvent(event, source.id, source.privacyMode));
 }

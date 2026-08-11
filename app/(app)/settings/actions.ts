@@ -13,7 +13,11 @@ import {
   listMicrosoftConnections,
   syncMicrosoftCalendarSources,
 } from "@/lib/microsoft/calendar";
-import { setCalendarSourceSelection } from "@/lib/calendar-intelligence/sources";
+import {
+  setCalendarSourcePrivacyMode,
+  setCalendarSourceSelection,
+} from "@/lib/calendar-intelligence/sources";
+import type { EventPrivacy } from "@/lib/calendar-intelligence/types";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -61,6 +65,18 @@ export async function updateCalendarSourceSelection(sourceId: string, selected: 
   const user = await requireUser();
   await setCalendarSourceSelection(user.id, sourceId, selected);
   redirect("/settings?calendar=sources-updated");
+}
+
+export async function updateCalendarSourcePrivacyMode(
+  sourceId: string,
+  privacyMode: EventPrivacy
+) {
+  if (privacyMode !== "availability_only" && privacyMode !== "metadata_allowed") {
+    redirect("/settings?calendar=error");
+  }
+  const user = await requireUser();
+  await setCalendarSourcePrivacyMode(user.id, sourceId, privacyMode);
+  redirect("/settings?calendar=privacy-updated");
 }
 
 /** Refreshes the per-calendar catalogue without changing the user's
