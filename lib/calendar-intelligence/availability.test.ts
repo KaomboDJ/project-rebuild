@@ -25,6 +25,7 @@ const SOURCE_INCLUDED: CalendarSource = {
   selectedForContext: true,
   visibleInWorkspace: true,
   isDefaultDestination: false,
+  privacyMode: "availability_only",
 };
 
 const SOURCE_EXCLUDED: CalendarSource = {

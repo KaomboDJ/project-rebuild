@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { requireSetupComplete } from "@/lib/setup/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { listConversations, getConversationMessages } from "@/lib/coach/conversations";
@@ -32,6 +34,8 @@ export default async function CoachPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return <EmptyState message="Sessão expirada." />;
+  const setupRedirect = await requireSetupComplete(supabase, user.id);
+  if (setupRedirect) redirect(setupRedirect);
 
   const { date: today } = await getFounderNow(supabase, user.id);
 

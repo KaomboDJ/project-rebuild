@@ -1,11 +1,22 @@
 import Link from "next/link";
-import { Activity, Bell, Brain, CalendarCheck2, LogOut, Mail, ShieldCheck, Star, UserCog } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  Brain,
+  CalendarCheck2,
+  LogOut,
+  Mail,
+  ShieldCheck,
+  Star,
+  UserCog,
+} from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import {
   disconnectGoogleCalendar,
   disconnectMicrosoftAccount,
   refreshCalendarSources,
   setPrimaryGoogleAccount,
+  updateCalendarSourcePrivacyMode,
   updateCalendarSourceSelection,
 } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -26,6 +37,8 @@ const CALENDAR_STATUS_MESSAGE: Record<string, string> = {
   "primary-updated": "Conta principal atualizada.",
   "sources-updated": "Calendários usados pelo Rebuild atualizados.",
   "sources-refreshed": "Lista de calendários sincronizada.",
+  "privacy-updated": "Privacidade do calendário atualizada.",
+  "write-enabled": "Autorização para adicionar eventos ativada.",
   denied: "Autorização cancelada — a conta não foi ligada.",
   error: "Não foi possível ligar a conta Google. Tenta novamente.",
   "not-configured": "A integração com o Google Calendar ainda não está configurada.",
@@ -42,9 +55,9 @@ const OUTLOOK_STATUS_MESSAGE: Record<string, string> = {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string; outlook?: string }>;
+  searchParams: Promise<{ calendar?: string; outlook?: string; setup?: string }>;
 }) {
-  const { calendar, outlook } = await searchParams;
+  const { calendar, outlook, setup } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -73,24 +86,6 @@ export default async function SettingsPage({
 
       <section className="surface-card p-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] text-neutral-300">
-            <Mail size={16} />
-          </span>
-          <div>
-            <h2 className="font-medium">Sessão</h2>
-            <p className="text-sm text-neutral-400">{user?.email}</p>
-          </div>
-        </div>
-        <form action={signOut} className="mt-4">
-          <button type="submit" className="btn-secondary">
-            <LogOut size={14} />
-            Terminar sessão
-          </button>
-        </form>
-      </section>
-
-      <section className="surface-card p-5">
-        <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 text-rose-300">
             <Activity size={16} />
           </span>
@@ -104,97 +99,19 @@ export default async function SettingsPage({
         </Link>
       </section>
 
-      {(connections.length > 0 || outlookConnections.length > 0) && (
-        <section className="surface-card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="font-medium">Calendários que contam para o teu dia</h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Escolhe exatamente os calendários que podem bloquear refeições, treinos e outras
-                decisões. Os restantes são ignorados.
-              </p>
-            </div>
-            <form action={refreshCalendarSources}>
-              <button type="submit" className="btn-secondary">Atualizar lista</button>
-            </form>
-          </div>
-
-          {calendarSources.length === 0 ? (
-            <p className="mt-4 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-              Atualiza a lista — contas Google antigas poderão pedir uma autorização adicional para
-              mostrar todos os calendários disponíveis.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-2">
-              {calendarSources.map((source) => (
-                <li key={source.id} className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-neutral-200">{source.name}</p>
-                    <p className="truncate text-xs text-neutral-500">
-                      {source.provider === "microsoft" ? "Outlook" : "Google"}
-                      {source.accountLabel ? ` · ${source.accountLabel}` : ""}
-                      {source.isReadOnly ? " · só leitura" : ""}
-                    </p>
-                  </div>
-                  <form action={updateCalendarSourceSelection.bind(null, source.id, !source.selectedForContext)}>
-                    <button
-                      type="submit"
-                      role="switch"
-                      aria-checked={source.selectedForContext}
-                      className={source.selectedForContext ? "btn-primary" : "btn-secondary"}
-                    >
-                      {source.selectedForContext ? "Incluído" : "Ignorado"}
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {setup === "calendar" && (
+        <div
+          role="note"
+          className="surface-card border-emerald-500/30 p-4 text-sm text-neutral-200"
+        >
+          <p className="font-medium">Falta só isto: liga um calendário</p>
+          <p className="mt-1 text-neutral-400">
+            Depois de ligares o Google Calendar ou o Outlook abaixo, já podes usar o resto da app.
+          </p>
+        </div>
       )}
 
-      <section className="surface-card p-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300">
-            <Bell size={16} />
-          </span>
-          <div>
-            <h2 className="font-medium">Notificações</h2>
-            <p className="text-sm text-neutral-400">Intervenções úteis, sem interromper o descanso.</p>
-          </div>
-        </div>
-        <div className="mt-4"><NotificationSettings /></div>
-      </section>
-
-      <section className="surface-card p-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
-            <UserCog size={16} />
-          </span>
-          <div>
-            <h2 className="font-medium">Perfil</h2>
-            <p className="text-sm text-neutral-400">
-              Identidade, objetivo, horários e tom de comunicação usados pelo motor de decisões e
-              pelo Coach.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4">
-          {profile ? (
-            <ProfileEditForm initialProfile={profile} />
-          ) : (
-            <p className="text-sm text-neutral-400">Não foi possível carregar o teu perfil.</p>
-          )}
-        </div>
-        <Link
-          href="/nutrition/profile"
-          className="mt-4 inline-flex text-sm text-emerald-400 underline underline-offset-2"
-        >
-          Editar perfil de alimentação (objetivo, dieta, alergias, macros) →
-        </Link>
-      </section>
-
-      <section className="surface-card p-5">
+      <section className="surface-card p-5" id="calendario">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
             <CalendarCheck2 size={16} />
@@ -244,8 +161,19 @@ export default async function SettingsPage({
                             Conta principal
                           </p>
                         )}
+                        <p className="text-xs text-neutral-500">
+                          {connection.canWrite ? "Pode adicionar eventos" : "Leitura apenas"}
+                        </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
+                        {!connection.canWrite && (
+                          <a
+                            href={`/api/google/connect?access=write&connectionId=${connection.id}`}
+                            className="btn-secondary"
+                          >
+                            Permitir adicionar eventos
+                          </a>
+                        )}
                         {!connection.isPrimary && (
                           <form action={setPrimaryGoogleAccount.bind(null, connection.id)}>
                             <button type="submit" className="btn-ghost" title="Tornar principal">
@@ -271,7 +199,7 @@ export default async function SettingsPage({
                 ? "Liga o teu Google Calendar para as decisões terem em conta os espaços livres na tua agenda."
                 : "Podes ligar outra conta Google (por exemplo, pessoal e trabalho) — os espaços livres/ocupados são calculados juntando todas."}
             </p>
-            <a href="/api/google/connect" className="btn-primary inline-flex">
+            <a href="/api/google/connect?access=read" className="btn-primary inline-flex">
               {connections.length === 0 ? "Ligar Google Calendar" : "Ligar outra conta"}
             </a>
           </div>
@@ -334,6 +262,161 @@ export default async function SettingsPage({
             </a>
           </div>
         )}
+      </section>
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] text-neutral-300">
+            <Mail size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Sessão</h2>
+            <p className="text-sm text-neutral-400">{user?.email}</p>
+          </div>
+        </div>
+        <form action={signOut} className="mt-4">
+          <button type="submit" className="btn-secondary">
+            <LogOut size={14} />
+            Terminar sessão
+          </button>
+        </form>
+      </section>
+
+      {(connections.length > 0 || outlookConnections.length > 0) && (
+        <section className="surface-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-medium">Calendários que contam para o teu dia</h2>
+              <p className="mt-1 text-sm text-neutral-400">
+                Escolhe exatamente os calendários que podem bloquear refeições, treinos e outras
+                decisões. Os restantes são ignorados.
+              </p>
+              <p className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
+                Por defeito, o Rebuild lê apenas quando estás ocupado. Título e local são opcionais;
+                descrições, participantes e anexos nunca são pedidos.
+                <HelpTip heading="Privacidade por calendário">
+                  Em “Só disponibilidade”, recebemos apenas início, fim e estado ocupado/livre. Em
+                  “Título e local”, esses dois campos podem aparecer na agenda da app. Eventos
+                  privados continuam sempre ocultos e os títulos nunca são enviados em bruto ao Coach.
+                </HelpTip>
+              </p>
+            </div>
+            <form action={refreshCalendarSources}>
+              <button type="submit" className="btn-secondary">Atualizar lista</button>
+            </form>
+          </div>
+
+          {calendarSources.length === 0 ? (
+            <p className="mt-4 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              Atualiza a lista — contas Google antigas poderão pedir uma autorização adicional para
+              mostrar todos os calendários disponíveis.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {calendarSources.map((source) => (
+                <li key={source.id} className="space-y-3 rounded-xl bg-white/[0.03] px-3 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-neutral-200">{source.name}</p>
+                    <p className="truncate text-xs text-neutral-500">
+                      {source.provider === "microsoft" ? "Outlook" : "Google"}
+                      {source.accountLabel ? ` · ${source.accountLabel}` : ""}
+                      {source.isReadOnly ? " · só leitura" : ""}
+                    </p>
+                  </div>
+                  <form action={updateCalendarSourceSelection.bind(null, source.id, !source.selectedForContext)}>
+                    <button
+                      type="submit"
+                      role="switch"
+                      aria-checked={source.selectedForContext}
+                      className={source.selectedForContext ? "btn-primary" : "btn-secondary"}
+                    >
+                      {source.selectedForContext ? "Incluído" : "Ignorado"}
+                    </button>
+                  </form>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-3">
+                    <span className="mr-1 text-xs text-neutral-500">Detalhe permitido:</span>
+                    <form
+                      action={updateCalendarSourcePrivacyMode.bind(
+                        null,
+                        source.id,
+                        "availability_only"
+                      )}
+                    >
+                      <button
+                        type="submit"
+                        aria-pressed={source.privacyMode === "availability_only"}
+                        className={
+                          source.privacyMode === "availability_only" ? "btn-primary" : "btn-secondary"
+                        }
+                      >
+                        Só disponibilidade
+                      </button>
+                    </form>
+                    <form
+                      action={updateCalendarSourcePrivacyMode.bind(
+                        null,
+                        source.id,
+                        "metadata_allowed"
+                      )}
+                    >
+                      <button
+                        type="submit"
+                        aria-pressed={source.privacyMode === "metadata_allowed"}
+                        className={
+                          source.privacyMode === "metadata_allowed" ? "btn-primary" : "btn-secondary"
+                        }
+                      >
+                        Título e local
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section className="surface-card p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300">
+            <Bell size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Notificações</h2>
+            <p className="text-sm text-neutral-400">Intervenções úteis, sem interromper o descanso.</p>
+          </div>
+        </div>
+        <div className="mt-4"><NotificationSettings /></div>
+      </section>
+
+      <section className="surface-card p-5" id="perfil">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
+            <UserCog size={16} />
+          </span>
+          <div>
+            <h2 className="font-medium">Perfil</h2>
+            <p className="text-sm text-neutral-400">
+              Identidade, objetivo, horários e tom de comunicação usados pelo motor de decisões e
+              pelo Coach.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4">
+          {profile ? (
+            <ProfileEditForm initialProfile={profile} />
+          ) : (
+            <p className="text-sm text-neutral-400">Não foi possível carregar o teu perfil.</p>
+          )}
+        </div>
+        <Link
+          href="/nutrition/profile"
+          className="mt-4 inline-flex text-sm text-emerald-400 underline underline-offset-2"
+        >
+          Editar perfil de alimentação (objetivo, dieta, alergias, macros) →
+        </Link>
       </section>
 
       <section className="surface-card p-5">

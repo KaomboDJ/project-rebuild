@@ -47,6 +47,7 @@ type HealthMetric =
   | "steps_count" | "sleep_minutes" | "resting_heart_rate_bpm" | "hrv_ms"
   | "workout_minutes" | "spo2_percent";
 type HealthSyncStatus = "running" | "completed" | "failed";
+type CalendarPrivacyMode = "availability_only" | "metadata_allowed";
 
 export interface Database {
   public: {
@@ -156,6 +157,7 @@ export interface Database {
           selected_for_context: boolean;
           visible_in_workspace: boolean;
           is_default_destination: boolean;
+          privacy_mode: CalendarPrivacyMode;
           created_at: string;
           updated_at: string;
         };
@@ -171,6 +173,7 @@ export interface Database {
           selected_for_context?: boolean;
           visible_in_workspace?: boolean;
           is_default_destination?: boolean;
+          privacy_mode?: CalendarPrivacyMode;
           created_at?: string;
           updated_at?: string;
         };

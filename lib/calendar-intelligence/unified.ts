@@ -41,6 +41,7 @@ export async function getUnifiedCalendarEventsForRange(
       start: event.start,
       end: event.end,
       isAllDay: event.allDay,
+      ...(event.location ? { location: event.location } : {}),
     }));
 
   return [...googleEvents, ...normalizedMicrosoft].sort((a, b) => a.start.localeCompare(b.start));
@@ -53,4 +54,3 @@ export function getUnifiedCalendarEventsForDate(
 ): Promise<CalendarEvent[]> {
   return getUnifiedCalendarEventsForRange(userId, dateKey, dateKey, timezone);
 }
-

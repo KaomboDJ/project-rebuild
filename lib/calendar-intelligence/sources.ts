@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { CalendarProvider, CalendarSource } from "./types";
+import type { CalendarProvider, CalendarSource, EventPrivacy } from "./types";
 
 export interface CalendarSourceSummary extends CalendarSource {
   accountLabel: string | null;
@@ -28,6 +28,7 @@ function mapRow(row: {
   selected_for_context: boolean;
   visible_in_workspace: boolean;
   is_default_destination: boolean;
+  privacy_mode: EventPrivacy;
   calendar_connections?: { provider?: string; google_account_email?: string | null; label?: string | null } | null;
 }): CalendarSourceSummary {
   return {
@@ -42,6 +43,7 @@ function mapRow(row: {
     selectedForContext: row.selected_for_context,
     visibleInWorkspace: row.visible_in_workspace,
     isDefaultDestination: row.is_default_destination,
+    privacyMode: row.privacy_mode,
     accountLabel: row.calendar_connections?.label ?? row.calendar_connections?.google_account_email ?? null,
   };
 }
@@ -53,7 +55,7 @@ export async function listCalendarSources(
   const admin = createSupabaseAdminClient();
   let query = admin
     .from("calendar_sources")
-    .select("id, connection_id, external_calendar_id, name, color, is_read_only, can_write, selected_for_context, visible_in_workspace, is_default_destination, calendar_connections!inner(provider, google_account_email, label)")
+    .select("id, connection_id, external_calendar_id, name, color, is_read_only, can_write, selected_for_context, visible_in_workspace, is_default_destination, privacy_mode, calendar_connections!inner(provider, google_account_email, label)")
     .eq("user_id", userId)
     .order("name");
   if (provider) query = query.eq("calendar_connections.provider", provider);
@@ -75,6 +77,19 @@ export async function setCalendarSourceSelection(
     .eq("user_id", userId);
 }
 
+export async function setCalendarSourcePrivacyMode(
+  userId: string,
+  sourceId: string,
+  privacyMode: EventPrivacy
+): Promise<void> {
+  const admin = createSupabaseAdminClient();
+  await admin
+    .from("calendar_sources")
+    .update({ privacy_mode: privacyMode })
+    .eq("id", sourceId)
+    .eq("user_id", userId);
+}
+
 export async function upsertCalendarSources(
   userId: string,
   sources: Array<Omit<CalendarSource, "id">>
@@ -83,7 +98,7 @@ export async function upsertCalendarSources(
   const admin = createSupabaseAdminClient();
   const { data: existingRows } = await admin
     .from("calendar_sources")
-    .select("connection_id, external_calendar_id, selected_for_context, visible_in_workspace, is_default_destination")
+    .select("connection_id, external_calendar_id, selected_for_context, visible_in_workspace, is_default_destination, privacy_mode")
     .eq("user_id", userId);
   const existing = new Map(
     (existingRows ?? []).map((row) => [`${row.connection_id}:${row.external_calendar_id}`, row])
@@ -102,6 +117,7 @@ export async function upsertCalendarSources(
         selected_for_context: prior?.selected_for_context ?? source.selectedForContext,
         visible_in_workspace: prior?.visible_in_workspace ?? source.visibleInWorkspace,
         is_default_destination: prior?.is_default_destination ?? source.isDefaultDestination,
+        privacy_mode: prior?.privacy_mode ?? source.privacyMode,
       };
     }),
     { onConflict: "connection_id,external_calendar_id" }

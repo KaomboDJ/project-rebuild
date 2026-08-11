@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { requireSetupComplete } from "@/lib/setup/guard";
 import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
@@ -43,6 +45,9 @@ export default async function NutritionDashboardPage() {
       </main>
     );
   }
+
+  const setupRedirect = await requireSetupComplete(supabase, user.id);
+  if (setupRedirect) redirect(setupRedirect);
 
   const { date: today } = await getFounderNow(supabase, user.id);
   const weekStart = getWeekRange(today).start;

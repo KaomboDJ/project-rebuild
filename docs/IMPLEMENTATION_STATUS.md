@@ -55,6 +55,17 @@ SDK/Gradle, so all Android compilation evidence comes from GitHub-hosted Java
 17/Gradle runners. Remaining release gates are documented in
 `21_SECURITY_THREAT_MODEL.md` and `22_ANDROID_COMPANION.md`.
 
+### Mainline reconciliation — 2026-08-12
+
+Merged production `main` at `5058914` into the Health Data Bridge branch without
+rebasing or force-pushing. The resolution preserves both the Android health
+source/device controls and the per-calendar privacy/read-write consent controls
+shipped in PR #9. The combined tree passes TypeScript, lint, all 486 unit tests
+and an optimized production build. Android compilation, security automation and
+release-artifact gates remain delegated to GitHub Actions after this merge is
+pushed; physical-device validation and signed-APK scanning are still mandatory
+before distribution.
+
 First Android CI run `31525424813` correctly rejected the initial SDK 35 / AGP
 8.7.3 pairing because Health Connect 1.1.0 now declares API 36 and AGP 8.9.1 as
 minimums. The Android toolchain was updated to compile SDK 36, AGP 8.11.1,
@@ -83,6 +94,25 @@ debug verification build all passed. Manually dispatched general CI run
 optimized production build. Its Playwright/Axe steps were explicitly skipped
 because the repository no longer contains the three disposable-E2E Supabase
 secrets; this is not browser-test evidence for the new pairing UI.
+
+## Calendar privacy and least privilege (2026-08-11)
+
+Status: **implemented and release-validated on PR #9 (`codex/calendar-privacy-controls`); additive
+production migration applied and verified.**
+
+Calendar event access now defaults per calendar to availability-only and uses provider field
+selection so titles and locations are not fetched unless the user opts that calendar into contextual
+metadata. Descriptions, attendees and attachments are never requested; private events always remain
+availability-only. New Google connections request read-only access, while creating Rebuild events is
+a separate authorization upgrade and is enforced again server-side from stored scopes. See
+`docs/23_CALENDAR_PRIVACY.md`.
+
+Validation evidence: TypeScript clean, lint clean, 468/468 unit tests passing and the production
+build completed successfully. Migration `20260811205139_calendar_source_privacy.sql` was applied to
+the Production Supabase project; `information_schema.columns` confirms a non-null text column with
+the `availability_only` default. GitHub Actions run `31536547612` passed static/unit/build and the
+real Playwright + Axe job; Vercel Preview deployed successfully, the public landing/privacy smoke
+test passed without browser console errors, and the PR has no conflicts with `main`.
 
 ## Phase 1 health-product completion (2026-08-03)
 

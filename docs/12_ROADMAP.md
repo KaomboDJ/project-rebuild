@@ -29,6 +29,17 @@ diagnosis and opaque prediction remain out of scope. Xiaomi data should flow
 through Apple Health/Health Connect when the relevant Xiaomi app supports it;
 devices restricted to Xiaomi Home may need a separate later feasibility review.
 
+## Calendar privacy hardening — 2026-08-11
+
+Per-calendar availability-only defaults, optional title/location context, provider field minimization
+and separate Google read/write authorization are implemented in the current hardening slice. This is
+a privacy correction inside the existing unified-calendar scope, not a new product module. Details:
+`docs/23_CALENDAR_PRIVACY.md`.
+
+Release gates are green: type-check, lint, 468 unit tests, production build, GitHub-hosted
+Playwright/Axe and the Vercel Preview smoke test. The additive production migration is applied and
+verified. Tracked in PR #9.
+
 ## Phase 1 completion authorization — 2026-08-03
 
 The founder froze the first product phase around five capabilities: unified

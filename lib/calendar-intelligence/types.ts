@@ -33,6 +33,8 @@ export interface CalendarSource {
   selectedForContext: boolean;
   visibleInWorkspace: boolean;
   isDefaultDestination: boolean;
+  /** User-controlled, per-calendar privacy boundary. Safe by default. */
+  privacyMode: EventPrivacy;
 }
 
 export type EventAvailability = "busy" | "free" | "tentative" | "out_of_office";

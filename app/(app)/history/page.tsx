@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { requireSetupComplete } from "@/lib/setup/guard";
 import { CheckCircle2, Circle, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
@@ -70,6 +72,8 @@ export default async function HistoryPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return <EmptyState message="Sessão expirada." />;
+  const setupRedirect = await requireSetupComplete(supabase, user.id);
+  if (setupRedirect) redirect(setupRedirect);
 
   const { date: today, timezone } = await getFounderNow(supabase, user.id);
 

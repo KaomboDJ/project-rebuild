@@ -4,7 +4,12 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTrainingProfile } from "@/lib/training/queries";
 import { TrainingProfileForm } from "@/components/training/TrainingProfileForm";
 
-export default async function TrainingProfilePage() {
+export default async function TrainingProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ setup?: string }>;
+}) {
+  const { setup } = await searchParams;
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return (
@@ -39,6 +44,15 @@ export default async function TrainingProfilePage() {
           O mínimo necessário para o planeador gerar a tua semana de treino.
         </p>
       </div>
+
+        {setup === "training" && (
+          <div role="note" className="surface-card border-emerald-500/30 p-4 text-sm text-neutral-200">
+            <p className="font-medium">Falta só isto: define o teu perfil de treino</p>
+            <p className="mt-1 text-neutral-400">
+              Depois de guardares o formulário abaixo, já podes usar o resto da app.
+            </p>
+          </div>
+        )}
       <TrainingProfileForm initialProfile={profile} />
     </main>
   );

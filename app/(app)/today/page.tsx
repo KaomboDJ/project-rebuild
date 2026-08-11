@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { requireSetupComplete } from "@/lib/setup/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { CalendarWorkspace } from "@/components/CalendarWorkspace";
@@ -28,6 +30,8 @@ export default async function TodayPage({
   if (!user) {
     return <main className="mx-auto max-w-xl px-4 py-8">Sessão expirada.</main>;
   }
+  const setupRedirect = await requireSetupComplete(supabase, user.id);
+  if (setupRedirect) redirect(setupRedirect);
 
   // The founder's local "today", not the server's (UTC on Vercel) - keeps
   // /today, /history, and decision generation agreeing on the same date

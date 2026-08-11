@@ -2,15 +2,21 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppNav } from "@/components/AppNav";
 import { AppGuide } from "@/components/AppGuide";
+import type { SetupStage } from "@/lib/setup/guard";
+import type { IdentityProgression } from "@/lib/gamification/progression";
 
 export function AppShell({
   children,
   email,
   calendarConnected = false,
+  setupStage = "done",
+  progression,
 }: {
   children: ReactNode;
   email?: string | null;
   calendarConnected?: boolean;
+  setupStage?: SetupStage;
+  progression?: IdentityProgression;
 }) {
   return (
     <div className="min-h-screen bg-app text-neutral-100">
@@ -25,10 +31,8 @@ export function AppShell({
       >
         Saltar para o conteúdo
       </a>
-
-      <AppNav calendarConnected={calendarConnected} />
+      <AppNav calendarConnected={calendarConnected} setupStage={setupStage} progression={progression} />
       <AppGuide />
-
       {/* Slim top bar, mobile only - the sidebar already carries the brand
           on desktop. Bottom padding on <main> reserves space for the fixed
           mobile tab bar so the last card is never hidden behind it. */}
@@ -41,7 +45,6 @@ export function AppShell({
         </Link>
         {email && <span className="text-xs text-neutral-400">{email}</span>}
       </header>
-
       <div className="md:pl-60">
         <header className="hidden items-center justify-end border-b border-white/[0.06] px-8 py-3 md:flex">
           {email && <span className="text-xs text-neutral-400">{email}</span>}
