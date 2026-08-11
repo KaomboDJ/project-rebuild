@@ -110,7 +110,12 @@ alter table public.health_observations enable row level security;
 alter table public.health_sync_runs enable row level security;
 
 revoke all on table public.health_sources, public.health_observations, public.health_sync_runs from anon;
-grant select, insert, update, delete on table public.health_sources, public.health_observations, public.health_sync_runs to authenticated;
+-- Browser sessions may read their data, remove a source (which cascades its
+-- observations) and opt a source in/out of coaching. Only service_role-backed
+-- server/Companion routes may assert provenance or write imported readings.
+grant select, delete on table public.health_sources to authenticated;
+grant update (use_for_coaching) on table public.health_sources to authenticated;
+grant select on table public.health_observations, public.health_sync_runs to authenticated;
 grant select, insert, update, delete on table public.health_sources, public.health_observations, public.health_sync_runs to service_role;
 
 create policy health_sources_own_all on public.health_sources
