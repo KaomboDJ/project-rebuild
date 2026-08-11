@@ -9,14 +9,15 @@ the user to type them repeatedly.
 | # | Milestone | Status |
 |---|---|---|
 | 16A | Health Data Bridge foundation — source registry, normalized observations, provenance, deduplication, source-level coaching consent, export/reset/delete support, derived BMI and compact health summary | **Implemented on `codex/health-data-bridge-foundation`; migration not yet applied to production.** |
-| 16B | Rebuild Companion for Apple HealthKit and Android Health Connect — granular read permissions, background sync, revocation and real-device validation | **Not started. Native app work; cannot be implemented by the PWA alone.** |
+| 16B | Rebuild Companion for Android Health Connect — granular read permissions, manual/optional background sync, revocation and real-device validation | **Android source and secure server pairing implemented on `codex/health-data-bridge-foundation`; automated Android tests/lint/build green. Production activation, physical-device validation, signing and external APK scan remain gated.** |
 | 16C | Deterministic health-aware decision rules — only after real data quality is measured; explainable thresholds and protective fallbacks | **Not started. Deliberately gated on real imported data.** |
 
 **16B implementation update — 2026-08-11:** the Android-only Health Connect
 companion, pairing/device-revocation APIs and security automation are implemented
-on `codex/health-data-bridge-foundation`. Release remains blocked by applying
-the two migrations, setting the Production-only HMAC secret, a green Android CI
-build, a physical-device validation pass, signing and an external APK scan.
+on `codex/health-data-bridge-foundation`. Automated Android CI and the web
+security gates are green. Release remains blocked by applying the two
+migrations, setting the Production-only HMAC secret, a physical-device
+validation pass, release signing and an external APK scan.
 
 Deep direct connectors for each watch/scale vendor, a complex health dashboard,
 diagnosis and opaque prediction remain out of scope. Xiaomi data should flow

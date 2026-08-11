@@ -21,12 +21,12 @@ lint/unit/build CI and a formal OWASP-MASVS-oriented threat model. The companion
 has no Rebuild session, provider OAuth token, Supabase client key, admin key,
 calendar, nutrition or Coach access.
 
-Local web evidence: type-check clean, lint clean, 478/478 unit tests green,
-optimized production build green, tracked/untracked secret scan green and zero
-high/critical production dependency vulnerabilities after updating the locked
-`nanoid` resolution. The local machine has Java 8 and no Android SDK/Gradle, so
-the Android compilation gate must run on GitHub Actions before this can be
-called releasable. Remaining gates are documented in
+Local and GitHub evidence: type-check clean, lint clean, 478/478 unit tests
+green, optimized production build green, tracked/untracked secret scan green
+and zero high/critical production dependency vulnerabilities after updating
+the locked `nanoid` resolution. The local machine has Java 8 and no Android
+SDK/Gradle, so all Android compilation evidence comes from GitHub-hosted Java
+17/Gradle runners. Remaining release gates are documented in
 `21_SECURITY_THREAT_MODEL.md` and `22_ANDROID_COMPANION.md`.
 
 First Android CI run `31525424813` correctly rejected the initial SDK 35 / AGP
@@ -43,11 +43,20 @@ read permission and requires one final re-run.
 
 That permission was sufficient for analysis but the private repository does not
 have GitHub's Code Scanning product enabled, so GitHub rejected only the SARIF
-upload after again scanning all source files. The workflow now runs CodeQL with
-`upload: false`, checks the generated SARIF itself and fails on any rule with a
-security severity of 7.0 or higher, retaining the SARIF artifact for 30 days.
-This preserves a real high/critical gate without requiring a paid/external
+upload after again scanning all source files. The final workflow uses CodeQL v4
+with `upload: never`, checks the generated SARIF itself and fails on any rule
+with a security severity of 7.0 or higher, retaining the SARIF artifact for 30
+days. This preserves a real high/critical gate without requiring a paid
 repository feature.
+
+Final security run `31527231111` is fully green: production dependency and
+secret checks passed; CodeQL scanned all discovered web/workflow sources and
+the local SARIF severity gate passed; Android unit tests, Android Lint and the
+debug verification build all passed. Manually dispatched general CI run
+`31527560315` also passed lint, type-check, all 478 web unit tests and the
+optimized production build. Its Playwright/Axe steps were explicitly skipped
+because the repository no longer contains the three disposable-E2E Supabase
+secrets; this is not browser-test evidence for the new pairing UI.
 
 ## Phase 1 health-product completion (2026-08-03)
 
