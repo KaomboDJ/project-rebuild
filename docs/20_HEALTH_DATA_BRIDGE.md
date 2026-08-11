@@ -1,7 +1,7 @@
 # 20 — Health Data Bridge
 
 Status: Milestone 16A implemented on `codex/health-data-bridge-foundation`;
-database migration not yet applied to production.
+database migration applied to production and verified on 2026-08-11.
 
 ## Milestone 16B update — 2026-08-11
 
@@ -9,8 +9,9 @@ The Android-only Health Connect companion source is now implemented together
 with a one-use pairing protocol, narrowly scoped revocable device credentials,
 Android Keystore protection, manual and optional background sync, device
 management in the web settings, request hardening and automated security
-workflows. It is not approved for distribution until the migrations and
-Production secret are applied and the CI, physical-device and signed-APK gates
+workflows. The two production migrations were applied and verified with RLS
+enabled on 2026-08-11. It is not approved for distribution until the Production
+secret is applied and the CI, physical-device and signed-APK gates
 in `21_SECURITY_THREAT_MODEL.md` / `22_ANDROID_COMPANION.md` pass.
 
 ## Product decision

@@ -1,8 +1,9 @@
 # 22 — Android Health Connect Companion
 
 Status: source implementation complete on `codex/health-data-bridge-foundation`;
-requires migration, Production secret, CI Android build and physical-device
-validation before distribution.
+production migrations applied and automated CI green. Requires the Production
+secret, physical-device validation, release signing and external APK scanning
+before distribution.
 
 ## Purpose
 

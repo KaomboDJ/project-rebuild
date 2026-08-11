@@ -1,5 +1,24 @@
 # Implementation Status
 
+## Health Data Bridge production database activation — 2026-08-11
+
+The authenticated Supabase connector was linked to the live `project-rebuild`
+project (`ghogleattdmdragyrwof`, EU West) and applied, in order,
+`202608110001_health_data_bridge.sql` and
+`202608110002_companion_security.sql`. Supabase recorded both migrations as
+`health_data_bridge` and `companion_security`. Verification confirmed
+`health_sources`, `health_observations`, `health_sync_runs`,
+`companion_pairing_codes` and `companion_devices` exist with RLS enabled and no
+rows were created during activation. The first submission attempt contained
+terminal wrapper text and was rejected by PostgreSQL before executing any SQL;
+the clean retry then succeeded.
+
+The Vercel connector is linked to the correct `project-rebuild` project, but its
+available API does not support creating project environment variables. No local
+Vercel CLI session and no protected `VERCEL_TOKEN` GitHub secret exist, so
+`COMPANION_HMAC_KEY` remains the sole production-configuration blocker. Its
+value has deliberately not been generated or stored outside Vercel.
+
 ## Milestone 16B — private Android Health Connect companion (2026-08-11)
 
 **Status:** source implementation complete on
