@@ -3,6 +3,17 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val releaseStoreFile = providers.environmentVariable("REBUILD_KEYSTORE_FILE")
+val releaseStorePassword = providers.environmentVariable("REBUILD_KEYSTORE_PASSWORD")
+val releaseKeyAlias = providers.environmentVariable("REBUILD_KEY_ALIAS")
+val releaseKeyPassword = providers.environmentVariable("REBUILD_KEY_PASSWORD")
+val releaseSigningConfigured = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.orNull.isNullOrBlank() }
+
 android {
     namespace = "com.kaombodj.projectrebuild.companion"
     compileSdk = 36
@@ -17,6 +28,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseStoreFile.get())
+                storePassword = releaseStorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -26,6 +52,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -36,6 +65,15 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.isIncludeAndroidResources = true }
+}
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    doFirst {
+        check(releaseSigningConfigured) {
+            "Release signing is required. Configure REBUILD_KEYSTORE_FILE, " +
+                "REBUILD_KEYSTORE_PASSWORD, REBUILD_KEY_ALIAS and REBUILD_KEY_PASSWORD."
+        }
+    }
 }
 
 dependencies {

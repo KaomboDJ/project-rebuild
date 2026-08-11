@@ -73,6 +73,12 @@ An APK is not approved for friends until all of the following are evidenced:
 - the signing keystore is backed up offline and never committed;
 - the APK and SHA-256 checksum are delivered through a trusted private channel.
 
+The repository's manual release workflow is intentionally non-distributing:
+it runs only from `main`, requires the protected `android-internal-release`
+Environment, fails closed without all four signing secrets, verifies the APK
+signature and retains the candidate for seven days. A green workflow does not
+replace the required physical-device and external APK scan gates.
+
 ## Incident response
 
 If a phone or APK is suspected compromised: revoke the device in Rebuild,

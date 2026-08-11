@@ -46,6 +46,21 @@ minified release APK, run the release gates in `21_SECURITY_THREAT_MODEL.md`,
 record its signer and SHA-256 checksum, then share APK + checksum privately.
 Updates must use the same signing key; losing it prevents trusted upgrades.
 
+The manual `Android Internal Release` workflow runs only from `main`, uses the
+protected `android-internal-release` GitHub Environment and produces a
+seven-day private artifact containing the signed APK, signer evidence and its
+SHA-256 checksum. It does not publish a GitHub Release or distribute the APK.
+Configure an Environment reviewer and these Environment secrets:
+
+- `ANDROID_RELEASE_KEYSTORE_BASE64`;
+- `ANDROID_RELEASE_KEYSTORE_PASSWORD`;
+- `ANDROID_RELEASE_KEY_ALIAS`;
+- `ANDROID_RELEASE_KEY_PASSWORD`.
+
+The Gradle release task also refuses to run when any signing value is absent.
+The workflow artifact is still only a candidate: scan that exact APK externally
+and complete the physical-device checklist before sharing it.
+
 ## Required deployment configuration
 
 1. Apply `202608110001_health_data_bridge.sql` and
