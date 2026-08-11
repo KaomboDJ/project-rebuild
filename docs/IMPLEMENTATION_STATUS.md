@@ -41,6 +41,14 @@ JavaScript and workflow file but its upload step lacked `actions: read` and was
 rejected by GitHub's integration token; the workflow now grants that minimal
 read permission and requires one final re-run.
 
+That permission was sufficient for analysis but the private repository does not
+have GitHub's Code Scanning product enabled, so GitHub rejected only the SARIF
+upload after again scanning all source files. The workflow now runs CodeQL with
+`upload: false`, checks the generated SARIF itself and fails on any rule with a
+security severity of 7.0 or higher, retaining the SARIF artifact for 30 days.
+This preserves a real high/critical gate without requiring a paid/external
+repository feature.
+
 ## Phase 1 health-product completion (2026-08-03)
 
 Status: **implemented and locally validated on `codex/phase1-health-completion`; production activation pending the release gates and external secrets listed in `docs/19_PHASE_1_HEALTH_COMPLETION.md`.**
