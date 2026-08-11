@@ -90,6 +90,7 @@ export function HomeWorkspace({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const writableConnections = connections.filter((connection) => connection.canWrite);
   const nowMinutes = useMemo(() => {
     const [hours, minutes] = plan.now.slice(11, 16).split(":").map(Number);
     return hours * 60 + minutes;
@@ -117,11 +118,11 @@ export function HomeWorkspace({
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ connectionId }),
   });
   const handleConfirmPlan = () => {
-    if (connections.length > 1) {
+    if (writableConnections.length > 1) {
       setShowCalendarPicker(true);
       return;
     }
-    void confirmPlan(connections[0]?.id);
+    void confirmPlan(writableConnections[0]?.id);
   };
   const act = (decisionId: string, status: "accepted" | "completed" | "skipped") =>
     request(`/api/decisions/${decisionId}`, {
@@ -172,7 +173,7 @@ export function HomeWorkspace({
               <div className="mt-3 rounded-xl border border-white/10 bg-neutral-950 p-3">
                 <p className="mb-2 text-xs text-neutral-300">Em que calendário queres guardar as ações com horário?</p>
                 <div className="flex flex-wrap gap-2">
-                  {connections.map((connection) => (
+                  {writableConnections.map((connection) => (
                     <button
                       key={connection.id}
                       disabled={busy}

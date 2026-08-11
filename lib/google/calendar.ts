@@ -4,9 +4,14 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { decryptToken, encryptToken } from "@/lib/crypto/tokens";
 import { localRangeUtc } from "@/lib/date/timezone";
 import type { CalendarEvent } from "@/lib/decision-engine/types";
-import type { CalendarSource } from "@/lib/calendar-intelligence/types";
+import type { CalendarSource, EventPrivacy } from "@/lib/calendar-intelligence/types";
 import { upsertCalendarSources } from "@/lib/calendar-intelligence/sources";
-import { fetchGoogleAccountEmail, type GoogleTokenResponse, refreshAccessToken } from "./oauth";
+import {
+  fetchGoogleAccountEmail,
+  GOOGLE_CALENDAR_WRITE_SCOPE,
+  type GoogleTokenResponse,
+  refreshAccessToken,
+} from "./oauth";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
@@ -20,16 +25,18 @@ interface ConnectionRow {
   encrypted_refresh_token: string | null;
   expires_at: string | null;
   calendar_id: string;
+  scopes: string[];
 }
 
 const CONNECTION_ROW_SELECT =
-  "id, encrypted_access_token, encrypted_refresh_token, expires_at, calendar_id";
+  "id, encrypted_access_token, encrypted_refresh_token, expires_at, calendar_id, scopes";
 
 export interface ConnectionSummary {
   id: string;
   googleAccountEmail: string | null;
   label: string | null;
   isPrimary: boolean;
+  canWrite: boolean;
 }
 
 export async function isCalendarConnected(userId: string): Promise<boolean> {
@@ -52,7 +59,7 @@ export async function listConnections(userId: string): Promise<ConnectionSummary
   const admin = createSupabaseAdminClient();
   const { data } = await admin
     .from("calendar_connections")
-    .select("id, google_account_email, label, is_primary")
+    .select("id, google_account_email, label, is_primary, scopes")
     .eq("user_id", userId)
     .eq("provider", "google")
     .order("is_primary", { ascending: false })
@@ -63,6 +70,7 @@ export async function listConnections(userId: string): Promise<ConnectionSummary
     googleAccountEmail: row.google_account_email,
     label: row.label,
     isPrimary: row.is_primary,
+    canWrite: row.scopes.includes(GOOGLE_CALENDAR_WRITE_SCOPE),
   }));
 }
 
@@ -142,8 +150,11 @@ interface GoogleCalendarListResource {
 }
 
 export async function syncGoogleCalendarSources(userId: string, connectionId: string): Promise<void> {
-  const token = await getValidAccessToken(userId, connectionId);
+  const connection = await getConnectionRow(userId, connectionId);
+  if (!connection) return;
+  const token = await getValidAccessTokenForRow(connection);
   if (!token) return;
+  const connectionCanWrite = connection.scopes.includes(GOOGLE_CALENDAR_WRITE_SCOPE);
   try {
     const response = await fetch(`${CALENDAR_API}/users/me/calendarList?minAccessRole=freeBusyReader`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -153,7 +164,9 @@ export async function syncGoogleCalendarSources(userId: string, connectionId: st
     const sources: Array<Omit<CalendarSource, "id">> = (body.items ?? [])
       .filter((calendar) => !calendar.deleted)
       .map((calendar) => {
-        const canWrite = calendar.accessRole === "writer" || calendar.accessRole === "owner";
+        const canWrite =
+          connectionCanWrite &&
+          (calendar.accessRole === "writer" || calendar.accessRole === "owner");
         return {
           provider: "google" as const,
           connectionId,
@@ -167,6 +180,7 @@ export async function syncGoogleCalendarSources(userId: string, connectionId: st
           selectedForContext: Boolean(calendar.primary),
           visibleInWorkspace: Boolean(calendar.primary),
           isDefaultDestination: false,
+          privacyMode: "availability_only" as const,
         };
       });
     await upsertCalendarSources(userId, sources);
@@ -346,19 +360,37 @@ interface GoogleCalendarEventResource {
   start?: { date?: string; dateTime?: string };
   end?: { date?: string; dateTime?: string };
   status?: string;
+  location?: string;
+  visibility?: "default" | "public" | "private" | "confidential";
+  transparency?: "opaque" | "transparent";
 }
 
-function mapGoogleEvent(event: GoogleCalendarEventResource, calendarId: string): CalendarEvent | null {
+export function googleEventFields(privacyMode: EventPrivacy): string {
+  const optionalMetadata = privacyMode === "metadata_allowed" ? ",summary,location" : "";
+  return `items(id,start,end,status,transparency,visibility${optionalMetadata})`;
+}
+
+export function mapGoogleEvent(
+  event: GoogleCalendarEventResource,
+  calendarId: string,
+  privacyMode: EventPrivacy
+): CalendarEvent | null {
   const start = event.start?.dateTime ?? event.start?.date;
   const end = event.end?.dateTime ?? event.end?.date;
-  if (!start || !end) return null;
+  if (!start || !end || event.transparency === "transparent") return null;
+
+  const metadataAllowed =
+    privacyMode === "metadata_allowed" &&
+    event.visibility !== "private" &&
+    event.visibility !== "confidential";
 
   return {
     id: `google:${calendarId}:${event.id}`,
-    title: event.summary ?? "(Sem título)",
+    title: metadataAllowed ? event.summary ?? "(Sem título)" : "Ocupado — Google",
     start,
     end,
     isAllDay: Boolean(event.start?.date && !event.start?.dateTime),
+    ...(metadataAllowed && event.location ? { location: event.location } : {}),
   };
 }
 
@@ -374,12 +406,18 @@ async function getEventsForConnection(
   const admin = createSupabaseAdminClient();
   const { data: sourceRows } = await admin
     .from("calendar_sources")
-    .select("external_calendar_id, selected_for_context")
+    .select("external_calendar_id, selected_for_context, privacy_mode")
     .eq("connection_id", row.id);
-  const calendarIds = sourceRows && sourceRows.length > 0
-    ? sourceRows.filter((source) => source.selected_for_context).map((source) => source.external_calendar_id)
-    : [row.calendar_id || "primary"];
-  if (calendarIds.length === 0) return [];
+  const sources =
+    sourceRows && sourceRows.length > 0
+      ? sourceRows
+          .filter((source) => source.selected_for_context)
+          .map((source) => ({
+            calendarId: source.external_calendar_id,
+            privacyMode: source.privacy_mode,
+          }))
+      : [{ calendarId: row.calendar_id || "primary", privacyMode: "availability_only" as const }];
+  if (sources.length === 0) return [];
   const { timeMin, timeMax } = localRangeUtc(startDateKey, endDateKey, timezone);
   const params = new URLSearchParams({
     timeMin,
@@ -389,17 +427,19 @@ async function getEventsForConnection(
     maxResults: "250",
   });
 
-  const perCalendar = await Promise.all(calendarIds.map(async (calendarId) => {
+  const perCalendar = await Promise.all(sources.map(async ({ calendarId, privacyMode }) => {
     try {
+      const scopedParams = new URLSearchParams(params);
+      scopedParams.set("fields", googleEventFields(privacyMode));
       const response = await fetch(
-        `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+        `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${scopedParams}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!response.ok) return [];
       const body: { items?: GoogleCalendarEventResource[] } = await response.json();
       return (body.items ?? [])
         .filter((event) => event.status !== "cancelled")
-        .map((event) => mapGoogleEvent(event, calendarId))
+        .map((event) => mapGoogleEvent(event, calendarId, privacyMode))
         .filter((event): event is CalendarEvent => event !== null);
     } catch {
       return [];
@@ -484,6 +524,7 @@ export async function createInterventionEvent(
 ): Promise<string | null> {
   const row = await getConnectionRow(userId, connectionId);
   if (!row) return null;
+  if (!row.scopes.includes(GOOGLE_CALENDAR_WRITE_SCOPE)) return null;
 
   const accessToken = await getValidAccessTokenForRow(row);
   if (!accessToken) return null;
@@ -526,6 +567,7 @@ export async function updateInterventionEvent(
 ): Promise<boolean> {
   const row = await getConnectionRow(userId, connectionId);
   if (!row) return false;
+  if (!row.scopes.includes(GOOGLE_CALENDAR_WRITE_SCOPE)) return false;
   const accessToken = await getValidAccessTokenForRow(row);
   if (!accessToken) return false;
   const calendarId = row.calendar_id || "primary";

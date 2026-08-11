@@ -6,6 +6,7 @@ import {
   disconnectMicrosoftAccount,
   refreshCalendarSources,
   setPrimaryGoogleAccount,
+  updateCalendarSourcePrivacyMode,
   updateCalendarSourceSelection,
 } from "./actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -26,6 +27,8 @@ const CALENDAR_STATUS_MESSAGE: Record<string, string> = {
   "primary-updated": "Conta principal atualizada.",
   "sources-updated": "Calendários usados pelo Rebuild atualizados.",
   "sources-refreshed": "Lista de calendários sincronizada.",
+  "privacy-updated": "Privacidade do calendário atualizada.",
+  "write-enabled": "Autorização para adicionar eventos ativada.",
   denied: "Autorização cancelada — a conta não foi ligada.",
   error: "Não foi possível ligar a conta Google. Tenta novamente.",
   "not-configured": "A integração com o Google Calendar ainda não está configurada.",
@@ -130,8 +133,19 @@ export default async function SettingsPage({
                             Conta principal
                           </p>
                         )}
+                        <p className="text-xs text-neutral-500">
+                          {connection.canWrite ? "Pode adicionar eventos" : "Leitura apenas"}
+                        </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
+                        {!connection.canWrite && (
+                          <a
+                            href={`/api/google/connect?access=write&connectionId=${connection.id}`}
+                            className="btn-secondary"
+                          >
+                            Permitir adicionar eventos
+                          </a>
+                        )}
                         {!connection.isPrimary && (
                           <form action={setPrimaryGoogleAccount.bind(null, connection.id)}>
                             <button type="submit" className="btn-ghost" title="Tornar principal">
@@ -157,7 +171,7 @@ export default async function SettingsPage({
                 ? "Liga o teu Google Calendar para as decisões terem em conta os espaços livres na tua agenda."
                 : "Podes ligar outra conta Google (por exemplo, pessoal e trabalho) — os espaços livres/ocupados são calculados juntando todas."}
             </p>
-            <a href="/api/google/connect" className="btn-primary inline-flex">
+            <a href="/api/google/connect?access=read" className="btn-primary inline-flex">
               {connections.length === 0 ? "Ligar Google Calendar" : "Ligar outra conta"}
             </a>
           </div>
@@ -248,6 +262,15 @@ export default async function SettingsPage({
                 Escolhe exatamente os calendários que podem bloquear refeições, treinos e outras
                 decisões. Os restantes são ignorados.
               </p>
+              <p className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
+                Por defeito, o Rebuild lê apenas quando estás ocupado. Título e local são opcionais;
+                descrições, participantes e anexos nunca são pedidos.
+                <HelpTip heading="Privacidade por calendário">
+                  Em “Só disponibilidade”, recebemos apenas início, fim e estado ocupado/livre. Em
+                  “Título e local”, esses dois campos podem aparecer na agenda da app. Eventos
+                  privados continuam sempre ocultos e os títulos nunca são enviados em bruto ao Coach.
+                </HelpTip>
+              </p>
             </div>
             <form action={refreshCalendarSources}>
               <button type="submit" className="btn-secondary">Atualizar lista</button>
@@ -262,7 +285,8 @@ export default async function SettingsPage({
           ) : (
             <ul className="mt-4 space-y-2">
               {calendarSources.map((source) => (
-                <li key={source.id} className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-3 py-3">
+                <li key={source.id} className="space-y-3 rounded-xl bg-white/[0.03] px-3 py-3">
+                  <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="truncate text-sm text-neutral-200">{source.name}</p>
                     <p className="truncate text-xs text-neutral-500">
@@ -281,6 +305,44 @@ export default async function SettingsPage({
                       {source.selectedForContext ? "Incluído" : "Ignorado"}
                     </button>
                   </form>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-3">
+                    <span className="mr-1 text-xs text-neutral-500">Detalhe permitido:</span>
+                    <form
+                      action={updateCalendarSourcePrivacyMode.bind(
+                        null,
+                        source.id,
+                        "availability_only"
+                      )}
+                    >
+                      <button
+                        type="submit"
+                        aria-pressed={source.privacyMode === "availability_only"}
+                        className={
+                          source.privacyMode === "availability_only" ? "btn-primary" : "btn-secondary"
+                        }
+                      >
+                        Só disponibilidade
+                      </button>
+                    </form>
+                    <form
+                      action={updateCalendarSourcePrivacyMode.bind(
+                        null,
+                        source.id,
+                        "metadata_allowed"
+                      )}
+                    >
+                      <button
+                        type="submit"
+                        aria-pressed={source.privacyMode === "metadata_allowed"}
+                        className={
+                          source.privacyMode === "metadata_allowed" ? "btn-primary" : "btn-secondary"
+                        }
+                      >
+                        Título e local
+                      </button>
+                    </form>
+                  </div>
                 </li>
               ))}
             </ul>

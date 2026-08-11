@@ -15,15 +15,26 @@ function graphEvent(overrides: Partial<GraphEvent> = {}): GraphEvent {
 }
 
 describe("normalizeGraphEvent", () => {
-  it("maps a normal, busy event to provider microsoft with metadata allowed", () => {
+  it("maps a normal, busy event to availability only by default", () => {
     const result = normalizeGraphEvent(graphEvent(), "src-1");
     expect(result.provider).toBe("microsoft");
     expect(result.sourceId).toBe("src-1");
     expect(result.availability).toBe("busy");
-    expect(result.privacy).toBe("metadata_allowed");
-    expect(result.title).toBe("1:1 com o gestor");
+    expect(result.privacy).toBe("availability_only");
+    expect(result.title).toBeUndefined();
     expect(result.start).toBe("2026-08-01T17:30:00.000Z");
     expect(result.end).toBe("2026-08-01T18:30:00.000Z");
+  });
+
+  it("allows title and location only after per-calendar opt-in", () => {
+    const result = normalizeGraphEvent(
+      graphEvent({ location: { displayName: "Escritório" } }),
+      "src-1",
+      "metadata_allowed"
+    );
+    expect(result.privacy).toBe("metadata_allowed");
+    expect(result.title).toBe("1:1 com o gestor");
+    expect(result.location).toBe("Escritório");
   });
 
   it("maps showAs=free to availability free", () => {
@@ -45,7 +56,11 @@ describe("normalizeGraphEvent", () => {
 
   it("strips title and location for a private/personal/confidential event regardless of sensitivity nuance", () => {
     for (const sensitivity of ["private", "personal", "confidential"] as const) {
-      const result = normalizeGraphEvent(graphEvent({ sensitivity, subject: "Segredo" }), "src-1");
+      const result = normalizeGraphEvent(
+        graphEvent({ sensitivity, subject: "Segredo" }),
+        "src-1",
+        "metadata_allowed"
+      );
       expect(result.privacy).toBe("availability_only");
       expect(result.title).toBeUndefined();
     }
@@ -80,6 +95,7 @@ describe("normalizeGraphCalendar", () => {
   it("marks the default calendar as selected for context by default", () => {
     const result = normalizeGraphCalendar(calendar, "conn-1", "user-1");
     expect(result.selectedForContext).toBe(true);
+    expect(result.privacyMode).toBe("availability_only");
   });
 
   it("does not select a non-default calendar for context by default", () => {

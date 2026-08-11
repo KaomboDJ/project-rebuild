@@ -40,6 +40,7 @@ type TrainingIntensity = "low" | "medium" | "high";
 type TrainingVarietyPreference = "low" | "medium" | "high";
 type TrainingPlanStatus = "active" | "archived";
 type TrainingPlanItemStatus = "planned" | "done" | "skipped";
+type CalendarPrivacyMode = "availability_only" | "metadata_allowed";
 
 export interface Database {
   public: {
@@ -149,6 +150,7 @@ export interface Database {
           selected_for_context: boolean;
           visible_in_workspace: boolean;
           is_default_destination: boolean;
+          privacy_mode: CalendarPrivacyMode;
           created_at: string;
           updated_at: string;
         };
@@ -164,6 +166,7 @@ export interface Database {
           selected_for_context?: boolean;
           visible_in_workspace?: boolean;
           is_default_destination?: boolean;
+          privacy_mode?: CalendarPrivacyMode;
           created_at?: string;
           updated_at?: string;
         };

@@ -8,7 +8,12 @@
 // reason).
 
 import { zonedWallTimeToUtc } from "@/lib/date/timezone";
-import type { CalendarSource, EventAvailability, NormalizedCalendarEvent } from "@/lib/calendar-intelligence/types";
+import type {
+  CalendarSource,
+  EventAvailability,
+  EventPrivacy,
+  NormalizedCalendarEvent,
+} from "@/lib/calendar-intelligence/types";
 
 // Minimal slices of Microsoft Graph's actual response shapes - see
 // https://learn.microsoft.com/en-us/graph/api/resources/calendar and
@@ -82,13 +87,22 @@ function graphDateTimeToIso(value: { dateTime: string; timeZone: string }): stri
  * regardless of caller preference, since Graph itself is signaling the
  * event owner doesn't want details shared.
  */
-function derivePrivacy(sensitivity: GraphEvent["sensitivity"]): NormalizedCalendarEvent["privacy"] {
-  if (!sensitivity || sensitivity === "normal") return "metadata_allowed";
+function derivePrivacy(
+  sensitivity: GraphEvent["sensitivity"],
+  sourcePrivacy: EventPrivacy
+): NormalizedCalendarEvent["privacy"] {
+  if ((!sensitivity || sensitivity === "normal") && sourcePrivacy === "metadata_allowed") {
+    return "metadata_allowed";
+  }
   return "availability_only";
 }
 
-export function normalizeGraphEvent(event: GraphEvent, sourceId: string): NormalizedCalendarEvent {
-  const privacy = derivePrivacy(event.sensitivity);
+export function normalizeGraphEvent(
+  event: GraphEvent,
+  sourceId: string,
+  sourcePrivacy: EventPrivacy = "availability_only"
+): NormalizedCalendarEvent {
+  const privacy = derivePrivacy(event.sensitivity, sourcePrivacy);
   return {
     provider: "microsoft",
     sourceId,
@@ -120,5 +134,6 @@ export function normalizeGraphCalendar(calendar: GraphCalendar, connectionId: st
     selectedForContext: Boolean(calendar.isDefaultCalendar),
     visibleInWorkspace: true,
     isDefaultDestination: false,
+    privacyMode: "availability_only",
   };
 }

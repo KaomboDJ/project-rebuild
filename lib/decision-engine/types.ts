@@ -19,6 +19,7 @@ export interface CalendarEvent {
   start: string; // ISO 8601
   end: string;
   isAllDay: boolean;
+  location?: string;
 }
 
 export interface FreeWindow {

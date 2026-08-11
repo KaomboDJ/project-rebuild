@@ -33,6 +33,22 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-white">Privacidade do calendário</h2>
+        <p>
+          Cada calendário começa no modo “Só disponibilidade”: o Rebuild pede apenas o início, o
+          fim e o estado ocupado/livre necessários para evitar conflitos. Podes autorizar “Título e
+          local” separadamente para um calendário específico; eventos marcados como privados
+          continuam ocultos.
+        </p>
+        <p>
+          Não pedimos descrições, participantes nem anexos dos eventos. Os eventos externos são
+          consultados quando necessário e não são guardados na base de dados do Rebuild. Os títulos
+          apresentados na agenda não são enviados em bruto ao Coach. No Google, a leitura e a
+          autorização para o Rebuild criar eventos são consentimentos separados.
+        </p>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-xl font-semibold text-white">Fornecedores técnicos</h2>
         <p>
           A aplicação usa Vercel para alojamento, Supabase para autenticação e base de dados e

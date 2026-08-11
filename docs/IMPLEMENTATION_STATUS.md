@@ -1,5 +1,22 @@
 # Implementation Status
 
+## Calendar privacy and least privilege (2026-08-11)
+
+Status: **implemented and locally release-validated on `codex/calendar-privacy-controls`; additive
+production migration applied and verified.**
+
+Calendar event access now defaults per calendar to availability-only and uses provider field
+selection so titles and locations are not fetched unless the user opts that calendar into contextual
+metadata. Descriptions, attendees and attachments are never requested; private events always remain
+availability-only. New Google connections request read-only access, while creating Rebuild events is
+a separate authorization upgrade and is enforced again server-side from stored scopes. See
+`docs/23_CALENDAR_PRIVACY.md`.
+
+Validation evidence: TypeScript clean, lint clean, 468/468 unit tests passing and the production
+build completed successfully. Migration `20260811205139_calendar_source_privacy.sql` was applied to
+the Production Supabase project; `information_schema.columns` confirms a non-null text column with
+the `availability_only` default. Browser/CI validation remains the PR release gate.
+
 ## Phase 1 health-product completion (2026-08-03)
 
 Status: **implemented and locally validated on `codex/phase1-health-completion`; production activation pending the release gates and external secrets listed in `docs/19_PHASE_1_HEALTH_COMPLETION.md`.**

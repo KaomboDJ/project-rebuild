@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { exchangeCodeForTokens, GOOGLE_OAUTH_STATE_COOKIE } from "@/lib/google/oauth";
+import {
+  exchangeCodeForTokens,
+  GOOGLE_OAUTH_ACCESS_COOKIE,
+  GOOGLE_OAUTH_STATE_COOKIE,
+} from "@/lib/google/oauth";
 import { saveCalendarConnection, syncGoogleCalendarSources } from "@/lib/google/calendar";
 
 /**
@@ -19,6 +23,7 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const cookieState = request.cookies.get(GOOGLE_OAUTH_STATE_COOKIE)?.value;
+  const requestedAccess = request.cookies.get(GOOGLE_OAUTH_ACCESS_COOKIE)?.value;
 
   if (!code || !state || !cookieState || state !== cookieState) {
     return NextResponse.redirect(settingsUrl("?calendar=error"));
@@ -38,7 +43,9 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeCodeForTokens(code);
     const connectionId = await saveCalendarConnection(user.id, tokens);
     await syncGoogleCalendarSources(user.id, connectionId);
-    response = NextResponse.redirect(settingsUrl("?calendar=connected"));
+    response = NextResponse.redirect(
+      settingsUrl(requestedAccess === "write" ? "?calendar=write-enabled" : "?calendar=connected")
+    );
   } catch (err) {
     // Invited-alpha security review: the underlying error can embed Google's
     // raw token-endpoint response body (lib/google/oauth.ts's
@@ -50,5 +57,6 @@ export async function GET(request: NextRequest) {
   }
 
   response.cookies.delete(GOOGLE_OAUTH_STATE_COOKIE);
+  response.cookies.delete(GOOGLE_OAUTH_ACCESS_COOKIE);
   return response;
 }

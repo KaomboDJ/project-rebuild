@@ -1,5 +1,15 @@
 # 12 — Roadmap
 
+## Calendar privacy hardening — 2026-08-11
+
+Per-calendar availability-only defaults, optional title/location context, provider field minimization
+and separate Google read/write authorization are implemented in the current hardening slice. This is
+a privacy correction inside the existing unified-calendar scope, not a new product module. Details:
+`docs/23_CALENDAR_PRIVACY.md`.
+
+Local release gates are green (type-check, lint, 468 unit tests and production build); the additive
+production migration is applied and verified. PR browser/CI validation is the remaining release gate.
+
 ## Phase 1 completion authorization — 2026-08-03
 
 The founder froze the first product phase around five capabilities: unified
