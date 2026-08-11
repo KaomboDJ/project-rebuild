@@ -29,6 +29,12 @@ the Android compilation gate must run on GitHub Actions before this can be
 called releasable. Remaining gates are documented in
 `21_SECURITY_THREAT_MODEL.md` and `22_ANDROID_COMPANION.md`.
 
+First Android CI run `31525424813` correctly rejected the initial SDK 35 / AGP
+8.7.3 pairing because Health Connect 1.1.0 now declares API 36 and AGP 8.9.1 as
+minimums. The Android toolchain was updated to compile SDK 36, AGP 8.11.1,
+Kotlin 2.1.20 and Gradle 8.13 (while retaining target SDK 35); a new CI run is
+required to expose any source-level compilation issue.
+
 ## Phase 1 health-product completion (2026-08-03)
 
 Status: **implemented and locally validated on `codex/phase1-health-completion`; production activation pending the release gates and external secrets listed in `docs/19_PHASE_1_HEALTH_COMPLETION.md`.**

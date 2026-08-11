@@ -33,7 +33,7 @@ can be revoked from the web even if the phone is unavailable.
 ## Android requirements
 
 - Android 9 or later; Health Connect must report its SDK as available.
-- Java 17 and Android SDK 35 to build.
+- Java 17, Android SDK 36, AGP 8.11.1 and Gradle 8.13 to build.
 - `androidx.health.connect:connect-client:1.1.0`.
 - Xiaomi Mi Fitness or another wearable app must write its readings to Health
   Connect. A device visible only in Xiaomi Home will not appear.
@@ -55,5 +55,5 @@ Updates must use the same signing key; losing it prevents trusted upgrades.
 3. Redeploy Production.
 4. Verify pairing, import, deduplication and revocation with a test account.
 
-The Android source lives in `android-companion/`. CI downloads Gradle 8.9 and
+The Android source lives in `android-companion/`. CI downloads Gradle 8.13 and
 uses Java 17; no generated Gradle wrapper binaries are trusted in the repo.

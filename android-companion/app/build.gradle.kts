@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.kaombodj.projectrebuild.companion"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kaombodj.projectrebuild.companion"
@@ -47,4 +47,3 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 }
-
