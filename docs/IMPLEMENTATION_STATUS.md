@@ -2,7 +2,7 @@
 
 ## Calendar privacy and least privilege (2026-08-11)
 
-Status: **implemented and locally release-validated on `codex/calendar-privacy-controls`; additive
+Status: **implemented and release-validated on PR #9 (`codex/calendar-privacy-controls`); additive
 production migration applied and verified.**
 
 Calendar event access now defaults per calendar to availability-only and uses provider field
@@ -15,7 +15,9 @@ a separate authorization upgrade and is enforced again server-side from stored s
 Validation evidence: TypeScript clean, lint clean, 468/468 unit tests passing and the production
 build completed successfully. Migration `20260811205139_calendar_source_privacy.sql` was applied to
 the Production Supabase project; `information_schema.columns` confirms a non-null text column with
-the `availability_only` default. Browser/CI validation remains the PR release gate.
+the `availability_only` default. GitHub Actions run `31536547612` passed static/unit/build and the
+real Playwright + Axe job; Vercel Preview deployed successfully, the public landing/privacy smoke
+test passed without browser console errors, and the PR has no conflicts with `main`.
 
 ## Phase 1 health-product completion (2026-08-03)
 
