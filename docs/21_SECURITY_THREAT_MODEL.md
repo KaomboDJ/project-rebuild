@@ -74,10 +74,12 @@ An APK is not approved for friends until all of the following are evidenced:
 - the APK and SHA-256 checksum are delivered through a trusted private channel.
 
 The repository's manual release workflow is intentionally non-distributing:
-it runs only from `main`, requires the protected `android-internal-release`
+it runs only from `main`, references the `android-internal-release`
 Environment, fails closed without all four signing secrets, verifies the APK
-signature and retains the candidate for seven days. A green workflow does not
-replace the required physical-device and external APK scan gates.
+signature and retains the candidate for seven days. GitHub plan limitations
+must never be worked around by broadening signing-secret exposure: when private
+Environment secrets/protection are unavailable, sign offline instead. A green
+workflow does not replace the physical-device and external APK scan gates.
 
 ## Incident response
 

@@ -50,12 +50,20 @@ The manual `Android Internal Release` workflow runs only from `main`, uses the
 protected `android-internal-release` GitHub Environment and produces a
 seven-day private artifact containing the signed APK, signer evidence and its
 SHA-256 checksum. It does not publish a GitHub Release or distribute the APK.
-Configure an Environment reviewer and these Environment secrets:
+When the GitHub plan supports private-repository Environment secrets, configure
+these secrets in `android-internal-release`:
 
 - `ANDROID_RELEASE_KEYSTORE_BASE64`;
 - `ANDROID_RELEASE_KEYSTORE_PASSWORD`;
 - `ANDROID_RELEASE_KEY_ALIAS`;
 - `ANDROID_RELEASE_KEY_PASSWORD`.
+
+Required Environment reviewers for private repositories are not available on
+GitHub Free/Pro/Team, and private Environment secrets are not available on
+GitHub Free. If those controls are unavailable, do **not** copy the keystore
+into repository-wide secrets merely to make this workflow run. Build/sign
+offline with the four `REBUILD_*` environment variables instead and keep the
+keystore outside the repository and cloud CI.
 
 The Gradle release task also refuses to run when any signing value is absent.
 The workflow artifact is still only a candidate: scan that exact APK externally
