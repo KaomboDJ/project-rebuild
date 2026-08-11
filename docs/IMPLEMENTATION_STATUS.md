@@ -61,10 +61,12 @@ Merged production `main` at `5058914` into the Health Data Bridge branch without
 rebasing or force-pushing. The resolution preserves both the Android health
 source/device controls and the per-calendar privacy/read-write consent controls
 shipped in PR #9. The combined tree passes TypeScript, lint, all 486 unit tests
-and an optimized production build. Android compilation, security automation and
-release-artifact gates remain delegated to GitHub Actions after this merge is
-pushed; physical-device validation and signed-APK scanning are still mandatory
-before distribution.
+and an optimized production build locally. GitHub runs `31545818039`,
+`31545818001` and `31545814896` then completed with all 10 PR checks green:
+web CI/E2E/accessibility, dependency and secret checks, CodeQL, Android unit
+tests/lint/debug build, Vercel Preview and unresolved-feedback validation.
+Physical-device validation, release signing and scanning the exact signed APK
+remain mandatory before distribution, so PR #8 stays Draft and unmerged.
 
 First Android CI run `31525424813` correctly rejected the initial SDK 35 / AGP
 8.7.3 pairing because Health Connect 1.1.0 now declares API 36 and AGP 8.9.1 as
