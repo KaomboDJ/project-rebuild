@@ -9,7 +9,7 @@ the user to type them repeatedly.
 | # | Milestone | Status |
 |---|---|---|
 | 16A | Health Data Bridge foundation — source registry, normalized observations, provenance, deduplication, source-level coaching consent, export/reset/delete support, derived BMI and compact health summary | **Implemented on `codex/health-data-bridge-foundation`; production migration applied and verified on 2026-08-11.** |
-| 16B | Rebuild Companion for Android Health Connect — granular read permissions, manual/optional background sync, revocation and real-device validation | **Android source and secure server pairing implemented on `codex/health-data-bridge-foundation`; production database migration applied and automated Android tests/lint/build green. The Production HMAC secret, physical-device validation, signing and external APK scan remain gated.** |
+| 16B | Rebuild Companion for Android Health Connect — granular read permissions, manual/optional background sync, revocation and real-device validation | **Android source and secure server pairing implemented on `codex/health-data-bridge-foundation`; production database migration applied, Production HMAC secret created, and automated Android tests/lint/build green. A Production redeploy, physical-device validation, signing and external APK scan remain gated.** |
 | 16C | Deterministic health-aware decision rules — only after real data quality is measured; explainable thresholds and protective fallbacks | **Not started. Deliberately gated on real imported data.** |
 
 **16B implementation update — 2026-08-11:** the Android-only Health Connect
@@ -17,9 +17,11 @@ companion, pairing/device-revocation APIs and security automation are implemente
 on `codex/health-data-bridge-foundation`. Automated Android CI and the web
 security gates are green. Both production migrations were applied through the
 authenticated Supabase connector on 2026-08-11 and the five new tables were
-verified with RLS enabled. Release remains blocked by setting the
-Production-only HMAC secret, a physical-device
-validation pass, release signing and an external APK scan.
+verified with RLS enabled. A cryptographically random 32-byte
+`COMPANION_HMAC_KEY` was added directly to Vercel as a Production-only
+Sensitive variable without exposing or persisting its value. Release remains
+blocked by a Production redeploy, a physical-device validation pass, release
+signing and an external APK scan.
 
 Deep direct connectors for each watch/scale vendor, a complex health dashboard,
 diagnosis and opaque prediction remain out of scope. Xiaomi data should flow

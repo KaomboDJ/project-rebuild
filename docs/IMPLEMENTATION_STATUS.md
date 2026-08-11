@@ -13,11 +13,13 @@ rows were created during activation. The first submission attempt contained
 terminal wrapper text and was rejected by PostgreSQL before executing any SQL;
 the clean retry then succeeded.
 
-The Vercel connector is linked to the correct `project-rebuild` project, but its
-available API does not support creating project environment variables. No local
-Vercel CLI session and no protected `VERCEL_TOKEN` GitHub secret exist, so
-`COMPANION_HMAC_KEY` remains the sole production-configuration blocker. Its
-value has deliberately not been generated or stored outside Vercel.
+The Vercel connector and CLI were linked to the correct `project-rebuild`
+project. A cryptographically random 32-byte `COMPANION_HMAC_KEY` was generated
+in memory and sent directly to Vercel as a Production-only Sensitive variable;
+its value was never printed, committed or retained in a local environment file.
+The current `main` Production deployment still needs an explicitly authorized
+redeploy before its functions load the new variable. The Draft PR remains
+unmerged and must not be substituted for that known-good `main` deployment.
 
 ## Milestone 16B — private Android Health Connect companion (2026-08-11)
 

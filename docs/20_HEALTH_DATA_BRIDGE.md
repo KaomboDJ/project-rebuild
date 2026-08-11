@@ -10,8 +10,9 @@ with a one-use pairing protocol, narrowly scoped revocable device credentials,
 Android Keystore protection, manual and optional background sync, device
 management in the web settings, request hardening and automated security
 workflows. The two production migrations were applied and verified with RLS
-enabled on 2026-08-11. It is not approved for distribution until the Production
-secret is applied and the CI, physical-device and signed-APK gates
+enabled on 2026-08-11, and the Production-only Sensitive HMAC secret was created
+directly in Vercel. It is not approved for distribution until Production is
+redeployed and the CI, physical-device and signed-APK gates
 in `21_SECURITY_THREAT_MODEL.md` / `22_ANDROID_COMPANION.md` pass.
 
 ## Product decision

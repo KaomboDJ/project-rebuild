@@ -2,8 +2,8 @@
 
 Status: source implementation complete on `codex/health-data-bridge-foundation`;
 production migrations applied and automated CI green. Requires the Production
-secret, physical-device validation, release signing and external APK scanning
-before distribution.
+redeploy, physical-device validation, release signing and external APK scanning
+before distribution. The Production-only Sensitive HMAC secret is already set.
 
 ## Purpose
 

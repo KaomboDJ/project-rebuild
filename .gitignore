@@ -18,3 +18,5 @@ android-companion/keystore.properties
 *.keystore
 *.apk
 *.aab
+
+.vercel
