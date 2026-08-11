@@ -1,9 +1,9 @@
 # 22 — Android Health Connect Companion
 
 Status: source implementation complete on `codex/health-data-bridge-foundation`;
-production migrations applied and automated CI green. Requires the Production
-redeploy, physical-device validation, release signing and external APK scanning
-before distribution. The Production-only Sensitive HMAC secret is already set.
+production migrations applied, Production HMAC secret active, and automated CI
+green. Requires physical-device validation, release signing and external APK
+scanning before distribution.
 
 ## Purpose
 

@@ -17,9 +17,14 @@ The Vercel connector and CLI were linked to the correct `project-rebuild`
 project. A cryptographically random 32-byte `COMPANION_HMAC_KEY` was generated
 in memory and sent directly to Vercel as a Production-only Sensitive variable;
 its value was never printed, committed or retained in a local environment file.
-The current `main` Production deployment still needs an explicitly authorized
-redeploy before its functions load the new variable. The Draft PR remains
-unmerged and must not be substituted for that known-good `main` deployment.
+After explicit founder authorization, the known-good `main` deployment
+`dpl_DCWbd1gKynCGT9JCvZKTHM3NVe7d` (commit `f08ce19`) was rebuilt as
+Production deployment `dpl_AiSU9cUJQY4gNr36cktjZZ2t2U2s`; it reached `READY`
+and received the `project-rebuild-chi.vercel.app` alias. A read-only request to
+the public landing page returned HTTP 200 with the expected authentication UI
+and security headers. Vercel reported no grouped runtime errors and no
+error/fatal logs for the new deployment in the checked 30-minute window. The
+Draft PR remains unmerged and was not promoted or substituted for `main`.
 
 ## Milestone 16B — private Android Health Connect companion (2026-08-11)
 
