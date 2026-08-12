@@ -1,6 +1,6 @@
 # Consumer UX & Visual Maturity
 
-Status: implementation complete on `codex/consumer-ux-visual-maturity`; awaiting visual approval and Preview validation before merge.
+Status: merged to `main` in PR #10 (`6762d65`) and live in Production.
 
 ## Why this release exists
 
@@ -48,4 +48,4 @@ Foodvisor and other polished consumer-health products were used as a quality ben
 - Vitest: 468/468 passing.
 - Production build: successful.
 - New Playwright coverage: consumer Home hierarchy, continuous Nutrition journey, mobile dock and keyboard-operated “Mais” sheet.
-- Final GitHub-hosted Playwright/Axe and Vercel Preview evidence must be recorded before merge.
+- GitHub-hosted checks and Vercel Preview validation passed before PR #10 was merged.

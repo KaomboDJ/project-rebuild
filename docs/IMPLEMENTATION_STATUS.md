@@ -1,5 +1,23 @@
 # Implementation Status
 
+## Reconciled Phase 1 + Health Bridge release candidate — 2026-08-12
+
+The current release candidate is `codex/phase1-release-closure`, based on
+Production `main` at `6762d65`. It integrates the previously validated Health
+Data Bridge/Android companion foundation with the live Consumer UX release and
+adds the missing real-time delivery layer for daily, decision and nutrition
+Web Push reminders. Supabase Cron now invokes the protected dispatcher every
+15 minutes; quiet hours, category preferences and the delivery ledger remain
+mandatory final guards. The same slice removes push subscription endpoints from
+request URLs, uses timing-safe cron bearer comparison and adds every covering
+foreign-key index identified by the Supabase performance advisor.
+
+Local reconciled evidence: TypeScript clean, ESLint clean, 492/492 Vitest tests
+passing, optimized Production build successful, secret scan clean and zero
+production dependency vulnerabilities. Database migrations for the scheduler
+and 14 indexes are applied. Full release status and remaining external evidence:
+`docs/25_PHASE_1_RELEASE_CLOSURE.md`.
+
 ## Health Data Bridge production database activation — 2026-08-11
 
 The authenticated Supabase connector was linked to the live `project-rebuild`
@@ -126,13 +144,16 @@ Local evidence: TypeScript clean, lint clean, production build successful and 38
 
 Living status tracker. Check this before assuming what already exists — `docs/` design files describe target architecture, not necessarily what's built yet. Update this file as milestones progress.
 
-Last updated: 2026-08-12 (Consumer UX & Visual Maturity built and locally validated; Preview review pending).
+Last updated: 2026-08-12 (reconciled Phase 1 + Health Bridge release candidate).
 
-## Consumer UX & Visual Maturity (branch `codex/consumer-ux-visual-maturity`, 2026-08-12)
+## Consumer UX & Visual Maturity (merged in PR #10, 2026-08-12)
 
 Reworked the existing product experience using polished consumer-health apps as a quality benchmark without copying brand assets or proprietary layouts. The release adds richer dark visual tokens, clearer information hierarchy, a simplified five-slot mobile dock with an accessible secondary menu, a reusable progress ring, a daily mission-control Home, stronger identity feedback and a continuous four-step Nutrition workspace. No Decision Engine, scoring, health recommendation, database or permission behavior changed.
 
-Local release gates: TypeScript clean, ESLint clean, 468/468 Vitest tests passing and production build successful. New Playwright coverage exercises the Home hierarchy, Nutrition journey and keyboard-operated mobile navigation. GitHub-hosted Playwright/Axe and Vercel Preview review remain required before merge. Full specification: `docs/24_CONSUMER_UX_VISUAL_MATURITY.md`.
+Release gates passed and the founder approved the Preview. PR #10 merged as
+`6762d65`; Vercel promoted it to Production. New Playwright coverage exercises
+the Home hierarchy, Nutrition journey and keyboard-operated mobile navigation.
+Full specification: `docs/24_CONSUMER_UX_VISUAL_MATURITY.md`.
 
 ## Daily Home + Decisions UX recovery (branch `codex/daily-home-recovery`, 2026-08-01)
 

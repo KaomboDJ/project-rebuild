@@ -9,6 +9,7 @@ import { detectFreeWindowDrift, buildBriefingSummary } from "@/lib/decision-engi
 import type { FreeWindow } from "@/lib/decision-engine/types";
 import { sendPushToUser } from "@/lib/notifications/push";
 import { clipFreeWindowsToWakingHours, resolveSleepSchedule } from "@/lib/sleep/schedule";
+import { hasValidBearerToken } from "@/lib/security/bearer";
 
 function clockDistanceMinutes(left: string, right: string): number {
   const toMinutes = (value: string) => {
@@ -48,8 +49,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "cron-not-configured" }, { status: 503 });
   }
 
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!hasValidBearerToken(request.headers.get("authorization"), CRON_SECRET)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -81,7 +81,11 @@ export function NotificationSettings() {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      await fetch(`/api/notifications${subscription ? `?endpoint=${encodeURIComponent(subscription.endpoint)}` : ""}`, { method: "DELETE" });
+      await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: subscription?.endpoint ?? null }),
+      });
       await subscription?.unsubscribe();
       setSubscribed(false);
       setMessage("Notificações desativadas neste dispositivo.");

@@ -1,5 +1,16 @@
 # 12 — Roadmap
 
+## Phase 1 release closure + Health Bridge integration — 2026-08-12
+
+**Status: release candidate on `codex/phase1-release-closure`.**
+
+The live Consumer UX and calendar/privacy work is reconciled with the validated
+Health Data Bridge and private Android companion source. The last Phase 1
+operational gap — timely decision and nutrition Web Push — is implemented with
+a 15-minute, Vault-backed Supabase Cron dispatcher that respects preferences,
+sleep and delivery idempotency. Full current status and evidence:
+`docs/25_PHASE_1_RELEASE_CLOSURE.md`.
+
 ## Consumer UX & Visual Maturity — 2026-08-12
 
 **Status: merged to `main` in PR #10 (`6762d65`) and live in Production.**

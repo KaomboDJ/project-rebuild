@@ -9,6 +9,8 @@ const subscriptionSchema = z.object({
   keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
 });
 
+const deleteSubscriptionSchema = z.object({ endpoint: z.string().url().nullable() });
+
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return null;
@@ -64,7 +66,9 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  const endpoint = request.nextUrl.searchParams.get("endpoint");
+  const parsed = deleteSubscriptionSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "invalid-subscription" }, { status: 400 });
+  const endpoint = parsed.data.endpoint;
   const admin = createSupabaseAdminClient();
   let query = admin.from("push_subscriptions").delete().eq("user_id", user.id);
   if (endpoint) query = query.eq("endpoint", endpoint);

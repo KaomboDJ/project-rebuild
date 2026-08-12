@@ -2,7 +2,7 @@
 
 An AI-powered Decision Operating System. See `FOUNDER_CONTEXT.md`, `PROJECT_REBUILD_STATE.md`, and `REBUILD_MASTER_HANDOFF.md` for product context, and `docs/` for the MVP's detailed spec — read `docs/IMPLEMENTATION_STATUS.md` first to see exactly what's built.
 
-## Current state — MVP complete, in Founder Pilot
+## Current state — health and decision product release candidate
 
 All eight MVP milestones (`docs/12_ROADMAP.md`) are built, validated, and deployed:
 
@@ -12,7 +12,13 @@ All eight MVP milestones (`docs/12_ROADMAP.md`) are built, validated, and deploy
 - "Adicionar ao calendário" for accepted decisions, a day/week/month `/calendar` view, and a real `/history` page.
 - Installable as a PWA (manifest, icons, service worker).
 
-The app is now in a 14-day Founder Pilot: real daily usage by the founder to validate whether it measurably improves decisions, before any new module is built. See `PROJECT_REBUILD_STATE.md` for the pilot protocol and `docs/IMPLEMENTATION_STATUS.md` for full build/validation history.
+The product now also includes unified Google/read-only Outlook planning,
+sleep-aware proactive notifications, the complete Nutrition and Training
+toolkits, the Rebuild Guide, identity progression, interpretable personalization
+and a provider-neutral Health Data Bridge. The private Android Health Connect
+companion is built but is not distributed until its signed APK passes the
+physical-device and artifact-security gates. See
+`docs/25_PHASE_1_RELEASE_CLOSURE.md` for the concise current source of truth.
 
 **Founder-approved exception (2026-07-30):** a Coach UX rework and a pantry/shopping-list module shipped mid-pilot on branch `calendar-workspace` — a deliberate, one-off override of the pilot's "no new modules" rule, not a resumption of general feature work. See `docs/12_ROADMAP.md`'s "Founder Pilot" section and `docs/IMPLEMENTATION_STATUS.md`'s "Coach UX + Pantry Intelligence milestone" section for what shipped: a three-state Coach (compact drawer / expanded drawer / full `/coach` page) with persisted history and Markdown rendering, and pantry/shopping tracking (`/nutrition`) the Coach can read and propose changes to — every proposed change requires explicit confirmation before it executes.
 
