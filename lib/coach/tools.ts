@@ -602,6 +602,9 @@ export async function executeMutatingTool(
     ]);
     const carryOverSessionIds = (existing?.items ?? []).map((i) => i.session_id);
     const result = generateWeekTrainingPlan({ weekStart, profile, sessions, trainingDaysOfWeek, carryOverSessionIds });
+    if (result.blockedByPhysicalLimitations) {
+      throw new Error("A geração automática está pausada porque existe uma limitação física no perfil. Revê-a com um profissional antes de gerar um plano.");
+    }
     const planWithItems = await saveWeekTrainingPlan(supabase, userId, result);
     const response = await toTrainingPlanResponse(supabase, planWithItems, { profile });
     return { weekStart, limitedVariety: result.limitedVariety, ...response };

@@ -80,6 +80,17 @@ test.describe("Training Toolkit (@functional-only)", () => {
     await expect(page.getByText(/^≈\d+ min$/).first()).toBeVisible();
   });
 
+  test("blocks automatic generation when free-text physical limitations need human review", async ({ page }) => {
+    const profileResponse = await page.request.put("/api/training/profile", {
+      data: { physicalLimitations: "joelho em recuperação" },
+    });
+    expect(profileResponse.ok()).toBeTruthy();
+
+    const planResponse = await page.request.post("/api/training/plan");
+    expect(planResponse.status()).toBe(422);
+    await expect(planResponse.json()).resolves.toMatchObject({ error: "physical-limitations-require-review" });
+  });
+
   test("marks a planned session done, and it renders as completed", async ({ page }) => {
     const planResponse = await page.request.post("/api/training/plan");
     expect(planResponse.ok()).toBeTruthy();

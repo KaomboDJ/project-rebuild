@@ -1,6 +1,7 @@
 # Phase 1 — Health and Decision Product Completion
 
-Status: implemented on `codex/phase1-health-completion`.
+Status: implemented and reconciled in `codex/phase1-release-closure`; current
+release evidence is in `docs/25_PHASE_1_RELEASE_CLOSURE.md`.
 
 This document is the scope boundary for the first complete product phase of
 Project Rebuild. The product is a health and decision system for busy parents
@@ -36,9 +37,9 @@ stays dormant and Google continues to work normally.
 - iPhone copy explains that Web Push requires the installed home-screen PWA.
 
 Operational dependency: Web Push requires `VAPID_PUBLIC_KEY`,
-`VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` in the deployment environment. The
-existing Vercel Hobby cron runs once daily; more frequent server-side delivery
-requires an external scheduler invoking the protected cron endpoint.
+`VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` in the deployment environment. Timely
+delivery is now provided by a protected Supabase Cron call every 15 minutes;
+the dedicated bearer secret is held separately in Vercel and Supabase Vault.
 
 ## 3. Nutrition finish
 
@@ -86,6 +87,10 @@ Native mobile apps, wearables, location tracking, social/community features,
 food-photo recognition, barcode scanning, a full calendar replacement and
 opaque predictive ML are not part of this phase. They must not delay or expand
 the release described here.
+
+Post-Phase-1 note (2026-08-11): this boundary remains historically correct.
+The founder later authorized the separate Phase 2 Health Data Bridge described
+in `docs/20_HEALTH_DATA_BRIDGE.md`; it does not retroactively expand Phase 1.
 
 ## Release gates
 

@@ -15,11 +15,13 @@ const serverEnvironmentSchema = z.object({
   MICROSOFT_TENANT_ID: z.string().min(1).default("common"),
   MICROSOFT_REDIRECT_URI: z.string().url().optional(),
   TOKEN_ENCRYPTION_KEY: z.string().min(32).optional(),
+  COMPANION_HMAC_KEY: z.string().min(32).optional(),
   AI_PROVIDER: z.enum(["anthropic", "mock"]).default("anthropic"),
   AI_API_KEY: optionalSecret,
   ANTHROPIC_API_KEY: optionalSecret,
   ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-5"),
   CRON_SECRET: optionalSecret,
+  NOTIFICATION_CRON_SECRET: optionalSecret,
   VAPID_PUBLIC_KEY: optionalSecret,
   VAPID_PRIVATE_KEY: optionalSecret,
   VAPID_SUBJECT: z.string().min(1).default("mailto:privacy@projectrebuild.app"),
@@ -52,11 +54,13 @@ export function getServerEnvironment(): ServerEnvironment {
     MICROSOFT_TENANT_ID: process.env.MICROSOFT_TENANT_ID || undefined,
     MICROSOFT_REDIRECT_URI: process.env.MICROSOFT_REDIRECT_URI || undefined,
     TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY || undefined,
+    COMPANION_HMAC_KEY: process.env.COMPANION_HMAC_KEY || undefined,
     AI_PROVIDER: process.env.AI_PROVIDER || undefined,
     AI_API_KEY: process.env.AI_API_KEY || undefined,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
+    NOTIFICATION_CRON_SECRET: process.env.NOTIFICATION_CRON_SECRET || undefined,
     VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || undefined,
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
     VAPID_SUBJECT: process.env.VAPID_SUBJECT || undefined,
@@ -84,5 +88,16 @@ export function requireSupabaseServerEnvironment() {
     ...publicEnvironment,
     ...serverEnvironment,
     SUPABASE_SERVICE_ROLE_KEY: serverEnvironment.SUPABASE_SERVICE_ROLE_KEY,
+  };
+}
+
+export function requireCompanionSecurityEnvironment() {
+  const environment = requireSupabaseServerEnvironment();
+  if (!environment.COMPANION_HMAC_KEY) {
+    throw new Error("COMPANION_HMAC_KEY is required for Android Companion credentials.");
+  }
+  return {
+    ...environment,
+    COMPANION_HMAC_KEY: environment.COMPANION_HMAC_KEY,
   };
 }

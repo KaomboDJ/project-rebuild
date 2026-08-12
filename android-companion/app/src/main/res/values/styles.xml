@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.RebuildCompanion" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">@color/rebuild_background</item>
+        <item name="android:colorAccent">@color/rebuild_green</item>
+        <item name="android:navigationBarColor">@color/rebuild_background</item>
+        <item name="android:statusBarColor">@color/rebuild_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
+

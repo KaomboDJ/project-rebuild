@@ -61,4 +61,8 @@ export interface WeekTrainingPlanResult {
    * session satisfied the founder's constraints for a training day at all
    * - mirrors lib/nutrition/types.ts's WeekPlanResult.limitedVariety. */
   limitedVariety: boolean;
+  /** True when free-text physical limitations prevent safe automatic
+   * selection. Medical free text is never interpreted as an exercise
+   * contraindication by this planner. */
+  blockedByPhysicalLimitations: boolean;
 }

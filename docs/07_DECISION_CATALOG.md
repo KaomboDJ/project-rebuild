@@ -53,4 +53,4 @@ New rules must:
 
 ## Explicitly out of scope for the catalog
 
-Anything requiring calorie/macro data, recipes, wearable signals, or social comparison — see `03_PRODUCT_PRINCIPLES.md`'s "do not build" list. Nutrition Toolkit (meal plans, shopping lists, macros) is future backlog, not part of this catalog.
+Social comparison and opaque medical or ML inferences remain outside this catalog. Nutrition and Health Data Bridge inputs may only affect a rule after the input has provenance, explicit consent and a deterministic, documented decision use case. Milestone 16A stores and exposes health context to the Coach; it does not yet add health-signal rules to the deterministic catalog.

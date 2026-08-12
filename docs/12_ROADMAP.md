@@ -1,10 +1,50 @@
 # 12 — Roadmap
 
+## Phase 1 release closure + Health Bridge integration — 2026-08-12
+
+**Status: release candidate on `codex/phase1-release-closure`.**
+
+The live Consumer UX and calendar/privacy work is reconciled with the validated
+Health Data Bridge and private Android companion source. The last Phase 1
+operational gap — timely decision and nutrition Web Push — is implemented with
+a 15-minute, Vault-backed Supabase Cron dispatcher that respects preferences,
+sleep and delivery idempotency. Full current status and evidence:
+`docs/25_PHASE_1_RELEASE_CLOSURE.md`.
+
 ## Consumer UX & Visual Maturity — 2026-08-12
 
-**Status: built on `codex/consumer-ux-visual-maturity`; Preview review pending before merge.**
+**Status: merged to `main` in PR #10 (`6762d65`) and live in Production.**
 
 The founder asked for the product to reach the visual and interaction maturity of leading consumer-health apps while retaining Rebuild's dark identity and decision-first model. Home, navigation, identity progress and the continuous Nutrition journey were redesigned around one next action, a full-day visual overview, warmer progress feedback and a simplified mobile dock. This is a presentation and usability release: no decision rules, health logic, database schema or permissions changed. Full scope and release gates: `docs/24_CONSUMER_UX_VISUAL_MATURITY.md`.
+
+## Phase 2 authorization — 2026-08-11
+
+Phase 1 is complete. The founder explicitly promoted automatic health context
+into the active product scope so the app can learn useful facts without asking
+the user to type them repeatedly.
+
+| # | Milestone | Status |
+|---|---|---|
+| 16A | Health Data Bridge foundation — source registry, normalized observations, provenance, deduplication, source-level coaching consent, export/reset/delete support, derived BMI and compact health summary | **Implemented on `codex/health-data-bridge-foundation`; production migration applied and verified on 2026-08-11.** |
+| 16B | Rebuild Companion for Android Health Connect — granular read permissions, manual/optional background sync, revocation and real-device validation | **Android source and secure server pairing implemented on `codex/health-data-bridge-foundation`; production database migration applied, Production HMAC secret active after a verified `main` redeploy, and automated Android tests/lint/build green. Physical-device validation, signing and external APK scan remain gated.** |
+| 16C | Deterministic health-aware decision rules — only after real data quality is measured; explainable thresholds and protective fallbacks | **Not started. Deliberately gated on real imported data.** |
+
+**16B implementation update — 2026-08-11:** the Android-only Health Connect
+companion, pairing/device-revocation APIs and security automation are implemented
+on `codex/health-data-bridge-foundation`. Automated Android CI and the web
+security gates are green. Both production migrations were applied through the
+authenticated Supabase connector on 2026-08-11 and the five new tables were
+verified with RLS enabled. A cryptographically random 32-byte
+`COMPANION_HMAC_KEY` was added directly to Vercel as a Production-only
+Sensitive variable without exposing or persisting its value. The known-good
+`main` deployment was rebuilt into Production and verified `READY` with a clean
+read-only smoke test. Release remains blocked by a physical-device validation
+pass, release signing and an external APK scan.
+
+Deep direct connectors for each watch/scale vendor, a complex health dashboard,
+diagnosis and opaque prediction remain out of scope. Xiaomi data should flow
+through Apple Health/Health Connect when the relevant Xiaomi app supports it;
+devices restricted to Xiaomi Home may need a separate later feasibility review.
 
 ## Calendar privacy hardening — 2026-08-11
 
@@ -92,4 +132,4 @@ Release evidence: migration `202608010001_daily_home_timing.sql` is present in P
 
 ## Explicitly not on any near-term roadmap
 
-Food photo recognition, barcode scanning, wearable integrations (Apple Health, Garmin, Xiaomi, Fitbit), location tracking, social/community features, large achievement systems, a full calendar replacement, native mobile apps, identity progression levels. (Calorie/macro tracking, food databases/recipes, and advanced predictive ML were on this list before the 2026-07-30 full roadmap authorization above moved them into Milestones 12 and 14 specifically — they are authorized only in the scoped form described there, not as a general invitation to build adjacent features.)
+Food photo recognition, barcode scanning, direct vendor-by-vendor wearable integrations, location tracking, social/community features, large achievement systems and a full calendar replacement. A small native companion is authorized only for Milestone 16B's HealthKit/Health Connect bridge; this is not authorization for a separate feature-complete native Rebuild app. (Calorie/macro tracking, food databases/recipes, advanced predictive ML and the health bridge were moved out of this historical exclusion only in their specifically documented milestone scope.)

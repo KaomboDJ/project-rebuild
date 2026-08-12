@@ -46,7 +46,10 @@ export async function getSetupStage(supabase: Supabase, userId: string): Promise
  * gate's own destinations and would otherwise redirect to themselves.
  * Returns the path to redirect to, or null when setup is complete.
  */
-export async function requireSetupComplete(supabase: Supabase, userId: string): Promise<string | null> {
+export async function requireSetupComplete(
+  supabase: Supabase,
+  userId: string
+): Promise<string | null> {
   const stage = await getSetupStage(supabase, userId);
   return stage === "done" ? null : SETUP_REDIRECT[stage];
 }
