@@ -1,6 +1,6 @@
 # Phase 1 Release Closure
 
-Status: release candidate on `codex/phase1-release-closure`.
+Status: released to production from merge commit `f0fe3a1` on 12 August 2026.
 
 This document is the concise source of truth for the health-and-decisions
 product requested by the founder. Historical milestone notes remain in the
@@ -53,11 +53,32 @@ On the reconciled candidate tree:
   server-only tables deliberately expose no authenticated policies.
 - Supabase performance advisor: all 14 missing foreign-key indexes resolved.
 
-GitHub-hosted web E2E/Axe, Android CI, Vercel Preview and Production smoke
-evidence are recorded after this branch is pushed. A signed Android APK remains
-a separate distribution gate: physical-device validation, protected signing
-credentials and scanning the exact signed artifact are mandatory before it is
-shared with friends.
+Release evidence from PR #11 and production:
+
+- GitHub CI lint, typecheck, unit tests and production build: successful.
+- GitHub Android companion lint, unit tests and debug build: successful.
+- GitHub web dependency scan, secret scan and CodeQL analysis: successful.
+- Vercel Preview: Ready; landing page, privacy page and protected cron route
+  were smoke-tested without touching founder data.
+- Vercel Production deployment `dpl_2LyiBaU451AGJauNTFPXwHVuziV3`: Ready;
+  canonical alias `project-rebuild-chi.vercel.app` active.
+- Production cron endpoint rejects missing credentials with `401`, while the
+  Preview (which deliberately lacks the Production-only secret) fails closed.
+- The first post-deploy Supabase Cron execution at `2026-08-12 17:30 UTC`
+  succeeded and its HTTP callback returned `200`, confirming that the
+  Production Vercel secret and Supabase Vault secret match.
+
+The current PR workflow deliberately skipped Playwright/Axe because the
+production Supabase `service_role` key is not stored as a GitHub repository
+secret. This is a security-preserving exception, not a claimed test pass. The
+same browser suite was green on the preceding production baseline, while this
+release's new behavior is covered by unit, Android, build, security and manual
+Preview/Production checks. Future destructive E2E should use a dedicated test
+Supabase project rather than reintroducing a production administrative key.
+
+A signed Android APK remains a separate distribution gate: physical-device
+validation, protected signing credentials and scanning the exact signed
+artifact are mandatory before it is shared with friends.
 
 ## Deliberate limits
 
