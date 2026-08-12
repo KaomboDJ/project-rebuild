@@ -1,5 +1,102 @@
 # Implementation Status
 
+## Health Data Bridge production database activation — 2026-08-11
+
+The authenticated Supabase connector was linked to the live `project-rebuild`
+project (`ghogleattdmdragyrwof`, EU West) and applied, in order,
+`202608110001_health_data_bridge.sql` and
+`202608110002_companion_security.sql`. Supabase recorded both migrations as
+`health_data_bridge` and `companion_security`. Verification confirmed
+`health_sources`, `health_observations`, `health_sync_runs`,
+`companion_pairing_codes` and `companion_devices` exist with RLS enabled and no
+rows were created during activation. The first submission attempt contained
+terminal wrapper text and was rejected by PostgreSQL before executing any SQL;
+the clean retry then succeeded.
+
+The Vercel connector and CLI were linked to the correct `project-rebuild`
+project. A cryptographically random 32-byte `COMPANION_HMAC_KEY` was generated
+in memory and sent directly to Vercel as a Production-only Sensitive variable;
+its value was never printed, committed or retained in a local environment file.
+After explicit founder authorization, the known-good `main` deployment
+`dpl_DCWbd1gKynCGT9JCvZKTHM3NVe7d` (commit `f08ce19`) was rebuilt as
+Production deployment `dpl_AiSU9cUJQY4gNr36cktjZZ2t2U2s`; it reached `READY`
+and received the `project-rebuild-chi.vercel.app` alias. A read-only request to
+the public landing page returned HTTP 200 with the expected authentication UI
+and security headers. Vercel reported no grouped runtime errors and no
+error/fatal logs for the new deployment in the checked 30-minute window. The
+Draft PR remains unmerged and was not promoted or substituted for `main`.
+
+## Milestone 16B — private Android Health Connect companion (2026-08-11)
+
+**Status:** source implementation complete on
+`codex/health-data-bridge-foundation`; not yet deployed or approved for friend
+distribution.
+
+Implemented a secure, Android-only Health Connect companion and the complete
+server pairing path. Web users can create a five-minute one-use code, review
+paired devices and revoke access. The code exchanges atomically for a 256-bit,
+90-day device credential whose HMAC hash alone is stored. The credential has
+only `health:write`; the Android app encrypts it with Android Keystore AES-GCM,
+disables backups/cleartext, requests granular read permissions and supports
+manual plus separately authorized background sync.
+
+Added strict batch/time/metadata validation, private API responses, browser
+origin checks, stable error handling, enhanced web headers, Dependabot, CodeQL,
+tracked/untracked secret scanning, production dependency audit, Android
+lint/unit/build CI and a formal OWASP-MASVS-oriented threat model. The companion
+has no Rebuild session, provider OAuth token, Supabase client key, admin key,
+calendar, nutrition or Coach access.
+
+Local and GitHub evidence: type-check clean, lint clean, 478/478 unit tests
+green, optimized production build green, tracked/untracked secret scan green
+and zero high/critical production dependency vulnerabilities after updating
+the locked `nanoid` resolution. The local machine has Java 8 and no Android
+SDK/Gradle, so all Android compilation evidence comes from GitHub-hosted Java
+17/Gradle runners. Remaining release gates are documented in
+`21_SECURITY_THREAT_MODEL.md` and `22_ANDROID_COMPANION.md`.
+
+### Mainline reconciliation — 2026-08-12
+
+Merged production `main` at `5058914` into the Health Data Bridge branch without
+rebasing or force-pushing. The resolution preserves both the Android health
+source/device controls and the per-calendar privacy/read-write consent controls
+shipped in PR #9. The combined tree passes TypeScript, lint, all 486 unit tests
+and an optimized production build locally. GitHub runs `31545818039`,
+`31545818001` and `31545814896` then completed with all 10 PR checks green:
+web CI/E2E/accessibility, dependency and secret checks, CodeQL, Android unit
+tests/lint/debug build, Vercel Preview and unresolved-feedback validation.
+Physical-device validation, release signing and scanning the exact signed APK
+remain mandatory before distribution, so PR #8 stays Draft and unmerged.
+
+First Android CI run `31525424813` correctly rejected the initial SDK 35 / AGP
+8.7.3 pairing because Health Connect 1.1.0 now declares API 36 and AGP 8.9.1 as
+minimums. The Android toolchain was updated to compile SDK 36, AGP 8.11.1,
+Kotlin 2.1.20 and Gradle 8.13 (while retaining target SDK 35); a new CI run is
+required to expose any source-level compilation issue.
+
+Second Android CI run `31525827230` passed Android unit tests, Android Lint and
+the debug verification build. CodeQL scanned every discovered TypeScript,
+JavaScript and workflow file but its upload step lacked `actions: read` and was
+rejected by GitHub's integration token; the workflow now grants that minimal
+read permission and requires one final re-run.
+
+That permission was sufficient for analysis but the private repository does not
+have GitHub's Code Scanning product enabled, so GitHub rejected only the SARIF
+upload after again scanning all source files. The final workflow uses CodeQL v4
+with `upload: never`, checks the generated SARIF itself and fails on any rule
+with a security severity of 7.0 or higher, retaining the SARIF artifact for 30
+days. This preserves a real high/critical gate without requiring a paid
+repository feature.
+
+Final security run `31527231111` is fully green: production dependency and
+secret checks passed; CodeQL scanned all discovered web/workflow sources and
+the local SARIF severity gate passed; Android unit tests, Android Lint and the
+debug verification build all passed. Manually dispatched general CI run
+`31527560315` also passed lint, type-check, all 478 web unit tests and the
+optimized production build. Its Playwright/Axe steps were explicitly skipped
+because the repository no longer contains the three disposable-E2E Supabase
+secrets; this is not browser-test evidence for the new pairing UI.
+
 ## Calendar privacy and least privilege (2026-08-11)
 
 Status: **implemented and release-validated on PR #9 (`codex/calendar-privacy-controls`); additive
@@ -1240,3 +1337,32 @@ hidden from the sign-in UI until the domain question is resolved and
 Resend is verified for real delivery; flipping that flag is a single env
 var change once `projectrebuild.app` (or another domain) is verified in
 Resend with its DNS records.
+## Milestone 16A — Health Data Bridge foundation (2026-08-11)
+
+Founder authorization: reduce manual entry by receiving weight, height, body
+composition, steps, sleep and recovery context from health apps and connected
+devices. Implemented the provider-neutral foundation without claiming that a
+web PWA can directly access native HealthKit or Health Connect stores.
+
+Added `health_sources`, `health_observations` and `health_sync_runs` with RLS,
+owner-safe composite foreign keys, source-record deduplication, provenance,
+source-level coaching consent and cascade deletion. Added strict canonical unit
+normalization, plausibility validation and derived BMI; authenticated companion
+registration/import/summary APIs; `/settings/health`; Coach context restricted
+to sources enabled by the user; and account export/reset coverage.
+
+Safety correction included in the same slice: Training Toolkit previously
+stored free-text physical limitations but did not apply them while its reasoning
+copy claimed they had been considered. Automatic generation and replacement now
+stop when this field is non-empty; the UI/Coach explains that free medical text
+needs human review instead of inventing contraindications.
+
+Production status: branch implementation only. Migration
+`202608110001_health_data_bridge.sql` must not be applied until validation and
+merge approval. Native HealthKit/Health Connect sync is Milestone 16B, not part
+of this foundation.
+
+Local validation: TypeScript clean; lint clean; 467/467 unit tests passing
+across 52 files; optimized production build successful. Two real-browser E2E
+additions (physical-limitation block and health-table cross-account isolation)
+are written but cannot run until the new migration exists in the E2E database.

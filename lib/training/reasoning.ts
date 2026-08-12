@@ -56,9 +56,5 @@ export function explainSessionChoice(params: { session: WorkoutSession; profile:
     sentences.push("A intensidade encaixa no nível que preferes para os teus treinos.");
   }
 
-  if (profile.physicalLimitations.trim().length > 0) {
-    sentences.push("Tivemos em conta as limitações físicas que indicaste — lê sempre a nota de segurança da sessão antes de começar.");
-  }
-
   return sentences;
 }

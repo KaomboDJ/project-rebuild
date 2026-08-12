@@ -32,4 +32,4 @@ Before implementing any feature, ask: **what real decision becomes easier or bet
 - Never create calendar events without explicit user action.
 - Never expose OAuth tokens or secrets to the browser.
 - Row Level Security on all user data.
-- Do not build: calorie/macro tracking, complex dashboards, wearable integrations, social features, large achievement systems, nutrition/recipes, or ML-based prediction before there is enough logged behavioral data to evaluate it.
+- Do not build: complex health dashboards, social features, large achievement systems, broad vendor-specific wearable integrations, or opaque ML-based prediction. The founder-authorized Health Data Bridge may import a narrow set of attributable signals through native health aggregators because those signals improve concrete recovery, training and meal-timing decisions.

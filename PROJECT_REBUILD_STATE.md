@@ -1,5 +1,21 @@
 # Project Rebuild — Current State
 
+## Governance note — 2026-08-11 (Phase 2 Health Data Bridge)
+
+Phase 1 is complete and remains frozen as documented in
+`docs/19_PHASE_1_HEALTH_COMPLETION.md`. The founder has now explicitly promoted
+automatic health context into Phase 2: Rebuild should receive useful readings
+such as weight, height, body composition, steps, sleep and recovery from native
+health aggregators with as little manual entry as possible.
+
+Milestone 16 starts with the secure, provider-neutral server foundation and a
+small health-source control surface. It does **not** claim that the PWA can read
+HealthKit or Health Connect directly. A native Rebuild Companion is required for
+that later connector slice. Imported readings must retain provenance, be
+deduplicated, be removable by source, and influence coaching only with explicit
+user permission. No reading is a diagnosis; BMI is derived from height and
+weight rather than trusted as an imported authority.
+
 ## Governance note — 2026-08-11 (calendar privacy boundary)
 
 The founder authorized calendar privacy controls after asking whether the app reads event content or
@@ -69,6 +85,17 @@ See `docs/12_ROADMAP.md`'s "Full roadmap authorization" section for the mileston
 After Milestone 11A shipped, the founder explicitly lifted the per-milestone check-in requirement set in the note above: "please go through all of them... ignore the first order on getting a 'go ahead' from me and implement them all." This authorizes building, validating, migrating, merging, and deploying Milestones 11B through 14 continuously, without pausing for a fresh go-ahead before each production migration/merge/deploy.
 
 This does not relax anything else in `CLAUDE.md`: the product rule (what real decision becomes easier?), the "do not build yet" list, coaching safety constraints, and the instruction to flag genuine architecture-or-scope conflicts still apply. Only the standing-authorization cadence changed — from "ask before each milestone's production step" to "proceed through the roadmap, still one coherent vertical slice at a time, still documented as it goes."
+
+## Governance note — 2026-08-11 (private Android Health Connect bridge)
+
+The founder clarified that the companion will be distributed privately to a
+small group rather than through Google Play, but required strong protection
+against malware, account compromise and data leakage. Milestone 16B is therefore
+Android-only and intentionally narrow: Health Connect read access, a revocable
+`health:write` device token and no general Rebuild session or provider secrets.
+Private distribution does not lower release gates; founder-signed release APKs,
+checksums, automated security checks, physical-device validation and an external
+static/mobile scan are required before sharing. See `docs/21_SECURITY_THREAT_MODEL.md`.
 
 ## Update rule
 

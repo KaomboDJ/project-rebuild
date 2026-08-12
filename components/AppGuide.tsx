@@ -14,6 +14,13 @@ interface GuideContent {
 }
 
 function guideFor(pathname: string): GuideContent {
+  if (pathname.startsWith("/settings/health")) return {
+    title: "Guia dos dados de saúde",
+    description: "Vê de onde veio cada leitura e decide se essa fonte pode ajudar o Coach.",
+    steps: ["Confirma a origem e a última sincronização.", "Escolhe entre Usado pelo Coach e Só guardar.", "Desliga a fonte para apagar os dados que importou."],
+    nextHref: "/settings",
+    nextLabel: "Voltar às definições",
+  };
   if (pathname.startsWith("/nutrition")) return {
     title: "Guia da alimentação",
     description: "Prepara o contexto uma vez; depois o Rebuild decide a semana e calcula apenas o que falta comprar.",

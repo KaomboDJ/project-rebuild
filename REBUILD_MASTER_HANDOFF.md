@@ -326,6 +326,13 @@ Build:
 
 # 10. Explicitly excluded from the MVP
 
+Historical boundary note (2026-08-11): this section remains the original MVP
+scope. Phase 1 has since completed Nutrition Toolkit and identity progression;
+the founder has separately authorized Phase 2 Milestone 16's narrow Health Data
+Bridge through Apple HealthKit / Android Health Connect. See
+`docs/20_HEALTH_DATA_BRIDGE.md`. That authorization does not include a complex
+health dashboard or broad direct integrations with every device vendor.
+
 Do not build:
 
 - calorie counting

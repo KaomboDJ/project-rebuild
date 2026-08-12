@@ -11,6 +11,7 @@ import { listGeneralFounderNotes } from "@/lib/decision-engine/queries";
 import { instantToLocalWallClockIso } from "@/lib/date/timezone";
 import { DEFAULT_PROFILE } from "@/lib/decision-engine/context-builder";
 import { getSleepPhase, resolveSleepSchedule } from "@/lib/sleep/schedule";
+import { getHealthSummary } from "@/lib/health/queries";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const HISTORY_TURNS = 16;
@@ -64,12 +65,13 @@ export async function POST(request: NextRequest) {
   });
   const localTime = now.slice(11, 16);
 
-  const [{ data: checkIn }, { data: decisions }, pantry, dayType, founderNotes] = await Promise.all([
+  const [{ data: checkIn }, { data: decisions }, pantry, dayType, founderNotes, healthSummary] = await Promise.all([
     supabase.from("daily_check_ins").select("sleep_quality, energy_level, stress_level").eq("user_id", user.id).eq("date", date).maybeSingle(),
     supabase.from("decisions").select("title, status, recommended_start, recommended_end, timing_type, trigger_label").eq("user_id", user.id).eq("date", date),
     buildPantrySummary(supabase, user.id),
     inferDayType(supabase, user.id, date),
     listGeneralFounderNotes(supabase, user.id).catch(() => []),
+    getHealthSummary(supabase, user.id, { coachingOnly: true }).catch(() => null),
   ]);
 
   const context: CoachContext = {
@@ -93,6 +95,7 @@ export async function POST(request: NextRequest) {
     pantry,
     dayType,
     founderNotes,
+    healthSummary: healthSummary ?? undefined,
     sleepSchedule: {
       currentTime: localTime,
       ...sleepSchedule,

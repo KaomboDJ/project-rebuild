@@ -87,6 +87,10 @@ food-photo recognition, barcode scanning, a full calendar replacement and
 opaque predictive ML are not part of this phase. They must not delay or expand
 the release described here.
 
+Post-Phase-1 note (2026-08-11): this boundary remains historically correct.
+The founder later authorized the separate Phase 2 Health Data Bridge described
+in `docs/20_HEALTH_DATA_BRIDGE.md`; it does not retroactively expand Phase 1.
+
 ## Release gates
 
 Before merge and production activation:

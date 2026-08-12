@@ -70,12 +70,9 @@ describe("explainSessionChoice", () => {
     expect(explainSessionChoice({ session: s, profile: notMatching }).some((l) => l.includes("intensidade"))).toBe(false);
   });
 
-  it("mentions physical limitations only when the founder actually reported any", () => {
+  it("never claims that free-text physical limitations were interpreted", () => {
     const s = session({ id: "s1", workoutTypeId: "mobilidade" });
     const withLimitation = profile({ physicalLimitations: "joelho sensível" });
-    const without = profile({ physicalLimitations: "" });
-
-    expect(explainSessionChoice({ session: s, profile: withLimitation }).some((l) => l.includes("limitações"))).toBe(true);
-    expect(explainSessionChoice({ session: s, profile: without }).some((l) => l.includes("limitações"))).toBe(false);
+    expect(explainSessionChoice({ session: s, profile: withLimitation }).some((l) => l.includes("limitações"))).toBe(false);
   });
 });

@@ -57,9 +57,11 @@ Do not introduce a complex architecture before the first end-to-end decision loo
 
 ## Do not build yet
 
-- Calorie or macro tracking.
 - Complex health dashboards.
-- Wearable integrations.
+- Direct vendor-by-vendor wearable integrations beyond the authorized
+  Milestone 16 Health Data Bridge. M16 may build the provider-neutral storage,
+  consent, import and summary contracts plus a later native HealthKit/Health
+  Connect companion; it must not pretend the PWA can read native stores.
 - Social features.
 - Large achievement systems.
 - Broad multi-domain support.

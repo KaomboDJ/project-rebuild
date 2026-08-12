@@ -10,3 +10,13 @@ next-env.d.ts
 playwright-report/
 test-results/
 .git-ref-quarantine/
+android-companion/.gradle/
+android-companion/**/build/
+android-companion/local.properties
+android-companion/keystore.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+
+.vercel

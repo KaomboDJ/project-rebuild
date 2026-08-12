@@ -67,7 +67,13 @@ export function TrainingPlanView({
     try {
       const response = await fetch("/api/training/plan", { method: "POST" });
       const data = await response.json();
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        if (data.error === "physical-limitations-require-review") {
+          setError(data.message);
+          return;
+        }
+        throw new Error();
+      }
       if (data.limitedVariety) {
         setNotice("A biblioteca de sessões é pequena para todas as tuas preferências — algumas sessões repetem-se.");
       }

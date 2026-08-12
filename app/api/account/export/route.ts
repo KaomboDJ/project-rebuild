@@ -23,6 +23,9 @@ const USER_TABLES = [
   "notification_preferences",
   "notification_deliveries",
   "calendar_sources",
+  "health_sources",
+  "health_observations",
+  "health_sync_runs",
 ] as const;
 
 /**
@@ -58,10 +61,20 @@ export async function GET() {
     return NextResponse.json({ error: "export-failed" }, { status: 500 });
   }
 
+  const { data: companionDevices, error: companionError } = await admin
+    .from("companion_devices")
+    .select("id,device_name,status,scopes,expires_at,last_seen_at,revoked_at,created_at,updated_at")
+    .eq("user_id", user.id);
+  if (companionError) return NextResponse.json({ error: "export-failed" }, { status: 500 });
+
   const payload = {
     exportedAt: new Date().toISOString(),
     account: { id: user.id, email: user.email ?? null, createdAt: user.created_at },
-    data: Object.fromEntries([...results, ["calendar_connections", calendarConnections ?? []]]),
+    data: Object.fromEntries([
+      ...results,
+      ["calendar_connections", calendarConnections ?? []],
+      ["companion_devices", companionDevices ?? []],
+    ]),
   };
 
   const date = payload.exportedAt.slice(0, 10);

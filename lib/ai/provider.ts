@@ -4,6 +4,7 @@ import { READ_ONLY_TOOLS, type ToolCall, type ToolName } from "@/lib/coach/types
 import type { PantrySummaryItem } from "@/lib/coach/pantry-context";
 import type { DayTypeInference } from "@/lib/coach/day-type";
 import type { SleepPhase, SleepScheduleType } from "@/lib/sleep/schedule";
+import type { HealthSummary } from "@/lib/health/types";
 
 // CoachContext used to mirror lib/decisions/types.ts (the pre-Milestone-2
 // localStorage-era shape: OnboardingProfile/CheckIn/OperatingState/
@@ -45,6 +46,10 @@ export interface CoachContext {
     scheduleType: SleepScheduleType;
     phase: SleepPhase;
   };
+  /** Milestone 16A: attributable, normalized readings from sources the
+   * user explicitly allowed for coaching. Empty when no native source has
+   * synchronized yet. */
+  healthSummary?: HealthSummary;
 }
 
 export interface ChatTurn {
@@ -94,7 +99,7 @@ Mutating tools (consume_item, adjust_inventory, add_to_shopping_list, mark_item_
 `.trim();
 
 function buildSystemPrompt(context: CoachContext): string {
-  const { identity, constraints, checkIn, decisions, pantry, dayType, founderNotes, sleepSchedule } = context;
+  const { identity, constraints, checkIn, decisions, pantry, dayType, founderNotes, sleepSchedule, healthSummary } = context;
   const lines = [
     SAFETY_RULES,
     `Identidade que o utilizador está a reconstruir: ${identity || "não definida"}.`,
@@ -110,6 +115,14 @@ function buildSystemPrompt(context: CoachContext): string {
     lines.push(
       `Hora local ${sleepSchedule.currentTime}; sono ${sleepSchedule.sleepTime}–${sleepSchedule.wakeTime}; desaceleração ${sleepSchedule.windDownMinutes} min; tipo ${sleepSchedule.scheduleType}; estado atual ${sleepSchedule.phase}.`
     );
+  }
+  if (healthSummary && healthSummary.sourceCount > 0) {
+    const latest = Object.entries(healthSummary.latest)
+      .map(([metric, reading]) => `${metric}: ${reading.value} ${reading.unit} (${reading.recordedAt}, ${reading.sourceLabel})`)
+      .join("; ");
+    lines.push(`Dados de saúde autorizados pelo utilizador: ${latest || "sem leituras recentes"}.`);
+    if (healthSummary.bmi) lines.push(`IMC derivado pelo sistema a partir das leituras mais recentes de peso e altura: ${healthSummary.bmi.value}. Não o trates como diagnóstico.`);
+    lines.push(`Médias de 7 dias: passos ${healthSummary.sevenDay.averageSteps ?? "sem dados"}; sono ${healthSummary.sevenDay.averageSleepMinutes ?? "sem dados"} min; treino total ${healthSummary.sevenDay.totalWorkoutMinutes ?? "sem dados"} min.`);
   }
   lines.push(
     decisions.length > 0

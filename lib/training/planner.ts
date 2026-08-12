@@ -2,9 +2,10 @@
 // request 2026-08-05). Pure and synchronous - no AI call, no network -
 // same "explicit rules and logged outcomes" principle CLAUDE.md applies to
 // the Decision Engine, mirrored by lib/nutrition/planner.ts for meals:
-// session *selection* is never delegated to an LLM (keeps the founder's
-// physical-limitation context enforced by code, not by a model's best
-// effort, and avoids inventing an exercise prescription). If an AI layer
+// session *selection* is never delegated to an LLM. Free-text physical
+// limitations are not safely machine-interpretable, so their presence
+// blocks automatic selection instead of pretending the planner can infer
+// contraindications. If an AI layer
 // is ever added on top of this (e.g. to write a friendlier weekly
 // summary), it must only rephrase what this module already chose, never
 // choose differently - the same contract lib/nutrition/planner.ts and
@@ -47,6 +48,10 @@ export function candidatesForTrainingDay(
   sessions: WorkoutSession[],
   profile: TrainingProfile
 ): { candidates: WorkoutSession[]; relaxed: boolean } {
+  if (profile.physicalLimitations.trim().length > 0) {
+    return { candidates: [], relaxed: false };
+  }
+
   const hardFiltered =
     profile.preferredCategories.length > 0
       ? sessions.filter((s) => profile.preferredCategories.includes(s.workoutTypeId))
@@ -84,6 +89,9 @@ export function generateWeekTrainingPlan(params: {
   carryOverSessionIds?: string[];
 }): WeekTrainingPlanResult {
   const { weekStart, profile, sessions, trainingDaysOfWeek, carryOverSessionIds = [] } = params;
+  if (profile.physicalLimitations.trim().length > 0) {
+    return { weekStart, items: [], limitedVariety: false, blockedByPhysicalLimitations: true };
+  }
   const { candidates, relaxed } = candidatesForTrainingDay(sessions, profile);
   const window = varietyWindow(profile.varietyPreference);
 
@@ -91,7 +99,7 @@ export function generateWeekTrainingPlan(params: {
     // Nothing in the curated library satisfies this founder's preferred
     // categories at all - leave every day unplanned rather than picking
     // outside what the founder said they actually do.
-    return { weekStart, items: [], limitedVariety: true };
+    return { weekStart, items: [], limitedVariety: true, blockedByPhysicalLimitations: false };
   }
 
   const items: PlannedTrainingSlot[] = [];
@@ -117,7 +125,7 @@ export function generateWeekTrainingPlan(params: {
     recentlyUsed.push(pick.id);
   }
 
-  return { weekStart, items, limitedVariety };
+  return { weekStart, items, limitedVariety, blockedByPhysicalLimitations: false };
 }
 
 /**
