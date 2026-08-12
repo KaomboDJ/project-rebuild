@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireSetupComplete } from "@/lib/setup/guard";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CalendarDays, PackageCheck, ShoppingBasket, Sparkles } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFounderNow } from "@/lib/date/founder-now";
 import { getWeekRange } from "@/lib/date/ranges";
@@ -19,6 +19,7 @@ import {
 import { deriveNutritionJourney } from "@/lib/nutrition/journey";
 import { pluralizePt } from "@/lib/format/pluralize";
 import { FirstUseCallout } from "@/components/ui/FirstUseCallout";
+import { ProgressRing } from "@/components/ui/ProgressRing";
 import { NutritionProfileForm } from "@/components/nutrition/NutritionProfileForm";
 import { PantryList } from "@/components/nutrition/PantryList";
 import { MealPlanView } from "@/components/nutrition/MealPlanView";
@@ -77,16 +78,55 @@ export default async function NutritionDashboardPage() {
   });
 
   return (
-    <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
-      <div>
-        <p className="text-sm uppercase tracking-wide text-neutral-400">Alimentação</p>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Prepara a semana sem decisões repetidas
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
-          Define o contexto uma vez. O Rebuild usa o teu perfil, o que já tens em casa e o plano
-          semanal para preparar apenas as compras necessárias.
-        </p>
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-5 sm:px-6 md:py-8 lg:px-8">
+      <div className="consumer-hero p-5 sm:p-7">
+        <Sparkles
+          className="pointer-events-none absolute -right-5 -top-5 text-amber-300/[0.07]"
+          size={140}
+          aria-hidden="true"
+        />
+        <div className="relative grid items-center gap-6 md:grid-cols-[1fr_auto]">
+          <div>
+            <p className="consumer-kicker text-amber-300/90">Alimentação inteligente</p>
+            <h1 className="mt-2 max-w-3xl text-3xl font-bold tracking-[-0.035em] text-white sm:text-4xl">
+              A tua semana pronta, sem decisões repetidas
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
+              O perfil define as regras, a despensa evita desperdício e o plano transforma tudo numa
+              lista de compras simples.
+            </p>
+            <div className="mt-6 grid grid-cols-3 gap-2 sm:max-w-xl sm:gap-3">
+              <div className="metric-card">
+                <PackageCheck size={15} className="text-emerald-300" />
+                <p className="mt-2 text-lg font-bold tabular-nums text-white">{available}</p>
+                <p className="text-[11px] text-neutral-500">na despensa</p>
+              </div>
+              <div className="metric-card">
+                <CalendarDays size={15} className="text-violet-300" />
+                <p className="mt-2 text-lg font-bold tabular-nums text-white">
+                  {planResponse.items.length}
+                </p>
+                <p className="text-[11px] text-neutral-500">refeições</p>
+              </div>
+              <div className="metric-card">
+                <ShoppingBasket size={15} className="text-amber-300" />
+                <p className="mt-2 text-lg font-bold tabular-nums text-white">
+                  {shoppingItems.length}
+                </p>
+                <p className="text-[11px] text-neutral-500">para comprar</p>
+              </div>
+            </div>
+          </div>
+          <div className="hidden rounded-3xl border border-amber-300/10 bg-black/15 p-5 sm:block">
+            <ProgressRing
+              value={(journey.completedCount / 4) * 100}
+              label="Semana preparada"
+              detail={`${journey.completedCount}/4 passos`}
+              size="lg"
+              tone="amber"
+            />
+          </div>
+        </div>
       </div>
 
       <FirstUseCallout id="nutrition-journey">
@@ -96,7 +136,7 @@ export default async function NutritionDashboardPage() {
 
       <NutritionJourney state={journey} />
 
-      <section id="profile" className="scroll-mt-6 border-t border-white/[0.06] pt-8">
+      <section id="profile" className="surface-card scroll-mt-24 p-4 sm:p-6">
         <NutritionSectionHeading step="profile" complete={journey.statuses.profile === "complete"}>
           Diz ao Rebuild o objetivo, preferências e restrições que devem orientar todas as
           sugestões.
@@ -104,7 +144,7 @@ export default async function NutritionDashboardPage() {
         <NutritionProfileForm initialProfile={profile} />
       </section>
 
-      <section id="pantry" className="scroll-mt-6 border-t border-white/[0.06] pt-8">
+      <section id="pantry" className="surface-card scroll-mt-24 p-4 sm:p-6">
         <NutritionSectionHeading step="pantry" complete={journey.statuses.pantry === "complete"}>
           Regista quantidades aproximadas. Assim o Coach sugere o que existe e evita compras
           duplicadas.
@@ -134,7 +174,7 @@ export default async function NutritionDashboardPage() {
         <PantryList initialItems={pantryItems} />
       </section>
 
-      <section id="plan" className="scroll-mt-6 border-t border-white/[0.06] pt-8">
+      <section id="plan" className="surface-card scroll-mt-24 p-4 sm:p-6">
         <NutritionSectionHeading step="plan" complete={journey.statuses.plan === "complete"}>
           Gera sete dias de refeições a partir do perfil. Os macros apresentados são estimativas.
         </NutritionSectionHeading>
@@ -147,7 +187,7 @@ export default async function NutritionDashboardPage() {
         />
       </section>
 
-      <section id="shopping" className="scroll-mt-6 border-t border-white/[0.06] pt-8">
+      <section id="shopping" className="surface-card scroll-mt-24 p-4 sm:p-6">
         <NutritionSectionHeading
           step="shopping"
           complete={journey.statuses.shopping === "complete"}
