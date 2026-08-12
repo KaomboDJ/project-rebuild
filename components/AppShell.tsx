@@ -31,25 +31,37 @@ export function AppShell({
       >
         Saltar para o conteúdo
       </a>
-      <AppNav calendarConnected={calendarConnected} setupStage={setupStage} progression={progression} />
+      <AppNav
+        calendarConnected={calendarConnected}
+        setupStage={setupStage}
+        progression={progression}
+      />
       <AppGuide />
       {/* Slim top bar, mobile only - the sidebar already carries the brand
           on desktop. Bottom padding on <main> reserves space for the fixed
           mobile tab bar so the last card is never hidden behind it. */}
-      <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 md:hidden">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-app/80 px-4 py-3 backdrop-blur-xl md:hidden">
         <Link href="/home" className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-700 text-[10px] font-bold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-700 text-[10px] font-black text-[#04110d] shadow-lg shadow-emerald-950/50">
             R
           </span>
-          <span className="text-sm font-semibold tracking-tight">Rebuild</span>
+          <span className="text-sm font-semibold tracking-tight text-white">Rebuild</span>
         </Link>
-        {email && <span className="text-xs text-neutral-400">{email}</span>}
+        {email && (
+          <span className="max-w-40 truncate rounded-full border border-white/[0.06] bg-white/[0.035] px-3 py-1.5 text-[11px] text-neutral-400">
+            {email}
+          </span>
+        )}
       </header>
       <div className="md:pl-60">
-        <header className="hidden items-center justify-end border-b border-white/[0.06] px-8 py-3 md:flex">
-          {email && <span className="text-xs text-neutral-400">{email}</span>}
+        <header className="hidden items-center justify-end border-b border-white/[0.06] bg-app/70 px-8 py-3 backdrop-blur-xl md:flex">
+          {email && (
+            <span className="rounded-full bg-white/[0.035] px-3 py-1.5 text-xs text-neutral-400">
+              {email}
+            </span>
+          )}
         </header>
-        <div id="main-content" tabIndex={-1} className="pb-20 outline-none md:pb-8">
+        <div id="main-content" tabIndex={-1} className="pb-28 outline-none md:pb-8">
           {children}
         </div>
       </div>

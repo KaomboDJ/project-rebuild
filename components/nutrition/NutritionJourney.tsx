@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Check,
   ChevronRight,
+  PartyPopper,
   ListChecks,
   ShoppingCart,
   UserCog,
@@ -26,14 +27,23 @@ const STEP_META: Record<
 
 export function NutritionJourney({ state }: { state: NutritionJourneyState }) {
   return (
-    <nav aria-label="Progresso da alimentação" className="surface-card overflow-hidden p-2">
-      <div className="mb-2 flex items-center justify-between px-2 pt-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
-          A tua preparação
+    <nav aria-label="Progresso da alimentação" className="surface-card overflow-hidden p-3 sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <div>
+          <p className="consumer-kicker text-amber-300/90">A tua preparação</p>
+          <p className="mt-1 text-sm font-medium text-neutral-200">
+            {state.completedCount === 4 ? "A semana está pronta" : "Continua de onde paraste"}
+          </p>
+        </div>
+        <p className="rounded-full bg-white/[0.045] px-3 py-1.5 text-xs font-semibold tabular-nums text-neutral-300">
+          {state.completedCount}/4
         </p>
-        <p className="text-xs tabular-nums text-neutral-400">
-          {state.completedCount}/4 passos preparados
-        </p>
+      </div>
+      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-black/25">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 transition-[width] duration-700"
+          style={{ width: `${(state.completedCount / 4) * 100}%` }}
+        />
       </div>
       <div className="grid gap-1 sm:grid-cols-4">
         {(Object.keys(STEP_META) as NutritionJourneyStep[]).map((step) => {
@@ -45,18 +55,20 @@ export function NutritionJourney({ state }: { state: NutritionJourneyState }) {
               key={step}
               href={`#${step}`}
               aria-current={status === "current" ? "step" : undefined}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition ${
+              className={`group flex items-center gap-3 rounded-2xl border px-3 py-3 transition ${
                 status === "current"
-                  ? "bg-emerald-500/10 text-emerald-100"
-                  : "text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-200"
+                  ? "border-amber-400/20 bg-amber-400/[0.07] text-amber-100"
+                  : status === "complete"
+                    ? "border-emerald-400/10 bg-emerald-400/[0.035] text-neutral-300"
+                    : "border-transparent text-neutral-500 hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-neutral-200"
               }`}
             >
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                   status === "complete"
-                    ? "bg-emerald-500/15 text-emerald-400"
+                    ? "bg-emerald-500/15 text-emerald-300"
                     : status === "current"
-                      ? "bg-emerald-500/20 text-emerald-300"
+                      ? "bg-amber-400/15 text-amber-300"
                       : "bg-white/[0.04] text-neutral-500"
                 }`}
               >
@@ -126,13 +138,13 @@ export function JourneySuccess({
   action: string;
 }) {
   return (
-    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.07] p-4">
+    <div className="relative overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-r from-emerald-400/[0.1] to-teal-400/[0.04] p-4">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
-          <Check size={14} />
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300">
+          <PartyPopper size={15} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-emerald-100">{children}</p>
+          <p className="text-sm font-medium text-emerald-50">{children}</p>
           <Link
             href={href}
             className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200"

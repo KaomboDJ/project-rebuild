@@ -3,16 +3,31 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    --rebuild-emerald: 52 211 153;
+    --rebuild-teal: 20 184 166;
+    --rebuild-blue: 96 165 250;
+    --rebuild-amber: 251 191 36;
+    --rebuild-violet: 167 139 250;
+  }
+
   body {
-    /* A faint top-of-page glow, the kind of subtle depth Linear/Notion use
-       on an otherwise flat dark canvas - stays fixed so it doesn't scroll
-       with content. */
-    background-image: radial-gradient(
-      ellipse 1200px 600px at 50% -10%,
-      rgb(16 185 129 / 0.06),
-      transparent 60%
-    );
+    background-color: #080a0d;
+    background-image:
+      radial-gradient(
+        ellipse 900px 520px at 15% -8%,
+        rgb(var(--rebuild-emerald) / 0.1),
+        transparent 62%
+      ),
+      radial-gradient(
+        ellipse 700px 460px at 95% 12%,
+        rgb(var(--rebuild-violet) / 0.055),
+        transparent 60%
+      ),
+      linear-gradient(180deg, #090b0f 0%, #08090c 52%, #07080a 100%);
     background-attachment: fixed;
+    min-height: 100vh;
   }
 
   ::selection {
@@ -62,19 +77,19 @@
      white over the dark canvas rather than a flat neutral fill, so surfaces
      read as "floating" the way Linear/Notion panels do. */
   .surface-card {
-    @apply rounded-2xl border border-white/[0.06] bg-white/[0.03] shadow-card;
+    @apply rounded-3xl border border-white/[0.07] bg-white/[0.035] shadow-card backdrop-blur-sm;
   }
 
   .surface-card-hover {
-    @apply transition hover:border-white/[0.1] hover:bg-white/[0.045];
+    @apply transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-white/[0.055];
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-emerald-950/40 transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/30 transition duration-200 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:border-white/15 hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-2.5 text-sm font-medium text-neutral-200 transition duration-200 hover:border-white/15 hover:bg-white/[0.08] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-ghost {
@@ -99,7 +114,7 @@
   }
 
   .field-input {
-    @apply w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-400 transition focus:border-emerald-500/40 focus:outline-none focus:ring-4 focus:ring-emerald-500/10;
+    @apply w-full rounded-2xl border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 transition focus:border-emerald-400/50 focus:outline-none focus:ring-4 focus:ring-emerald-400/10;
   }
 
   .field-label {
@@ -116,6 +131,30 @@
 
   .chip-inactive {
     @apply border-white/10 bg-white/[0.02] text-neutral-400 hover:border-white/20 hover:text-neutral-200;
+  }
+
+  .consumer-hero {
+    @apply relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-gradient-to-br from-white/[0.075] via-white/[0.04] to-emerald-500/[0.055] shadow-2xl shadow-black/25;
+  }
+
+  .consumer-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/90;
+  }
+
+  .metric-card {
+    @apply rounded-2xl border border-white/[0.07] bg-black/15 p-3.5;
+  }
+
+  .mobile-dock-item {
+    @apply flex min-h-[4.25rem] flex-col items-center justify-center gap-1 text-[10px] font-medium text-neutral-500 transition active:scale-95;
+  }
+
+  .mobile-dock-item.is-active {
+    @apply text-emerald-300;
+  }
+
+  .timeline-dot {
+    @apply relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 shadow-lg shadow-black/20;
   }
 
   /* Coach message Markdown rendering (components/coach/MarkdownMessage.tsx).
