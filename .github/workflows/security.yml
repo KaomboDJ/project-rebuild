@@ -54,7 +54,7 @@ jobs:
         run: node scripts/security/check-codeql-sarif.mjs codeql-results/javascript.sarif
       - name: Upload CodeQL evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeql-sarif
           path: codeql-results/*.sarif
@@ -80,7 +80,7 @@ jobs:
         run: gradle -p android-companion assembleDebug
       - name: Upload reports (never distribute debug APK)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-security-reports
           path: |
