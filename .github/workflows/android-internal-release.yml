@@ -68,7 +68,7 @@ jobs:
           sha256sum rebuild-companion-internal.apk > rebuild-companion-internal.apk.sha256
 
       - name: Upload private release candidate
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rebuild-companion-signed-candidate
           path: release-evidence/
